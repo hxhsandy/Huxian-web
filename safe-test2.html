@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="安全區測試2">
+<title>安全區測試2</title>
+<style>
+/* 安全區測試頁 2（不是遊戲）：第一版發現主畫面模式下，網頁只有 797 高、最下面空出 47 的白條。
+   這版：html 塗深灰（看白條會不會變灰＝那塊畫得到），再用四種高度單位各放一個色塊，看哪一種能碰到螢幕最底。 */
+html{margin:0;padding:0;height:100%;background:#2b2b2b}
+body{margin:0;padding:0;height:100%;overflow:hidden;background:linear-gradient(180deg,#ff5fa2 0%,#ffb35c 30%,#6fe3c2 70%,#5b8cff 100%);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;color:#1a1033}
+#eTop{position:fixed;left:0;right:0;top:0;height:6px;background:#e00}
+.u{position:absolute;height:14px;font:bold 11px/14px -apple-system,sans-serif;color:#fff;padding:0 6px;border-radius:0 0 6px 6px}
+/* 每個色塊的「下緣」＝該單位的 100%：色塊底部碰到螢幕最底，就是那個單位量得到整個螢幕 */
+#uPct{left:2%;  top:calc(100% - 14px);  background:#0a0}
+#uVh {left:26%; top:calc(100vh - 14px); background:#d000d0}
+#uLvh{left:50%; top:calc(100lvh - 14px);background:#0070e0}
+#uDvh{left:74%; top:calc(100dvh - 14px);background:#e07000}
+#box{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(330px,88vw);padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.9);box-shadow:0 6px 24px rgba(0,0,0,.18)}
+#box h1{margin:0 0 6px;font-size:17px}
+#box dl{display:grid;grid-template-columns:auto 1fr;gap:1px 12px;margin:0}
+#box dt{opacity:.65}#box dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+#box p{margin:8px 0 0;font-size:12.5px;opacity:.8}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+#m{position:fixed;visibility:hidden;left:0;top:0;width:1px}
+</style>
+</head>
+<body>
+<div id="eTop"></div>
+<div id="uPct" class="u">%</div><div id="uVh" class="u">vh</div><div id="uLvh" class="u">lvh</div><div id="uDvh" class="u">dvh</div>
+<div id="m"></div>
+<div id="box">
+  <h1>安全區測試 2</h1>
+  <dl>
+    <dt>開啟方式</dt><dd id="mode">…</dd>
+    <dt>安全區</dt><dd id="ins">…</dd>
+    <dt>剛打開時</dt><dd id="first">…</dd>
+    <dt>螢幕</dt><dd id="scr">…</dd>
+    <dt>innerHeight</dt><dd id="ih">…</dd>
+    <dt><span class="sw" style="background:#0a0"></span>100%</dt><dd id="pct">…</dd>
+    <dt><span class="sw" style="background:#d000d0"></span>100vh</dt><dd id="vh">…</dd>
+    <dt><span class="sw" style="background:#0070e0"></span>100lvh</dt><dd id="lvh">…</dd>
+    <dt><span class="sw" style="background:#e07000"></span>100dvh</dt><dd id="dvh">…</dd>
+    <dt>系統</dt><dd id="os">…</dd>
+  </dl>
+  <p>請看最下面：哪幾個色塊碰得到螢幕最底？最下面那條是灰色還是白色？</p>
+</div>
+<script>
+var m=document.getElementById('m');
+function unit(u){m.style.height='100'+u;var h=m.getBoundingClientRect().height;return Math.round(h)||'不支援';}
+function ins(){m.style.height='0';m.style.paddingTop='env(safe-area-inset-top,0px)';m.style.paddingBottom='env(safe-area-inset-bottom,0px)';
+  var s=getComputedStyle(m),r={t:Math.round(parseFloat(s.paddingTop)||0),b:Math.round(parseFloat(s.paddingBottom)||0)};m.style.padding='0';return r;}
+var f=ins();document.getElementById('first').textContent='上 '+f.t+'　下 '+f.b;
+function show(){
+  var sa=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches,i=ins();
+  document.getElementById('mode').textContent=sa?'主畫面（全螢幕）':'瀏覽器';
+  document.getElementById('ins').textContent='上 '+i.t+'　下 '+i.b;
+  document.getElementById('scr').textContent=screen.width+' × '+screen.height;
+  document.getElementById('ih').textContent=innerHeight+'（visualViewport '+(window.visualViewport?Math.round(visualViewport.height):'-')+'）';
+  document.getElementById('pct').textContent=Math.round(document.documentElement.getBoundingClientRect().height);
+  document.getElementById('vh').textContent=unit('vh');document.getElementById('lvh').textContent=unit('lvh');document.getElementById('dvh').textContent=unit('dvh');
+  var mm=navigator.userAgent.match(/OS (\d+)_(\d+)/);document.getElementById('os').textContent=mm?('iOS '+mm[1]+'.'+mm[2]):navigator.platform;
+}
+show();addEventListener('resize',show);setTimeout(show,500);setTimeout(show,1500);
+if(window.ResizeObserver)new ResizeObserver(show).observe(document.body);
+</script>
+</body>
+</html>
