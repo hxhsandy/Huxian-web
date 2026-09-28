@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="安全區測試">
+<title>安全區測試</title>
+<style>
+/* 安全區測試頁（不是遊戲）：整頁塗滿，不留任何安全區內距，看手機上下能不能畫滿 */
+html,body{margin:0;padding:0;height:100%;overflow:hidden}
+body{background:linear-gradient(180deg,#ff5fa2 0%,#ffb35c 30%,#6fe3c2 70%,#5b8cff 100%);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;color:#1a1033}
+/* 螢幕最上、最下的邊：看得到代表畫面真的畫到最邊邊 */
+.edge{position:fixed;left:0;right:0;height:6px}
+#eTop{top:0;background:#e00}#eBot{bottom:0;background:#0a0}
+/* 安全區的界線（虛線）：遊戲的按鈕之後要躲在這兩條線裡面 */
+.line{position:fixed;left:0;right:0;border-top:2px dashed #1a1033}
+#lTop{top:env(safe-area-inset-top,0px)}#lBot{bottom:env(safe-area-inset-bottom,0px)}
+#probe{position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+#box{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,86vw);padding:16px 18px;border-radius:16px;
+  background:rgba(255,255,255,.88);box-shadow:0 6px 24px rgba(0,0,0,.18)}
+#box h1{margin:0 0 8px;font-size:18px}
+#box dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0}
+#box dt{opacity:.65}#box dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+#box p{margin:10px 0 0;font-size:13px;opacity:.75}
+</style>
+</head>
+<body>
+<div id="eTop" class="edge"></div><div id="eBot" class="edge"></div>
+<div id="lTop" class="line"></div><div id="lBot" class="line"></div>
+<div id="probe"></div>
+<div id="box">
+  <h1>安全區測試</h1>
+  <dl>
+    <dt>開啟方式</dt><dd id="mode">…</dd>
+    <dt>上安全區</dt><dd id="top">…</dd>
+    <dt>下安全區</dt><dd id="bot">…</dd>
+    <dt>剛打開時</dt><dd id="first">…</dd>
+    <dt>畫面大小</dt><dd id="size">…</dd>
+    <dt>螢幕大小</dt><dd id="scr">…</dd>
+    <dt>系統</dt><dd id="os">…</dd>
+  </dl>
+  <p>紅線＝螢幕最上緣、綠線＝最下緣；看得到就代表畫面畫到最邊邊。虛線是安全區的界線。</p>
+</div>
+<script>
+var probe=document.getElementById('probe');
+function px(v){return Math.round(parseFloat(v)||0);}
+function read(){var s=getComputedStyle(probe);return {t:px(s.paddingTop),b:px(s.paddingBottom)};}
+var first=read();
+document.getElementById('first').textContent='上 '+first.t+'　下 '+first.b;
+function show(){
+  var r=read(),sa=window.navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+  document.getElementById('mode').textContent=sa?'主畫面（全螢幕）':'瀏覽器';
+  document.getElementById('top').textContent=r.t+' px';
+  document.getElementById('bot').textContent=r.b+' px';
+  document.getElementById('size').textContent=innerWidth+' × '+innerHeight;
+  document.getElementById('scr').textContent=screen.width+' × '+screen.height+'（×'+devicePixelRatio+'）';
+  var m=navigator.userAgent.match(/OS (\d+)_(\d+)/);document.getElementById('os').textContent=m?('iOS '+m[1]+'.'+m[2]):navigator.platform;
+}
+show();addEventListener('resize',show);setTimeout(show,500);setTimeout(show,1500);
+if(window.ResizeObserver)new ResizeObserver(show).observe(document.body);
+</script>
+</body>
+</html>
