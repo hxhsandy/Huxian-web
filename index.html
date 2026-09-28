@@ -5108,6 +5108,10 @@ function layout(){
   comboEl.style.top=(L.teamY-46)+'px';toastEl.style.top=(L.boardY+L.boardH*0.45)+'px';bannerEl.style.top=(L.battleY+L.battleH*0.5)+'px';
 }
 window.addEventListener('resize',layout);
+/* 加到主畫面（全螢幕）時，手機上下的安全區內距常在第一次排版之後才生效，而且不會觸發 resize：
+   畫面變矮了卻沒重新排版，觸控對不準格子、隊伍血條壓到盤面（2026-09-28 使用者回報）。
+   所以改成看畫面實際的大小，變了就重新排版；大小沒變就不動。 */
+if(window.ResizeObserver)new ResizeObserver(function(){var bh=document.body.clientHeight,bw=Math.min(window.innerWidth,Math.round(bh*(DEV_ASPECT||0.5625)));if(bh!==L.H||bw!==L.W)layout();}).observe(document.body);
 
 /* =====================================================================
    動畫小工具
