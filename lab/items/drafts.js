@@ -1,4 +1,26 @@
 // 飾品實驗室草稿。正式 FOX_ITEMS 由遊星驗收後接入。
+function roundedSweep(T, curve, steps, sides, radiusAt, depthRatio) {
+  var frames = curve.computeFrenetFrames(steps, false), positions = [], indices = [];
+  for (var i = 0; i <= steps; i++) {
+    var u = i / steps, p = curve.getPointAt(u), radius = radiusAt(u);
+    for (var j = 0; j < sides; j++) {
+      var a = j / sides * Math.PI * 2;
+      var v = p.clone()
+        .addScaledVector(frames.normals[i], Math.cos(a) * radius)
+        .addScaledVector(frames.binormals[i], Math.sin(a) * radius * depthRatio);
+      positions.push(v.x, v.y, v.z);
+      if (i < steps) {
+        var next = i * sides + (j + 1) % sides, here = i * sides + j;
+        indices.push(here, next, here + sides, next, next + sides, here + sides);
+      }
+    }
+  }
+  var geo = new T.BufferGeometry();
+  geo.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
 window.ITEM_LAB_DRAFTS = [
   { id: 'peach-wreath', slot: 'tail', name: '桃花花圈',
     desc: '折下來的桃枝。桃夭說，折枝的人要記得回來還。',
@@ -309,13 +331,21 @@ window.ITEM_LAB_DRAFTS = [
         face.position.copy(flat).multiplyScalar(r + 0.035);
         face.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
       }
-      var sh = new T.Shape();
-      sh.moveTo(0, -0.052);
-      sh.bezierCurveTo(-0.057, -0.055, -0.073, 0.002, -0.042, 0.042);
-      sh.bezierCurveTo(-0.048, 0.016, -0.006, 0.066, -0.014, 0.113);
-      sh.bezierCurveTo(0.014, 0.091, 0.045, 0.067, 0.031, 0.03);
-      sh.bezierCurveTo(0.073, 0.058, 0.071, -0.049, 0, -0.052);
-      var bodyGeo = new T.ExtrudeGeometry(sh, { depth: 0.026, bevelEnabled: true, bevelThickness: 0.013, bevelSize: 0.006, bevelSegments: 2, curveSegments: 12 });
+      var profile = [[0, -0.06], [0.031, -0.054], [0.05, -0.031], [0.058, 0.002],
+        [0.053, 0.035], [0.038, 0.062], [0.022, 0.084], [0.012, 0.11], [0, 0.137]];
+      var mainGeo = new T.LatheGeometry(profile.map(function (p) { return new T.Vector2(p[0], p[1]); }), 20);
+      var vertices = mainGeo.getAttribute('position');
+      for (var k = 0; k < vertices.count; k++) {
+        var y = vertices.getY(k), rise = Math.max(0, (y + 0.06) / 0.197);
+        vertices.setX(k, vertices.getX(k) + 0.022 * rise * rise);
+      }
+      vertices.needsUpdate = true; mainGeo.computeVertexNormals();
+      var tongue = mainGeo.clone();
+      tongue.applyMatrix4(new T.Matrix4().compose(
+        new T.Vector3(0.046, 0.012, -0.008),
+        new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), -0.38),
+        new T.Vector3(0.43, 0.58, 0.48)));
+      var bodyGeo = L.mergeGeos([mainGeo, tongue]);
       var bodyMat = L.toon(0x56cdb5, { emissive: 0x176d67 });
       var coreMat = L.toon(0xb9ffe3, { emissive: 0x4ccfaf });
       [0, 1].forEach(function (i) {
@@ -325,8 +355,8 @@ window.ITEM_LAB_DRAFTS = [
         face.add(flame);
         flame.add(L.itemPart(bodyGeo, bodyMat, L.outlineMat(0x236f70, 0.0035)));
         var core = L.itemPart(L.SPH_LO, coreMat, false);
-        core.scale.set(0.027, 0.039, 0.007);
-        core.position.set(0, -0.008, 0.045);
+        core.scale.set(0.027, 0.039, 0.021);
+        core.position.set(0, -0.008, 0.046);
         flame.add(core);
         var glow = L.sprite(flame, L.glowTex, 0x73ffe0, 0.29, true);
         glow.position.z = -0.055;
@@ -347,16 +377,16 @@ window.ITEM_LAB_DRAFTS = [
 
   { id: 'phosphor-beads', slot: 'neck', name: '燐火珠串',
     desc: '一串會發光的珠子。青燐說，是在路上撿的燈火，每一顆都往同一個方向亮。',
-    note: '五顆大珠排成微笑弧；中間三顆較大，正中紅珠輕微發光。',
+    note: '五顆大珠排成微笑弧；中間三顆較大，墨綠珠配中央暗紅微光。',
     build: function (anchor, L) {
       var T = L.THREE, g = new T.Group();
-      var green = L.toon(0x277d65, { emissive: 0x123c38 });
-      var red = L.toon(0xc9344d, { emissive: 0x531023 });
+      var green = L.toon(0x164b3d, { emissive: 0x071d18 });
+      var red = L.toon(0x852b3b, { emissive: 0x310b16 });
       var beads = [[-0.108, 0.008, 0.023], [-0.056, -0.031, 0.032], [0, -0.05, 0.037], [0.056, -0.031, 0.032], [0.108, 0.008, 0.023]];
       var greenGeos = [];
       beads.forEach(function (p, i) {
         if (i === 2) {
-          var center = L.itemPart(L.SPH_LO, red, L.outlineMat(0x8b263b, 0.003));
+          var center = L.itemPart(L.SPH_LO, red, L.outlineMat(0x501927, 0.003));
           center.scale.setScalar(p[2]); center.position.set(p[0], p[1], 0.016);
           g.add(center);
         } else {
@@ -365,10 +395,10 @@ window.ITEM_LAB_DRAFTS = [
           geo.translate(p[0], p[1], 0.016); greenGeos.push(geo);
         }
       });
-      g.add(L.itemPart(L.mergeGeos(greenGeos), green, L.outlineMat(0x145544, 0.003)));
+      g.add(L.itemPart(L.mergeGeos(greenGeos), green, L.outlineMat(0x0b3028, 0.003)));
       var glow = L.sprite(g, L.glowTex, 0xff6675, 0.25, true);
       glow.position.set(0, -0.05, -0.006); glow.scale.set(0.17, 0.17, 1);
-      g.position.set(0, -0.035, 0.006);
+      g.position.set(0, -0.015, 0.006);
       g.userData.glow = glow;
       return g;
     },
@@ -376,42 +406,53 @@ window.ITEM_LAB_DRAFTS = [
 
   { id: 'spider-lily', slot: 'head', name: '彼岸花',
     desc: '聞起來什麼味道都沒有，好像忘了什麼。',
-    note: '頭頂一大朵緞帶形紅色彼岸花，捲瓣與花蕊像小髮飾。',
+    note: '頭頂一大朵放射狀彼岸花；獨立彎曲的圓潤立體花瓣，側面也有花形。',
     build: function (anchor, L) {
       var T = L.THREE, g = new T.Group(), bloom = new T.Group();
       g.add(bloom);
-      var petal = new T.Shape();
-      petal.moveTo(-0.009, 0);
-      petal.bezierCurveTo(-0.036, 0.04, -0.033, 0.104, -0.008, 0.145);
-      petal.bezierCurveTo(0.002, 0.157, 0.026, 0.154, 0.028, 0.132);
-      petal.bezierCurveTo(-0.002, 0.117, 0.008, 0.071, 0.009, 0);
-      petal.closePath();
-      var petalGeo = new T.ExtrudeGeometry(petal, { depth: 0.011, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.003, bevelSegments: 2, curveSegments: 12 });
-      var red = L.toon(0xa92947, { emissive: 0x37101e });
-      var petalGeos = [];
-      [-1.04, -0.62, -0.24, 0.2, 0.62, 1.04].forEach(function (a, i) {
-        var geo = petalGeo.clone();
-        var pos = new T.Vector3((i - 2.5) * 0.012, 0, i % 2 ? 0.018 : 0.002);
-        var rot = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), a);
-        var scale = new T.Vector3(i === 2 || i === 3 ? 0.96 : 0.8, i === 0 || i === 5 ? 0.85 : 1, 1);
-        geo.applyMatrix4(new T.Matrix4().compose(pos, rot, scale));
-        petalGeos.push(geo);
-      });
-      bloom.add(L.itemPart(L.mergeGeos(petalGeos), red, L.outlineMat(0x67253d, 0.003)));
-      var core = L.itemPart(L.SPH_LO, L.toon(0xea7188, { emissive: 0x67233b }), false);
-      core.scale.set(0.036, 0.022, 0.018); core.position.set(0, 0.008, 0.027); bloom.add(core);
-      var curlGeos = [];
-      [-1, 1].forEach(function (s) {
+      var petalGeos = [], filamentGeos = [];
+      for (var i = 0; i < 8; i++) {
+        var a = (i + 0.3) / 8 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+        var reach = i % 2 ? 0.93 : 1.08;
         var path = new T.CatmullRomCurve3([
-          new T.Vector3(s * 0.018, 0.01, 0.015), new T.Vector3(s * 0.095, 0.075, 0.02),
-          new T.Vector3(s * 0.137, 0.15, 0.015), new T.Vector3(s * 0.111, 0.17, 0.012)
+          new T.Vector3(c * 0.009, 0, s * 0.009),
+          new T.Vector3(c * 0.032, 0.043, s * 0.032),
+          new T.Vector3(c * 0.077, 0.107, s * 0.078),
+          new T.Vector3(c * 0.116 * reach, 0.148 * reach, s * 0.12 * reach),
+          new T.Vector3(c * 0.15 * reach, 0.12 * reach, s * 0.155 * reach)
         ]);
-        curlGeos.push(new T.TubeGeometry(path, 18, 0.0045, 6, false));
-      });
-      bloom.add(L.itemPart(L.mergeGeos(curlGeos), L.toon(0xbb3854, { emissive: 0x431326 }), false));
-      g.position.set(0, 0.018, 0.04);
-      g.scale.setScalar(1.2);
-      g.rotation.x = -0.23;
+        petalGeos.push(roundedSweep(T, path, 18, 8, function (u) {
+          return 0.002 + (0.012 + 0.024 * u) * Math.pow(Math.sin(Math.PI * u), 0.55);
+        }, 0.72));
+      }
+      for (var j = 0; j < 4; j++) {
+        var b = (j + 0.55) / 4 * Math.PI * 2, bx = Math.cos(b), bz = Math.sin(b);
+        var low = new T.CatmullRomCurve3([
+          new T.Vector3(0, 0.004, 0), new T.Vector3(bx * 0.043, 0.04, bz * 0.043),
+          new T.Vector3(bx * 0.105, 0.063, bz * 0.105),
+          new T.Vector3(bx * 0.16, 0.027, bz * 0.16)
+        ]);
+        petalGeos.push(roundedSweep(T, low, 15, 8, function (u) {
+          return 0.002 + 0.025 * Math.pow(Math.sin(Math.PI * u), 0.6);
+        }, 0.72));
+      }
+      for (var k = 0; k < 8; k++) {
+        var h = (k + 0.1) / 8 * Math.PI * 2, hx = Math.cos(h), hz = Math.sin(h);
+        filamentGeos.push(new T.TubeGeometry(new T.CatmullRomCurve3([
+          new T.Vector3(hx * 0.012, 0.015, hz * 0.012),
+          new T.Vector3(hx * 0.077, 0.058, hz * 0.077),
+          new T.Vector3(hx * 0.15, 0.049, hz * 0.15),
+          new T.Vector3(hx * 0.18, 0.013, hz * 0.18)
+        ]), 14, 0.003, 5, false));
+      }
+      bloom.add(L.itemPart(L.mergeGeos(petalGeos),
+        L.toon(0xb82a44, { emissive: 0x43101e }), L.outlineMat(0x6b1d30, 0.0025)));
+      bloom.add(L.itemPart(L.mergeGeos(filamentGeos),
+        L.toon(0xd13b50, { emissive: 0x4c1525 }), false));
+      var core = L.itemPart(L.SPH_LO, L.toon(0x8b1e35, { emissive: 0x320a18 }), false);
+      core.scale.set(0.032, 0.025, 0.032); core.position.set(0, 0.012, 0); bloom.add(core);
+      g.position.set(0, 0.018, 0.025);
+      g.scale.setScalar(1.08);
       g.userData.bloom = bloom;
       return g;
     },
@@ -419,29 +460,34 @@ window.ITEM_LAB_DRAFTS = [
 
   { id: 'magatama', slot: 'neck', name: '勾玉',
     desc: '背面刻著一棵小小的樹。',
-    note: '圓頭、彎尾、有小孔的厚綠玉；沿玉色微微發光。',
+    note: '圓頭孔眼、彎尾，整塊如打磨圓潤的厚綠玉；微微發光。',
     build: function (anchor, L) {
-      var T = L.THREE, g = new T.Group(), sh = new T.Shape();
-      sh.moveTo(-0.04, 0.076);
-      sh.bezierCurveTo(-0.12, 0.066, -0.114, -0.012, -0.064, -0.039);
-      sh.bezierCurveTo(-0.018, -0.064, -0.032, -0.101, -0.069, -0.117);
-      sh.bezierCurveTo(-0.095, -0.133, -0.067, -0.157, -0.014, -0.139);
-      sh.bezierCurveTo(0.063, -0.115, 0.106, -0.042, 0.091, 0.014);
-      sh.bezierCurveTo(0.08, 0.068, 0.026, 0.097, -0.04, 0.076);
-      var hole = new T.Path();
-      hole.absarc(-0.012, 0.036, 0.015, 0, Math.PI * 2, true);
-      sh.holes.push(hole);
-      var jade = L.itemPart(
-        new T.ExtrudeGeometry(sh, { depth: 0.021, bevelEnabled: true, bevelThickness: 0.007, bevelSize: 0.006, bevelSegments: 2, curveSegments: 18 }),
-        L.toon(0x2f9a68, { emissive: 0x103c2b }), L.outlineMat(0x276b4d, 0.004));
+      var T = L.THREE, g = new T.Group();
+      var curve = new T.CatmullRomCurve3([
+        new T.Vector3(-0.069, -0.133, 0), new T.Vector3(0.003, -0.139, 0),
+        new T.Vector3(0.063, -0.107, 0), new T.Vector3(0.09, -0.047, 0),
+        new T.Vector3(0.073, 0.016, 0), new T.Vector3(0.028, 0.068, 0),
+        new T.Vector3(-0.025, 0.073, 0), new T.Vector3(-0.068, 0.042, 0)
+      ]);
+      var stone = roundedSweep(T, curve, 34, 14, function (u) {
+        return 0.002 + 0.068 * (0.28 + 0.72 * u) * Math.pow(Math.sin(Math.PI * u), 0.45);
+      }, 1.65);
+      var jade = L.itemPart(stone, L.toon(0x318e66, { emissive: 0x103b2b }), L.outlineMat(0x28694e, 0.004));
       g.add(jade);
+      var holeMat = new T.MeshBasicMaterial({ color: 0x154935 });
+      [-1, 1].forEach(function (side) {
+        var hole = new T.Mesh(L.SPH_LO, holeMat);
+        hole.scale.set(0.014, 0.014, 0.004);
+        hole.position.set(-0.015, 0.055, side * 0.062);
+        g.add(hole);
+      });
       var shine = L.itemPart(L.SPH_LO, L.toon(0xa5e5b5, { emissive: 0x326e4e }), false);
-      shine.scale.set(0.009, 0.027, 0.003); shine.position.set(-0.063, 0.015, 0.031);
+      shine.scale.set(0.009, 0.023, 0.004); shine.position.set(-0.065, 0.048, 0.047);
       shine.rotation.z = -0.45; g.add(shine);
       var glow = L.sprite(g, L.glowTex, 0x56d984, 0.14, true);
-      glow.position.z = -0.036; glow.scale.set(0.27, 0.29, 1);
-      g.position.set(0, -0.038, 0.01); g.rotation.z = -0.17;
-      g.scale.setScalar(0.83);
+      glow.position.z = -0.09; glow.scale.set(0.31, 0.32, 1);
+      g.position.set(0, -0.03, 0.024); g.rotation.z = -0.17;
+      g.scale.setScalar(0.85);
       g.userData.glow = glow;
       return g;
     },
