@@ -238,27 +238,15 @@ window.ITEM_LAB_DRAFTS = [
       sh.closePath();
       var leaf = L.itemPart(
         new T.ExtrudeGeometry(sh, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 2 }),
-        L.toon(0xffcf62, { emissive: 0x674018 }), false);
+        L.toon(0xd35b25, { emissive: 0x4c1b0a }), L.outlineMat(0xffcf62, 0.004));
       g.add(leaf);
-      var face = new T.Mesh(new T.ShapeGeometry(sh),
-        L.toon(0xf07a2a, { emissive: 0x4c1b0a, side: T.DoubleSide }));
-      face.scale.set(0.9, 0.9, 1);
-      face.position.z = 0.021;
-      g.add(face);
-      var veins = [];
-      var paths = [[[0, -0.046], [0, 0.068]], [[0, -0.018], [-0.047, 0.03]],
-        [[0, -0.018], [0.047, 0.03]]];
-      paths.forEach(function (p) {
-        var dx = p[1][0] - p[0][0], dy = p[1][1] - p[0][1];
-        var vein = new T.CylinderGeometry(0.002, 0.002, Math.hypot(dx, dy), 5);
-        vein.rotateZ(-Math.atan2(dx, dy));
-        vein.translate((p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2, 0.024);
-        veins.push(vein);
-      });
-      g.add(new T.Mesh(L.mergeGeos(veins), L.toon(0xffaa4e, { emissive: 0x4c1b0a })));
       var stem = L.itemPart(new T.CylinderGeometry(0.004, 0.0045, 0.07, 6),
         L.toon(0xb85c29, { emissive: 0x371508 }), false);
       stem.position.set(0, -0.038, 0.012); g.add(stem);
+      var size = radius / 0.46;
+      var face = new T.Mesh(new T.PlaneGeometry(size, size),
+        new T.MeshBasicMaterial({ map: L.MAPLE_TEX, color: L.MAPLE_COL[0], transparent: true, depthWrite: false, side: T.DoubleSide }));
+      face.position.set(0, size * 0.08, 0.022); g.add(face);
       g.position.set(0, -0.065, 0.025);
       return g;
     } },
