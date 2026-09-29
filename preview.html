@@ -512,6 +512,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .wItem svg{width:46%;height:46%;fill:none;stroke:rgba(232,198,126,.55);stroke-width:1.6}
 .wItem.on{border:2px solid var(--gold);background:rgba(232,198,126,.14);box-shadow:0 0 8px rgba(232,198,126,.35)}
 .wItem.lock{background:rgba(10,16,40,.6);border-style:dashed}
+.wQ{display:block;font-size:26px;line-height:1;color:rgba(230,220,255,.7);animation:gbBell 2.9s steps(1,end) infinite}   /* 真結局的飾品還沒拿到：問號＋雜訊（閃、錯位，同冥界缺字的 gbBell） */
 .wHint{margin:0;min-height:1.5em;font-size:13px;letter-spacing:.08em;line-height:1.5;color:rgba(244,236,216,.82);text-align:center}
 @media (max-height:700px){.wFox{width:38px;height:38px}.wGrid{gap:6px}.wName{top:calc(57% - 58px)}.wName b{font-size:19px}}
 /* ---- 大招變奏 ---- */
@@ -660,8 +661,8 @@ var CONFIG={
     //   血量分三段、每段 hp（10000），三段共用 time（150 秒）；BOSS 普攻打掉隊伍 10%（單關 20% 太痛、連第三段都到不了）；換段不清前一段留下的東西。
     //   segs：三段各自的招（頻率比單關低），倒著走回她的記憶——冥：鬼火＋忘川　丘：落英＋天鏡　月：媚惑，而且一開始就狂暴（前兩段不會半血狂暴：enrageAt 0）。
     //   換段的規則在 battle.js（segStage、nextSeg），演出在 src/final.js。外觀、場景（先借第三關妲己的紫藤血月：style 'daji'）、封面都是暫時的
-    //   掉落：通關勾玉（第一次打倒，一般結局那次）；挑戰「六隻狐狸都戴著飾品打倒」（桂花枝）還沒做
-    {title:'第九關',name:'九尾',drop:'magatama',style:'daji',attr:'none',attrName:'無',hp:10000,time:150,interval:8,enrageAt:0,enrageInterval:6,hitPct:0.1,charge:0.6,final:true,
+    //   掉落：通關勾玉（第一次打倒，一般結局那次）；真結局看完雙鈴紅緞（trueDrop，2026-09-29 遊星做的飾品）；挑戰「六隻狐狸都戴著飾品打倒」（桂花枝）還沒做
+    {title:'第九關',name:'九尾',drop:'magatama',trueDrop:'twin-bell-ribbon',style:'daji',attr:'none',attrName:'無',hp:10000,time:150,interval:8,enrageAt:0,enrageInterval:6,hitPct:0.1,charge:0.6,final:true,
      weak:'無',lore:'她什麼都不記得了，只記得要等。',
      skill:'血量分三段，打空一條就換下一段、血條慢慢補滿，三段共用時間：第一段「冥」鬼火＋忘川，第二段「丘」落英＋天鏡，第三段「月」媚惑，而且一開始就狂暴。前一段留在盤面上的灰珠、鬼火、花瓣、鏡片不會清掉。',
      segs:[
@@ -1669,6 +1670,34 @@ FOX_ITEMS.magatama={slot:'neck',name:'勾玉',desc:'背面刻著一棵小小的�
     ts.add(itemPart(mergeGeos([fr,tip]),red,outlineMat(0x8a1a2a,0.003)));   // 圓柱紅流蘇
     g.position.set(0,-0.03,0.034);g.scale.setScalar(0.82);g.userData.tassel=ts;return g;},
   upd:function(m,t){m.userData.tassel.rotation.z=0.09*Math.sin(t*2.2);}};
+// 會飄的緞帶（雙鈴紅緞用；做法跟 createFox 的 o.bells 一樣）：一串關節往下接，畫的是沿著關節掃出來的一條連續帶子。
+//   parent 底下 x 的位置掛一條長 len、寬 w 的帶子，rz 是整條往外張的角度；回傳 {segs, ph, upd}，每格轉完關節呼叫 upd() 重算帶子
+function ribbonStrip(parent,mat,len,w,x,rz,ph){var segs=5,rr=new THREE.Group(),cur=rr,list=[],j;rr.position.set(x,-0.05,-0.01);parent.add(rr);
+  for(j=0;j<segs;j++){var sg=new THREE.Group();if(j)sg.position.y=-len/segs;cur.add(sg);list.push(sg);cur=sg;}
+  var tail=new THREE.Object3D();tail.position.y=-len/segs;cur.add(tail);
+  var pos=new Float32Array((segs+1)*6),idx=[];for(j=0;j<segs;j++){var a=j*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}
+  var geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setIndex(idx);
+  var strip=new THREE.Mesh(geo,mat);strip.frustumCulled=false;strip.raycast=noRay;rr.add(strip);
+  var R={segs:list,ph:ph,upd:function(){var acc=new THREE.Matrix4(),v=new THREE.Vector3();
+    for(var q=0;q<=segs;q++){var nd=q<segs?list[q]:tail;nd.updateMatrix();acc.multiply(nd.matrix);
+      v.set(-w/2,0,0).applyMatrix4(acc);pos[q*6]=v.x;pos[q*6+1]=v.y;pos[q*6+2]=v.z;v.set(w/2,0,0).applyMatrix4(acc);pos[q*6+3]=v.x;pos[q*6+4]=v.y;pos[q*6+5]=v.z;}
+    geo.attributes.position.needsUpdate=true;geo.computeVertexNormals();}};
+  rr.rotation.z=rz;R.upd();return R;}
+// 雙鈴紅緞（真結局的飾品，2026-09-29 CK：直接用第三關妲己頭上那一套，一模一樣）：耳邊兩顆大金鈴，各垂兩條會飄的紅緞帶。
+//   零件、大小、位置、晃法都照 createFox 的 o.bells（妲己）；飾品掛在頭頂（HEAD_TOP），所以位置要扣掉它
+function twinBellPose(m,t){m.userData.bells.forEach(function(b){b.g.rotation.z=Math.sin(t*1.6+b.sd)*0.12;
+  b.rb.forEach(function(r){r.segs.forEach(function(sg,j){sg.rotation.x=(j?1:0.5)*Math.sin(t*1.8-j*0.8+r.ph)*0.2-(j?0:0.25);sg.rotation.z=(j?1:0.4)*Math.sin(t*1.3-j*0.6+r.ph)*0.14;});r.upd();});});}
+FOX_ITEMS['twin-bell-ribbon']={slot:'head',name:'雙鈴紅緞',from:'ending',desc:'是媽媽的味道。',
+  build:function(){var g=new THREE.Group(),bells=[],bm=toon(0xf2c65a,{emissive:0x6a4a10}),bol=outlineMat(0xa8812f,0.0045),dk=new THREE.MeshBasicMaterial({color:0x4a2a10}),rm=toon(0xd8344a,{side:THREE.DoubleSide});
+    [-1,1].forEach(function(sd){var bg=new THREE.Group();bg.position.set(0.29*sd-HEAD_TOP[0],0.12-HEAD_TOP[1],-0.01-HEAD_TOP[2]);bg.scale.setScalar(1.15);g.add(bg);
+      var ball=new THREE.Mesh(SPH,bm);ball.scale.setScalar(0.062);addOutline(ball,bol);bg.add(ball);
+      var slit=new THREE.Mesh(SPH,dk);slit.position.set(0,-0.03,0.042);slit.scale.set(0.034,0.007,0.012);bg.add(slit);   // 鈴下面一道縫
+      var hole=new THREE.Mesh(SPH,dk);hole.position.set(0,-0.012,0.056);hole.scale.set(0.011,0.011,0.006);bg.add(hole);   // 縫上面一個孔
+      var loop=new THREE.Mesh(new THREE.TorusGeometry(0.018,0.006,6,14),bm);loop.position.y=0.064;bg.add(loop);   // 頂上的小環
+      var rb=[0,1].map(function(k){return ribbonStrip(bg,rm,0.44-k*0.08,0.05,0.012*sd*(k?1:-1),sd*(0.2+k*0.22),k*1.3+(sd>0?0.7:0));});
+      bells.push({g:bg,rb:rb,sd:sd});});
+    g.userData.bells=bells;twinBellPose(g,0);return g;},
+  upd:twinBellPose};
 // 外耳：一個圓錐，耳尖顏色用頂點色漸層（跟尾巴同一種做法，交界在原本耳尖小圓錐的位置、高度約 72%）。
 //   原本是在外耳上多套一個深色小圓錐，小圓錐的底比外耳在那個高度還寬，外輪廓會多一格階梯；圓錐尖端的頂點法線也各朝各的方向，描邊在耳尖閉合不起來，這裡收成同一個方向
 var EAR_GEO={};
@@ -6412,7 +6441,11 @@ function finishNormal(){if(CONFIG.stages[APP.stage].final&&!APP.endTest&&!APP.st
 //   月下主島（島本來的樣子，不另外打光）：小狐狸一個人坐在桂花樹下看月亮 → 畫面外一聲鈴響、耳朵一動往後看 → 看到是誰之前暗掉 →
 //   製作名單（CONFIG.credits）→ 回主島，桂花樹上那顆星星換成圓金鈴（story.endings.true，之後永遠都在）→ 不跳「挑戰任務已解鎖」（一般結局時就解鎖過了）。
 //   九尾講完一樣留在台上、帶霧淡出（bossVanish）才暗掉。計時都用 ENDING.wait（跟著主迴圈）；主島的鏡頭在 garden.js 的 GARDEN.ending。
-function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait;
+// 真結局的獎勵飾品（CONFIG.stages[k].trueDrop＝雙鈴紅緞，docs/03「真結局飾品」）：名單跑完、回到主島之後才給（換裝按鈕的小紅點、那一格 new，跟其他飾品一樣），
+//   主島跳一句「獲得頭飾」。開戰的金鈴判斷還是只看 gold-bell，這件不算。測試網址（?ending=true、?story=）不給
+function grantTrueDrop(k,real){var id=CONFIG.stages[k].trueDrop,d=Save.data();if(!real||!id||d.items[id])return;d.items[id]=1;d.fresh[id]=1;Save.save();
+  document.getElementById('gWard').classList.toggle('new',Save.anyFresh());showGToast('獲得頭飾「'+FOX_ITEMS[id].name+'」',2800);}
+function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait,k=APP.stage,real=!!CONFIG.stages[k].final&&!APP.endTest&&!APP.storyTest;
   DLG.say(T.who,T.lines).then(function(){return bossVanish(T.mist);}).then(function(){return ENDING.fadeTo(1,1.2);})
   .then(function(){finishFinal('true');gameEl.classList.add('cine');GARDEN.ending.start();return W(0.6);})
   .then(function(){return ENDING.fadeTo(0,1.8);}).then(function(){return W(3.2);})
@@ -6420,7 +6453,7 @@ function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait;
   .then(function(){return W(1.1);}).then(function(){return ENDING.fadeTo(1,0.5);})
   .then(function(){GARDEN.ending.stop();gameEl.classList.remove('cine');GARDEN.setTreeBell(true);return W(0.8);})
   .then(function(){return ENDING.credits();}).then(function(){return W(0.6);}).then(function(){return ENDING.fadeTo(0,1.8);})
-  .then(function(){if(!maybeChalNotice())showHint();});}
+  .then(function(){grantTrueDrop(k,real);if(!maybeChalNotice())showHint();});}
 // 有信、但隊伍裡沒有狐狸戴金鈴（2026-09-29 CK 加，03「最終戰與結局」）：她說「……沒有鈴聲。」「……不是你。」→ 帶霧淡出 → 照一般通關結算（沒有信、沒有結局演出）。
 //   測試網址 ?ending=nobell 借來的關不記通關（showResult 看 APP.endTest）
 function endingNoBell(){var T=CONFIG.talk['ending-nobell'];
@@ -6783,7 +6816,7 @@ function fillWard(){var f=APP.wardFox,info=wInfo(f),d=Save.data();document.getEl
   var cur=Save.outfitOf(f)[wSlot]||'none';
   ['none'].concat(slotItems(f,wSlot)).forEach(function(id){var own=id==='none'||Save.owns(id),b=document.createElement('button');b.type='button';b.className='wItem';
     if(!own)b.classList.add('lock');if(id===cur)b.classList.add('on');
-    b.innerHTML=id==='none'?NONE_SVG:'<img alt="" src="'+WARD.thumb(id,!own)+'">';
+    b.innerHTML=id==='none'?NONE_SVG:!own&&FOX_ITEMS[id].from==='ending'?'<span class="wQ">？</span>':'<img alt="" src="'+WARD.thumb(id,!own)+'">';   /* 真結局的飾品還沒拿到：不給黑影（一看就知道是妲己的），改成問號加雜訊（docs/03） */
     b.setAttribute('aria-label',id==='none'?'不戴':own?FOX_ITEMS[id].name:'還沒取得');b.setAttribute('aria-pressed',id===cur?'true':'false');
     b.addEventListener('click',function(){pickItem(id,own);});wGridEl.appendChild(b);});
   wHintEl.textContent=itemHint(cur);}
