@@ -637,14 +637,16 @@ var CONFIG={
     //   名字、封面文字、介紹照 docs/03_design_story.md 的草稿；外觀是現有狐狸模型換色（render/battle.js 的 LATE_BOSS），美化階段再做。
     // 第七關：青燐的鬼火（src/mechanics/wisp.js）。CK 2026-09-29 試玩場定的數字：每 12 秒 3 團、狂暴後每 9 秒 4 團，倒數 10 秒（狂暴後 8 秒），
     //   只附在「換一步就消得到」的珠上（fair），炸一次扣隊伍 50（5%），盤面最多 4 團；開場 first 秒第一次
-    {title:'第七關',name:'青燐',style:'qinglin',attr:'none',attrName:'無',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    //   掉落（2026-09-29 繪星第四批）：通關小鬼火燈籠；挑戰「一顆鬼火都沒有炸開」（battle.wispBooms＝0）→ 燐火珠串
+    {title:'第七關',name:'青燐',drop:'twin-wisps',chal:{kind:'zero',key:'wispBooms',unit:'團炸開',text:'一顆鬼火都沒有炸開',drop:'phosphor-beads'},style:'qinglin',attr:'none',attrName:'無',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'無',lore:'在冥界替迷路的魂提燈的狐狸。她說最近路上多了好多燈，不知道是誰點的。',
      skill:'鬼火：每 12 秒丟 3 團鬼火附在珠上（狂暴後每 9 秒 4 團），倒數 10 秒（狂暴後 8 秒），最多 4 團；只會附在換一步就消得到的珠上。倒數內把那顆珠消掉就滅，沒消掉鬼火狐會衝出來撞隊伍，扣 50 血。',
      wisp:{first:5,interval:12,enrageInterval:9,count:3,enrageCount:4,fuse:10,enrageFuse:8,dmg:50,max:4,fair:true},
      cover:{deck:'黃泉燈路',head:'燈一盞一盞熄了<br>只剩她手上這盞',tag:'跟著火走　別回頭',skill:'鬼火',lore:'在冥界替迷路的魂提燈，她說最近路上多了好多燈。',brief:'鬼火附在珠上倒數，消掉那顆珠就滅，沒消掉就撞隊伍。'}},
     // 第八關：夢婆的忘川（src/mechanics/lethe.js）。CK 2026-09-29 試玩場定的數字：每 15 秒沖一排、狂暴後每 12 秒也一排，盤面最多 12 顆灰珠（滿了就不沖），
     //   預告 warn 秒、開場 first 秒第一次，優先沖彩色珠最多的那一排。灰珠照樣能消、照樣打 BOSS、照樣集能量，只是看不出顏色
-    {title:'第八關',name:'夢婆',style:'mengpo',attr:'none',attrName:'無',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    //   掉落：通關彼岸花；挑戰「六隻狐狸都放過大招」（SES.ultUsed）的飾品（小葫蘆）還沒做，先空著
+    {title:'第八關',name:'夢婆',drop:'spider-lily',chal:{kind:'allUlt',text:'六隻狐狸都放過大招'},style:'mengpo',attr:'none',attrName:'無',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'無',lore:'守在渡口替人盛湯的狐狸。每個喝下湯的都笑著走了，只有一個，喝的時候一直回頭。',
      skill:'忘川：開場 4 秒第一次，之後每 15 秒一道忘川水沖過一直排（狂暴後每 12 秒），盤面最多 12 顆灰珠。被沖到的珠子褪成灰白、形狀還在，照樣能消、照樣打得到她、照樣集能量。',
      lethe:{first:4,interval:15,enrageInterval:12,cols:1,enrageCols:1,warn:1,max:12},
@@ -653,7 +655,8 @@ var CONFIG={
     //   血量分三段、每段 hp（10000），三段共用 time（150 秒）；BOSS 普攻打掉隊伍 10%（單關 20% 太痛、連第三段都到不了）；換段不清前一段留下的東西。
     //   segs：三段各自的招（頻率比單關低），倒著走回她的記憶——冥：鬼火＋忘川　丘：落英＋天鏡　月：媚惑，而且一開始就狂暴（前兩段不會半血狂暴：enrageAt 0）。
     //   換段的規則在 battle.js（segStage、nextSeg），演出在 src/final.js。外觀、場景（先借第三關妲己的紫藤血月：style 'daji'）、封面都是暫時的
-    {title:'第九關',name:'九尾',style:'daji',attr:'none',attrName:'無',hp:10000,time:150,interval:8,enrageAt:0,enrageInterval:6,hitPct:0.1,charge:0.6,final:true,
+    //   掉落：通關勾玉（第一次打倒，一般結局那次）；挑戰「六隻狐狸都戴著飾品打倒」（桂花枝）還沒做
+    {title:'第九關',name:'九尾',drop:'magatama',style:'daji',attr:'none',attrName:'無',hp:10000,time:150,interval:8,enrageAt:0,enrageInterval:6,hitPct:0.1,charge:0.6,final:true,
      weak:'無',lore:'她什麼都不記得了，只記得要等。',
      skill:'血量分三段，打空一條就換下一段、血條慢慢補滿，三段共用時間：第一段「冥」鬼火＋忘川，第二段「丘」落英＋天鏡，第三段「月」媚惑，而且一開始就狂暴。前一段留在盤面上的灰珠、鬼火、花瓣、鏡片不會清掉。',
      segs:[
@@ -1591,6 +1594,76 @@ FOX_ITEMS['sky-mirror']={slot:'head',name:'天鏡碎片',from:'chal',desc:'天�
       var tg=new THREE.BoxGeometry(0.019,0.057+(i===1?0.01:0),0.007);tg.translate(0,-0.044,0);sw.add(itemPart(mergeGeos([st,tg]),gold));pend.push(sw);g.add(sw);});   // 下面三片金色長方形小吊墜
     g.position.set(-HEAD_TOP[0],0.16-HEAD_TOP[1],0.245-HEAD_TOP[2]);g.userData.glint=gl;g.userData.pend=pend;return g;},   // 戴在額頭上
   upd:function(m,t){var k=(t*0.32)%1,gl=m.userData.glint;gl.position.x=-0.047+0.094*k;gl.material.opacity=0.55*Math.sin(Math.PI*k);m.userData.pend.forEach(function(p,i){p.rotation.z=0.085*Math.sin(t*1.8+i*0.8);});}};
+// 第四批飾品（2026-09-29 繪星做、CK 定稿，實驗室 Huxian-web 14de60d）：小鬼火燈籠、燐火珠串、彼岸花、勾玉。造型照定稿搬，不改。
+//   掉落還沒接：第七關通關／挑戰、第八關通關、第九關通關（06_drops.md），跟第三章的關卡一起接。
+// 會發光的小貼片（實驗室草稿的 L.sprite）：加在 parent 上，疊加混色時更亮
+function itemSprite(parent,tex,col,op,add){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:col,transparent:true,opacity:op,depthWrite:false,fog:false,blending:add?THREE.AdditiveBlending:THREE.NormalBlending}));sp.raycast=noRay;parent.add(sp);return sp;}
+// 沿著曲線掃出一條圓潤的管子（橫切面是扁的圓，radiusAt(u) 決定每一段多粗、depthRatio 決定多扁）：彼岸花的花瓣
+function roundedSweep(curve,steps,sides,radiusAt,depthRatio){var fr=curve.computeFrenetFrames(steps,false),pos=[],idx=[];
+  for(var i=0;i<=steps;i++){var u=i/steps,p=curve.getPointAt(u),r=radiusAt(u);
+    for(var j=0;j<sides;j++){var a=j/sides*TAU,v=p.clone().addScaledVector(fr.normals[i],Math.cos(a)*r).addScaledVector(fr.binormals[i],Math.sin(a)*r*depthRatio);pos.push(v.x,v.y,v.z);
+      if(i<steps){var nx=i*sides+(j+1)%sides,h=i*sides+j;idx.push(h,nx,h+sides,nx,nx+sides,h+sides);}}}
+  var geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();return geo;}
+// 小鬼火燈籠：沒有燈籠，尾巴兩側各一團圓潤的青綠鬼火，火尖輕晃、柔光呼吸（CK 2026-09-29：不要燈籠）
+FOX_ITEMS['twin-wisps']={slot:'tail',name:'小鬼火燈籠',desc:'照不遠，但找得到回來的路。',
+  build:function(anc){var ud=(anc&&anc.userData)||{},r=ud.tailR||0.12,g=new THREE.Group(),fc=new THREE.Group(),flames=[],glows=[];g.add(fc);
+    if(!ud.thumb){var d=new THREE.Vector3(BOW_DIR[0],BOW_DIR[1],BOW_DIR[2]).normalize(),dh=new THREE.Vector3(d.x,0,d.z).normalize();
+      fc.position.copy(dh).multiplyScalar(r+0.035);fc.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),d);}
+    var prof=[[0,-0.06],[0.031,-0.054],[0.05,-0.031],[0.058,0.002],[0.053,0.035],[0.038,0.062],[0.022,0.084],[0.012,0.11],[0,0.137]];
+    var main=new THREE.LatheGeometry(prof.map(function(p){return new THREE.Vector2(p[0],p[1]);}),20),vs=main.getAttribute('position');
+    for(var k=0;k<vs.count;k++){var rise=Math.max(0,(vs.getY(k)+0.06)/0.197);vs.setX(k,vs.getX(k)+0.022*rise*rise);}   // 火尖往一邊彎
+    vs.needsUpdate=true;main.computeVertexNormals();
+    var tongue=main.clone();tongue.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(0.046,0.012,-0.008),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-0.38),new THREE.Vector3(0.43,0.58,0.48)));   // 旁邊一小簇火舌
+    var bodyGeo=mergeGeos([main,tongue]),bodyMat=toon(0x56cdb5,{emissive:0x176d67}),coreMat=toon(0xb9ffe3,{emissive:0x4ccfaf});
+    [0,1].forEach(function(i){var f=new THREE.Group();f.position.set(i?0.015:-0.14,i?-0.068:0.09,0.065);f.scale.setScalar(i?0.84:0.94);fc.add(f);
+      f.add(itemPart(bodyGeo,bodyMat,outlineMat(0x236f70,0.0035)));
+      var core=itemPart(SPH_LO,coreMat,false);core.scale.set(0.027,0.039,0.021);core.position.set(0,-0.008,0.046);f.add(core);   // 亮亮的火心
+      var gl=itemSprite(f,glowTex,0x73ffe0,0.29,true);gl.position.z=-0.055;gl.scale.set(0.25,0.25,1);flames.push(f);glows.push(gl);});
+    g.userData.flames=flames;g.userData.glows=glows;return g;},
+  upd:function(m,t){m.userData.flames.forEach(function(f,i){f.rotation.z=0.12*Math.sin(t*2.8+i*1.6);f.position.y=(i?-0.068:0.09)+0.012*Math.sin(t*1.7+i*1.3);
+    f.scale.y=(i?0.84:0.94)*(1+0.055*Math.sin(t*3.5+i));m.userData.glows[i].material.opacity=0.24+0.1*Math.sin(t*2.2+i);});}};   // 火尖輕晃、上下飄、柔光呼吸
+// 燐火珠串：五顆大珠排成微笑弧，中間三顆較大；墨綠珠，正中間一顆暗紅、後面一點紅光
+FOX_ITEMS['phosphor-beads']={slot:'neck',name:'燐火珠串',from:'chal',desc:'一串會發光的珠子。青燐說，是在路上撿的燈火，每一顆都往同一個方向亮。',
+  build:function(){var g=new THREE.Group(),green=toon(0x164b3d,{emissive:0x071d18}),red=toon(0x852b3b,{emissive:0x310b16}),gg=[];
+    [[-0.108,0.008,0.023],[-0.056,-0.031,0.032],[0,-0.05,0.037],[0.056,-0.031,0.032],[0.108,0.008,0.023]].forEach(function(p,i){   // [x, y, 半徑]
+      if(i===2){var c=itemPart(SPH_LO,red,outlineMat(0x501927,0.003));c.scale.setScalar(p[2]);c.position.set(p[0],p[1],0.016);g.add(c);}
+      else {var b=SPH_LO.clone();b.applyMatrix4(new THREE.Matrix4().makeScale(p[2],p[2],p[2]));b.translate(p[0],p[1],0.016);gg.push(b);}});
+    g.add(itemPart(mergeGeos(gg),green,outlineMat(0x0b3028,0.003)));
+    var gl=itemSprite(g,glowTex,0xff6675,0.25,true);gl.position.set(0,-0.05,-0.006);gl.scale.set(0.17,0.17,1);
+    g.position.set(0,-0.015,0.006);g.userData.glow=gl;return g;},
+  upd:function(m,t){m.userData.glow.material.opacity=0.18+0.09*Math.sin(t*1.8);}};
+// 彼岸花：耳旁一朵放射狀的彼岸花（CK 2026-09-29 定：縮到 0.7）；八片彎曲的立體花瓣＋四片低的＋八根花絲，側面也看得到
+FOX_ITEMS['spider-lily']={slot:'head',name:'彼岸花',desc:'聞起來什麼味道都沒有，好像忘了什麼。',
+  build:function(){var g=new THREE.Group(),bloom=new THREE.Group(),pg=[],fg=[],i,V=function(x,y,z){return new THREE.Vector3(x,y,z);};g.add(bloom);
+    for(i=0;i<8;i++){var a=(i+0.3)/8*TAU,c=Math.cos(a),s=Math.sin(a),rc=i%2?0.93:1.08;   // 長短交錯
+      pg.push(roundedSweep(new THREE.CatmullRomCurve3([V(c*0.009,0,s*0.009),V(c*0.032,0.043,s*0.032),V(c*0.077,0.107,s*0.078),V(c*0.116*rc,0.148*rc,s*0.12*rc),V(c*0.15*rc,0.12*rc,s*0.155*rc)]),
+        18,8,function(u){return 0.002+(0.012+0.024*u)*Math.pow(Math.sin(Math.PI*u),0.55);},0.72));}
+    for(i=0;i<4;i++){var b=(i+0.55)/4*TAU,bx=Math.cos(b),bz=Math.sin(b);
+      pg.push(roundedSweep(new THREE.CatmullRomCurve3([V(0,0.004,0),V(bx*0.043,0.04,bz*0.043),V(bx*0.105,0.063,bz*0.105),V(bx*0.16,0.027,bz*0.16)]),
+        15,8,function(u){return 0.002+0.025*Math.pow(Math.sin(Math.PI*u),0.6);},0.72));}
+    for(i=0;i<8;i++){var h=(i+0.1)/8*TAU,hx=Math.cos(h),hz=Math.sin(h);
+      fg.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V(hx*0.012,0.015,hz*0.012),V(hx*0.077,0.058,hz*0.077),V(hx*0.15,0.049,hz*0.15),V(hx*0.18,0.013,hz*0.18)]),14,0.003,5,false));}
+    bloom.add(itemPart(mergeGeos(pg),toon(0xb82a44,{emissive:0x43101e}),outlineMat(0x6b1d30,0.0025)));
+    bloom.add(itemPart(mergeGeos(fg),toon(0xd13b50,{emissive:0x4c1525}),false));
+    var core=itemPart(SPH_LO,toon(0x8b1e35,{emissive:0x320a18}),false);core.scale.set(0.032,0.025,0.032);core.position.set(0,0.012,0);bloom.add(core);
+    g.position.set(-0.13,-0.01,0.06);g.scale.setScalar(0.7);g.userData.bloom=bloom;return g;},
+  upd:function(m,t){m.userData.bloom.rotation.z=0.035*Math.sin(t*1.2);}};
+// 勾玉：現在的造型是微扁的圓潤綠玉環，紅繩繞過下緣，下面金珠＋圓柱紅流蘇輕擺（id、名字、介紹先沿用勾玉）
+FOX_ITEMS.magatama={slot:'neck',name:'勾玉',desc:'背面刻著一棵小小的樹。',
+  build:function(){var g=new THREE.Group(),V=function(x,y,z){return new THREE.Vector3(x,y,z);};
+    var jade=itemPart(new THREE.TorusGeometry(0.055,0.023,14,36),toon(0x238957,{emissive:0x0c3624}),outlineMat(0x155c3e,0.004));jade.position.y=0.03;jade.scale.y=0.94;g.add(jade);
+    var shine=itemPart(SPH_LO,toon(0x91dfaa,{emissive:0x246c49}),false);shine.scale.set(0.009,0.015,0.005);shine.position.set(-0.054,0.075,0.018);shine.rotation.z=-0.5;g.add(shine);   // 玉上一點反光
+    var red=toon(0xd8344a,{emissive:0x5a0c14});
+    var wrap=new THREE.CatmullRomCurve3([V(-0.009,-0.001,0.021),V(-0.01,-0.02,0.033),V(-0.008,-0.044,0.033),V(0,-0.055,0.026),V(0,-0.054,-0.028),V(0.002,-0.043,-0.031),V(0.003,-0.02,-0.029),V(0.001,-0.001,-0.021)],true);
+    g.add(itemPart(new THREE.TubeGeometry(wrap,48,0.005,7,true),red,false));   // 繞過玉環下緣的紅繩
+    var knot=itemPart(SPH_LO,red,false);knot.scale.setScalar(0.011);knot.position.set(0,-0.054,0.033);g.add(knot);
+    var ts=new THREE.Group();ts.position.set(0,-0.054,0.03);g.add(ts);
+    var cord=itemPart(new THREE.CylinderGeometry(0.005,0.005,0.04,8),red,false);cord.position.y=-0.02;ts.add(cord);
+    var bead=itemPart(SPH_LO,toon(0xffd447,{emissive:0x6e430b}),outlineMat(0xa76914,0.003));bead.scale.setScalar(0.025);bead.position.y=-0.055;ts.add(bead);   // 金珠
+    var fr=new THREE.CylinderGeometry(0.011,0.02,0.088,10);fr.translate(0,-0.111,0);var tip=SPH_LO.clone();tip.applyMatrix4(new THREE.Matrix4().makeScale(0.02,0.005,0.02));tip.translate(0,-0.155,0);
+    ts.add(itemPart(mergeGeos([fr,tip]),red,outlineMat(0x8a1a2a,0.003)));   // 圓柱紅流蘇
+    g.position.set(0,-0.03,0.034);g.scale.setScalar(0.82);g.userData.tassel=ts;return g;},
+  upd:function(m,t){m.userData.tassel.rotation.z=0.09*Math.sin(t*2.2);}};
 // 外耳：一個圓錐，耳尖顏色用頂點色漸層（跟尾巴同一種做法，交界在原本耳尖小圓錐的位置、高度約 72%）。
 //   原本是在外耳上多套一個深色小圓錐，小圓錐的底比外耳在那個高度還寬，外輪廓會多一格階梯；圓錐尖端的頂點法線也各朝各的方向，描邊在耳尖閉合不起來，這裡收成同一個方向
 var EAR_GEO={};
@@ -6053,7 +6126,8 @@ function freshSession(){return {
   ULT_SEL:[0,0,0,0,0,0],    // 這一場每隻狐狸帶原版（0）還是變奏（1）：beginBattle 從存檔讀進來
   mech:freshMech(),         // 已經搬成一包的機制各自卡著的狀態（SES.mech.lock、petal、cord、shard），內容由各包的 session() 決定
   pendingSwords:0,          // 木狐大招的劍氣：盤面停下來才變
-  pendingUnlock:false       // 水狐變奏（淨流）：盤面停下來後解開全部鎖鏈
+  pendingUnlock:false,      // 水狐變奏（淨流）：盤面停下來後解開全部鎖鏈
+  ultUsed:[0,0,0,0,0,0]     // 這一場每隻狐狸放過大招沒（第八關挑戰「六隻狐狸都放過大招」，chal.kind 'allUlt'）
 };}
 var SES=freshSession();
 function newSession(){SES=freshSession();}
@@ -6182,7 +6256,7 @@ function ultDesc(key,alt,st){var a=CONFIG.ultAlt[key],bn=st?st.name:'BOSS ';
 function tryUlt(i){if(G.mode!=='playing'||battle.energy[i]<CONFIG.ult.max)return false;
   if(battle.isCharmed(i)){AudioFX.bad();MECH_VIEWS.charm.poke(i);return false;}   // 被媚惑時大招按不下去
   var fox=BS.foxes[i],cfg=CONFIG.ult[ULT_KEYS[i]],fp=fox.group.position;
-  battle.energy[i]=0;G.prev='playing';G.mode='ult';S.sel=null;S.hint=null;drag=null;
+  battle.energy[i]=0;SES.ultUsed[i]=1;G.prev='playing';G.mode='ult';S.sel=null;S.hint=null;drag=null;
   fox.jump(false);fox.setReady(false);fox.ult();AudioFX.ult();if(navigator.vibrate){try{navigator.vibrate(30);}catch(_){}}
   SES.U={i:i,t:0,dur:CONFIG.ult.closeup,fx:fp.x,fy:fox.group.userData.baseY,fz:fp.z,s:fox.scale||0.6};
   ultBannerEl.querySelector('small').textContent=cfg.fox;ultBannerEl.querySelector('b').textContent=ultName(ULT_KEYS[i],SES.ULT_SEL[i]);ultBannerEl.classList.add('show');
@@ -6433,6 +6507,7 @@ function chalMet(ch,k){var lim=CONFIG.stages[k].time||CONFIG.battle.time,used=li
   if(ch.kind==='hp')return {ok:p>=ch.min,stat:'這次剩 '+Math.floor(p*100)+'%'};
   if(ch.kind==='stat'){var sv=battle[ch.key]||0;return {ok:sv>=ch.min,stat:'這次 '+sv+' '+(ch.unit||'')};}
   if(ch.kind==='zero'){var zv=battle[ch.key]||0;return {ok:zv===0,stat:'這次 '+zv+' '+(ch.unit||'')};}
+  if(ch.kind==='allUlt'){var nu=SES.ultUsed.filter(Boolean).length;return {ok:nu>=6,stat:'這次 '+nu+' 隻放過'};}   // 六隻狐狸都放過大招（第八關）
   return {ok:battle.maxCombo>=ch.min,stat:'這次最高 '+battle.maxCombo+' 連擊'};}
 function chalOpen(){return !!Save.data().seen.chal;}
 function checkChal(k){var ch=CONFIG.stages[k].chal,d=Save.data();if(!ch||!chalOpen()||d.chal[k])return null;var r=chalMet(ch,k);
