@@ -460,33 +460,42 @@ window.ITEM_LAB_DRAFTS = [
 
   { id: 'magatama', slot: 'neck', name: '勾玉',
     desc: '背面刻著一棵小小的樹。',
-    note: '圓截面的綠玉環，紅繩穿過環心；金珠與紅流蘇輕輕擺動。',
+    note: '微扁的圓潤綠玉環，紅繩繞過下緣；金珠與圓柱紅流蘇輕擺。',
     build: function (anchor, L) {
       var T = L.THREE, g = new T.Group();
-      var jade = L.itemPart(new T.TorusGeometry(0.059, 0.027, 14, 36),
+      var jade = L.itemPart(new T.TorusGeometry(0.055, 0.023, 14, 36),
         L.toon(0x238957, { emissive: 0x0c3624 }), L.outlineMat(0x155c3e, 0.004));
-      jade.position.y = 0.044; g.add(jade);
+      jade.position.y = 0.03; jade.scale.y = 0.94; g.add(jade);
       var shine = L.itemPart(L.SPH_LO, L.toon(0x91dfaa, { emissive: 0x246c49 }), false);
-      shine.scale.set(0.01, 0.018, 0.006); shine.position.set(-0.059, 0.095, 0.018);
+      shine.scale.set(0.009, 0.015, 0.005); shine.position.set(-0.054, 0.075, 0.018);
       shine.rotation.z = -0.5; g.add(shine);
 
-      var tassel = new T.Group(); tassel.position.set(0, -0.012, 0.018); g.add(tassel);
-      var cord = L.itemPart(new T.CylinderGeometry(0.0065, 0.0065, 0.076, 8),
-        L.toon(0xcb2944, { emissive: 0x3d0c18 }), false);
-      cord.position.y = -0.038; tassel.add(cord);
+      var red = L.toon(0xd8344a, { emissive: 0x5a0c14 });
+      var wrap = new T.CatmullRomCurve3([
+        new T.Vector3(-0.014, -0.001, 0.022), new T.Vector3(-0.018, -0.021, 0.032),
+        new T.Vector3(-0.016, -0.045, 0.032), new T.Vector3(0, -0.055, 0.027),
+        new T.Vector3(0.016, -0.045, 0.032), new T.Vector3(0.018, -0.021, 0.032),
+        new T.Vector3(0.014, -0.001, 0.022), new T.Vector3(0.014, -0.001, -0.022),
+        new T.Vector3(0.018, -0.042, -0.03), new T.Vector3(0, -0.054, -0.027),
+        new T.Vector3(-0.018, -0.042, -0.03), new T.Vector3(-0.014, -0.001, -0.022)
+      ], true);
+      g.add(L.itemPart(new T.TubeGeometry(wrap, 48, 0.005, 7, true), red, false));
+      var knot = L.itemPart(L.SPH_LO, red, false);
+      knot.scale.setScalar(0.011); knot.position.set(0, -0.054, 0.033); g.add(knot);
+
+      var tassel = new T.Group(); tassel.position.set(0, -0.054, 0.03); g.add(tassel);
+      var cord = L.itemPart(new T.CylinderGeometry(0.005, 0.005, 0.04, 8), red, false);
+      cord.position.y = -0.02; tassel.add(cord);
       var bead = L.itemPart(L.SPH_LO, L.toon(0xffd447, { emissive: 0x6e430b }),
         L.outlineMat(0xa76914, 0.003));
-      bead.scale.setScalar(0.027); bead.position.y = -0.085; tassel.add(bead);
-      var red = L.toon(0xdb2943, { emissive: 0x480b19 });
-      var strands = [];
-      [-2, -1, 0, 1, 2].forEach(function (i) {
-        var len = i === 0 || i === 2 ? 0.077 : 0.091;
-        var geo = new T.CylinderGeometry(0.006, 0.008, len, 7);
-        geo.translate(i * 0.011, -0.125 - len / 2, 0);
-        strands.push(geo);
-      });
-      tassel.add(L.itemPart(L.mergeGeos(strands), red, L.outlineMat(0x8c1730, 0.0025)));
-      g.position.set(0, -0.014, 0.034); g.scale.setScalar(0.88);
+      bead.scale.setScalar(0.025); bead.position.y = -0.055; tassel.add(bead);
+      var fringe = new T.CylinderGeometry(0.011, 0.02, 0.068, 10);
+      fringe.translate(0, -0.101, 0);
+      var tip = L.SPH_LO.clone();
+      tip.applyMatrix4(new T.Matrix4().makeScale(0.02, 0.005, 0.02));
+      tip.translate(0, -0.135, 0);
+      tassel.add(L.itemPart(L.mergeGeos([fringe, tip]), red, L.outlineMat(0x8a1a2a, 0.003)));
+      g.position.set(0, -0.03, 0.034); g.scale.setScalar(0.82);
       g.userData.tassel = tassel;
       return g;
     },
