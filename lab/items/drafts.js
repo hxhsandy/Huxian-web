@@ -113,5 +113,102 @@ window.ITEM_LAB_DRAFTS = [
       obj.userData.glint.position.x = -0.047 + 0.094 * sweep;
       obj.userData.glint.material.opacity = 0.55 * Math.sin(Math.PI * sweep);
       obj.userData.pendants.forEach(function (p, i) { p.rotation.z = 0.085 * Math.sin(t * 1.8 + i * 0.8); });
-    } }
+    } },
+
+  { id: 'peach-pin', slot: 'head', name: '桃花簪',
+    desc: '簪頭的桃花一直沒有謝。',
+    note: '桃夭同款耳前桃花、金珠與輕擺紅流蘇。',
+    build: function (anchor, L) {
+      var T = L.THREE, H = L.HEAD_TOP, g = new T.Group();
+      var flower = new T.Mesh(
+        L.peachBlossomGeo(0xe9729f, 0xfbd6e3, 0xdb5f90, 0.12, 1.05, 0),
+        new T.MeshBasicMaterial({ vertexColors: true, side: T.DoubleSide })
+      );
+      flower.scale.setScalar(0.088);
+      flower.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), new T.Vector3(-0.5, 0.42, 0.76).normalize());
+      flower.rotateZ(-0.3);
+      flower.position.set(-0.01, 0.015, 0.023);
+      g.add(flower);
+      var center = new T.Mesh(L.SPH_LO, new T.MeshBasicMaterial({ color: 0xf4cd5a }));
+      center.position.set(-0.02, 0.019, 0.072); center.scale.set(0.013, 0.013, 0.006); g.add(center);
+      var gold = L.toon(0xf2c65a, { emissive: 0x6a4a10 });
+      var bead = L.itemPart(L.SPH, gold);
+      bead.scale.setScalar(0.018); bead.position.set(-0.082, -0.045, 0.023); g.add(bead);
+      var tassel = new T.Group(); tassel.position.set(-0.082, -0.061, 0.023); g.add(tassel);
+      var thread = new T.CylinderGeometry(0.0045, 0.0045, 0.035, 6);
+      thread.translate(0, -0.0175, 0);
+      var fringe = new T.CylinderGeometry(0.009, 0.021, 0.087, 10);
+      fringe.translate(0, -0.098, 0);
+      var tip = L.SPH_LO.clone();
+      tip.applyMatrix4(new T.Matrix4().makeScale(0.021, 0.006, 0.021));
+      tip.translate(0, -0.142, 0);
+      tassel.add(L.itemPart(L.mergeGeos([thread, fringe, tip]), L.toon(0xd8344a, { emissive: 0x5a0c14 }), L.outlineMat(0x8a1a2a, 0.003)));
+      g.position.set(-0.185 - H[0], 0.19 - H[1], 0.1 - H[2]);
+      g.userData.tassel = tassel;
+      return g;
+    },
+    upd: function (obj, t) { obj.userData.tassel.rotation.z = 0.12 * Math.sin(t * 2.1); } },
+
+  { id: 'red-cord', slot: 'neck', name: '紅繩',
+    desc: '兩端都打了結，另一頭不知道繫在誰身上。',
+    note: '四環紅色中國結，中央金珠與微擺流蘇。',
+    build: function (anchor, L) {
+      var T = L.THREE, g = new T.Group();
+      var red = L.toon(0xd8344a, { emissive: 0x4a0813 });
+      var loops = [];
+      [[-0.033, 0.026], [0.033, 0.026], [-0.033, -0.026], [0.033, -0.026]].forEach(function (p) {
+        var geo = new T.TorusGeometry(0.031, 0.009, 8, 20);
+        geo.applyMatrix4(new T.Matrix4().makeScale(0.95, 1.14, 0.65));
+        geo.translate(p[0], p[1], 0);
+        loops.push(geo);
+      });
+      g.add(L.itemPart(L.mergeGeos(loops), red, L.outlineMat(0x8f1c2e, 0.004)));
+      var knot = L.itemPart(L.SPH_LO, red);
+      knot.scale.set(0.028, 0.027, 0.018); knot.position.z = 0.012; g.add(knot);
+      var gold = L.toon(0xf2c65a, { emissive: 0x6a4a10 });
+      var bead = L.itemPart(L.SPH_LO, gold);
+      bead.scale.set(0.013, 0.013, 0.008); bead.position.set(0, 0.002, 0.03); g.add(bead);
+      var tassel = new T.Group(); tassel.position.set(0, -0.065, 0.006); g.add(tassel);
+      var cap = new T.CylinderGeometry(0.015, 0.016, 0.018, 10);
+      cap.translate(0, -0.009, 0);
+      tassel.add(L.itemPart(cap, gold));
+      var strands = [];
+      [-0.013, 0, 0.013].forEach(function (x) {
+        var s = new T.CylinderGeometry(0.004, 0.006, 0.085, 6);
+        s.translate(x, -0.06, 0); strands.push(s);
+      });
+      tassel.add(L.itemPart(L.mergeGeos(strands), red, L.outlineMat(0x8f1c2e, 0.0025)));
+      g.position.set(0, -0.035, -0.015);
+      g.userData.tassel = tassel;
+      return g;
+    },
+    upd: function (obj, t) { obj.userData.tassel.rotation.z = 0.09 * Math.sin(t * 1.8); } },
+
+  { id: 'sun-disc', slot: 'head', name: '日輪',
+    desc: '很燙。天狐說，以前也有人拿過它，後來往下走了。',
+    note: '十二道金色日芒、橙紅日心與柔和脈動聖光。',
+    build: function (anchor, L) {
+      var T = L.THREE, H = L.HEAD_TOP, g = new T.Group();
+      var haloMat = new T.MeshBasicMaterial({ color: 0xffd779, transparent: true, opacity: 0.24, depthWrite: false, blending: T.AdditiveBlending });
+      var halo = new T.Mesh(new T.TorusGeometry(0.077, 0.006, 8, 36), haloMat);
+      halo.position.z = -0.015; g.add(halo);
+      var sh = new T.Shape(), N = 12;
+      for (var i = 0; i <= N * 2; i++) {
+        var a = Math.PI / 2 + i / (N * 2) * Math.PI * 2, r = i % 2 ? 0.053 : 0.074;
+        if (i) sh.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        else sh.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      var sun = L.itemPart(
+        new T.ExtrudeGeometry(sh, { depth: 0.009, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 2 }),
+        L.toon(0xf2c65a, { emissive: 0x80520f })
+      );
+      g.add(sun);
+      var core = L.itemPart(L.SPH_LO, L.toon(0xffa83a, { emissive: 0x8b3907 }));
+      core.scale.set(0.04, 0.04, 0.012); core.position.z = 0.015; g.add(core);
+      g.position.set(0.2 - H[0], 0.15 - H[1], 0.1 - H[2]);
+      g.rotation.set(-0.15, 0.5, -0.3);
+      g.userData.halo = halo;
+      return g;
+    },
+    upd: function (obj, t) { obj.userData.halo.material.opacity = 0.15 + 0.07 * Math.sin(t * 1.9); } }
 ];
