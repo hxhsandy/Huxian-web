@@ -6138,13 +6138,13 @@ var LETHE_VIEW = {
 // 機制試玩場（3／3）：遊戲載入好之後，把新機制放進機制清單、換到指定的關卡開戰，加一個小面板（換數字、換場景）。
 // 網址參數（都可以不給）：
 //   ?stage=1～6   用哪一關的場景、BOSS 模型、血量、時限（預設 1）；那一關原本的招會關掉（&keep=1 留著，看兩招一起）
-//   &every=12 &enrage=9   多久沖一次（秒）／狂暴後多久一次　&cols=1 &ecols=2   一次沖幾排／狂暴後幾排
-//   &max=12   盤面上最多幾顆灰珠（滿了這一次就不沖；0＝不限）　&warn=1   預告幾秒　&first=4   開場第幾秒第一次　&allgray=1   開場整盤都是灰的（只看灰珠長相、分不分得出來）
+//   &every=15 &enrage=12   多久沖一次（秒）／狂暴後多久一次　&cols=1 &ecols=2   一次沖幾排／狂暴後幾排
+//   &max=12   盤面上最多幾顆灰珠（滿了這一次就不沖；0＝不限；預設 12）　&warn=1   預告幾秒　&first=4   開場第幾秒第一次　&allgray=1   開場整盤都是灰的（只看灰珠長相、分不分得出來）
 //   &shot=1   不顯示面板（截圖用）
 
 var Q = new URLSearchParams(location.search), g = window.__game;
 function num(k, d, lo, hi) { var v = parseFloat(Q.get(k)); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; }
-var P = { every: num('every', 12, 2, 30), enrage: num('enrage', 9, 2, 30), max: num('max', 0, 0, 42) | 0, cols: num('cols', 1, 1, 3) | 0, ecols: num('ecols', 2, 1, 4) | 0,
+var P = { every: num('every', 15, 2, 30), enrage: num('enrage', 12, 2, 30), max: num('max', 12, 0, 42) | 0, cols: num('cols', 1, 1, 3) | 0, ecols: num('ecols', 1, 1, 4) | 0,   // 預設＝CK 2026-09-29 手機試完選的
   warn: num('warn', 1, 0.3, 3), first: num('first', 4, 1, 20), stage: num('stage', 1, 1, 6) | 0, allgray: Q.get('allgray') === '1', keep: Q.get('keep') === '1' };
 
 // 1. 放進機制清單（邏輯、畫法各一份；清單是同一個陣列，遊戲的主迴圈、Battle 會照著跑）
@@ -6176,7 +6176,7 @@ if (!Q.get('shot')) {
     return '<a' + (on ? ' class="on"' : '') + ' href="?' + p + '">' + txt + '</a>';
   }
   var h = '<h4>💧 夢婆・忘川（素版）</h4><small>現在：每 ' + P.every + ' 秒沖 ' + P.cols + ' 排，狂暴後每 ' + P.enrage + ' 秒沖 ' + P.ecols + ' 排；預告 ' + P.warn + ' 秒；灰珠' + (P.max ? '最多 ' + P.max + ' 顆' : '不限') + '。灰珠照樣能消、照樣集能量。</small>' +
-    '<h4>多常沖</h4>' + link({ every: 12, enrage: 9 }, '預設 12 秒／狂暴 9 秒') + link({ every: 15, enrage: 12 }, '更慢 15／12') + link({ every: 10, enrage: 8 }, '10／8') + link({ every: 7, enrage: 5 }, '第一版 7／5') +
+    '<h4>多常沖</h4>' + link({ every: 15, enrage: 12 }, 'CK 選的 15／12') + link({ every: 12, enrage: 9 }, '12／9') + link({ every: 10, enrage: 8 }, '10／8') + link({ every: 7, enrage: 5 }, '第一版 7／5') +
     '<h4>一次幾排</h4>' + link({ cols: 1, ecols: 2 }, '一排／狂暴兩排') + link({ cols: 1, ecols: 1 }, '狂暴也一排') + link({ cols: 2, ecols: 3 }, '兩排／狂暴三排') +
     '<h4>灰珠上限（滿了就不沖）</h4>' + link({ max: 0 }, '不限') + link({ max: 12 }, '最多 12 顆') + link({ max: 18 }, '最多 18 顆') +
     '<h4>預告</h4>' + link({ warn: 1 }, '1 秒') + link({ warn: 1.5 }, '1.5 秒') + link({ warn: 0.6 }, '0.6 秒') +
