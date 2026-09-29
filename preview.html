@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>/* 預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
-   ?quick：進戰鬥後 BOSS 只剩 1 血，消一次就倒；?letter：從「打倒」那一刻看一般結局（九尾「……你是誰。」→ 信 → 回主島）。 */
+   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看。 */
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -158,6 +158,17 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dlgFloat b{display:block;font-size:11px;font-weight:normal;letter-spacing:.3em;color:var(--gold)}
 .dlgFloat i{font-style:normal}
 .dlgFloat s{text-decoration:none;visibility:hidden}
+/* 結局（2026-09-29，src/ending.js）：#ending＝整個螢幕（連瀏海、底部橫條後面）的黑幕，淡入淡出由 ending.js 每格設；
+   製作名單（.enCred）在黑幕上慢慢往上捲。放在 #frame 裡、往上下延伸（跟 #overlay 一樣），疊在最上面。 */
+#game.cine .ghud,#game.cine #muteBtn{opacity:0!important;pointer-events:none!important;transition:opacity .6s}   /* 真結局主島的鏡頭：庭院的按鈕、字先藏起來 */
+#ending{position:absolute;inset:0;top:calc(-1 * var(--safe-top));bottom:calc(-1 * var(--safe-bottom));z-index:10;display:none;background:#000;opacity:0;overflow:hidden}
+#ending.show{display:block}
+.enCred{position:absolute;left:0;right:0;top:0;text-align:center;color:var(--ink);opacity:0}
+.enCred h3{margin:0 0 42px;font-size:26px;font-weight:normal;letter-spacing:.5em;text-indent:.5em;color:var(--gold);text-shadow:0 0 16px rgba(232,198,126,.35)}
+.enCred dl{margin:0 0 30px}
+.enCred dt{font-size:12px;letter-spacing:.4em;text-indent:.4em;color:rgba(232,198,126,.75);margin-bottom:6px}
+.enCred dd{margin:0;font-size:17px;letter-spacing:.2em;text-indent:.2em;line-height:1.7}
+.enCred p{margin:36px 0 0;font-size:15px;letter-spacing:.3em;text-indent:.3em;color:rgba(244,236,216,.8)}
 /* 信（2026-09-29，src/letter.js）：擋住畫面的演出，放在安全框裡。樣子是遊星的草案（待 CK／繪星定）：米白信封綁紅繩、信封上不寫字；
    信紙淡淡的桂花黃、直書三行、角落一朵小桂花。位置、透明度、角度都由 letter.js 每格設定（這裡只有長相）。 */
 #letter{position:absolute;inset:0;z-index:9;display:none;overflow:hidden}
@@ -605,6 +616,8 @@ var CONFIG={
   // 信（2026-09-29；docs/06_drops.md「信」、03_design_story.md 第 5 條）：第一次打倒最終 BOSS 拿到。信封上不寫字；lines＝信裡的三行（直書）。
   //   name／desc＝換裝頁「信」那一格的名字和介紹。字都是暫定，改這裡就好。演出在 src/letter.js。
   letter:{lines:['如果我忘了你，','就搖一搖鈴。','我會聽見的。'],name:'信',desc:'熟悉的字跡。'},
+  // 製作名單（真結局，src/ending.js）：先放佔位，正式名單遊星跟 CK 要了再填。一列＝[職稱, 名字…]；title 是最上面的遊戲名、end 是最後一行（空字串就不顯示）
+  credits:{title:'狐仙三消',rows:[['製作','（待填）'],['企劃・劇情','（待填）'],['程式','（待填）'],['美術','（待填）'],['驗收','（待填）'],['特別感謝','（待填）']],end:''},
   // 隊伍符印（進關前選一個）
   sigils:[
     {id:'moon', name:'月華符',glyph:'月',desc:'六隻狐狸開場就有 30 能量',energy:30},
@@ -2311,6 +2324,20 @@ var ornaments=[],ornGeo={};
     ornaments.push({pivot:pivot,holder:holder,halo:halo,ph:i*1.7+rand(0,1),spin:o[1]!=='tassel'});});
 })();
 var warm=new THREE.PointLight(0xffcf7a,0.85,5,2);warm.position.set(TX+1.3,1.6,TZ+0.55);stage.add(warm);
+var endGlow=0;   // 真結局「燈全亮」：樹上垂掛的星星、彎月、流蘇的光和暖光一起變亮（0＝平常）
+// 真結局之後桂花樹上多掛的小鈴鐺（story.endings.true，之後永遠都在）：左邊那枝、紅繩、金色小鈴；第一次要掛才建，跟其他垂掛的一起晃
+var treeBell=null;
+function setTreeBell(on){if(!on&&!treeBell)return;
+  if(!treeBell){var pivot=new THREE.Group();pivot.position.set(-0.22,1.5,0.32);tree.add(pivot);var L0=0.3;
+    pivot.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,-L0,0)]),new THREE.LineBasicMaterial({color:0xc0303f})));
+    var holder=new THREE.Group();holder.position.y=-L0-0.075;pivot.add(holder);
+    var pts=[[0,0.085],[0.022,0.08],[0.04,0.06],[0.05,0.02],[0.058,-0.03],[0.075,-0.06],[0.07,-0.068]].map(function(p){return new THREE.Vector2(p[0],p[1]);});
+    var gold=toon(0xf2c451,{emissive:0x8a5a10}),bell=new THREE.Mesh(new THREE.LatheGeometry(pts,20),gold);holder.add(bell);
+    var knob=new THREE.Mesh(SPH_LO,gold);knob.scale.setScalar(0.02);knob.position.y=0.095;holder.add(knob);
+    var clap=new THREE.Mesh(SPH_LO,toon(0xb8862e));clap.scale.setScalar(0.018);clap.position.y=-0.07;holder.add(clap);
+    var halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffd583,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));halo.scale.set(0.4,0.4,1);holder.add(halo);
+    treeBell={pivot:pivot,holder:holder,halo:halo,ph:2.3,spin:false};ornaments.push(treeBell);}
+  treeBell.pivot.visible=!!on;}
 
 /* ---------- 飄落花瓣 ---------- */
 var petalGeo;
@@ -2375,7 +2402,7 @@ var foxHit=new THREE.Mesh(new THREE.SphereGeometry(0.5,8,6),new THREE.MeshBasicM
 var foxShadow=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.9),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false}));
 foxShadow.rotation.x=-Math.PI/2;foxShadow.raycast=noRay;stage.add(foxShadow);
 
-var F={x:0.1,z:0.35,yaw:0.4,state:'idle',timer:2.5,tx:0,tz:0,sit:0,walk:0,phase:0,hopT:-1,headYaw:0,headYawT:0,lookT:1,blinkT:2.5,blink:0,earT:3,ear:0,after:null,run:false,lift:0,vis:1,onArrive:null};
+var F={x:0.1,z:0.35,yaw:0.4,state:'idle',timer:2.5,tx:0,tz:0,sit:0,walk:0,phase:0,hopT:-1,headYaw:0,headYawT:0,lookT:1,blinkT:2.5,blink:0,earT:3,ear:0,after:null,run:false,lift:0,vis:1,onArrive:null,back:0,backT:0};   // back：往後看（真結局聽到鈴聲回頭；平常 0）
 function angDiff(a,b){var d=b-a;while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;return d;}
 function clampWalk(x,z){
   var th=Math.atan2(z,x),r=Math.hypot(x,z),m=walkR(th);if(r>m){x*=m/r;z*=m/r;}
@@ -2410,12 +2437,13 @@ function updateFox(dt,t){
   F.earT-=dt;if(F.earT<0){F.ear=0.35;F.earT=rand(2.5,6);}F.ear=Math.max(0,F.ear-dt);
   // 跳一下
   var hopY=0;if(F.hopT>=0){F.hopT+=dt;if(F.hopT>0.46)F.hopT=-1;else hopY=Math.sin(Math.PI*F.hopT/0.46)*0.3;}
+  F.back+=(F.backT-F.back)*Math.min(1,dt*3.2);
   var s=F.sit,w=F.walk,sw=Math.sin(F.phase)*0.6*w,bob=Math.abs(Math.sin(F.phase))*0.022*w;
-  foxRoot.position.set(F.x,hopY+F.lift,F.z);foxRoot.rotation.y=F.yaw;foxBody.scale.setScalar(0.9*Math.max(0.001,F.vis));
+  foxRoot.position.set(F.x,hopY+F.lift,F.z);foxRoot.rotation.y=F.yaw+F.back*0.5;   // 回頭：身體轉一點、頭轉多一點foxBody.scale.setScalar(0.9*Math.max(0.001,F.vis));
   pivot.rotation.x=-0.38*s;pivot.position.y=HIP[1]-0.055*s+bob;
   legFL.rotation.x=sw+0.38*s;legFR.rotation.x=-sw+0.38*s;legFL.scale.y=legFR.scale.y=1+0.42*s;
   legBL.rotation.x=-sw*(1-s)-1.2*s;legBR.rotation.x=sw*(1-s)-1.2*s;
-  head.rotation.x=-0.36*s+Math.sin(F.phase*2)*0.035*w+Math.sin(t*1.3)*0.02;head.rotation.y=F.headYaw;
+  head.rotation.x=-0.36*s+Math.sin(F.phase*2)*0.035*w+Math.sin(t*1.3)*0.02;head.rotation.y=F.headYaw+F.back*1.25;
   head.rotation.z=Math.sin(t*0.9)*0.04*(1-w)+0.08*s*Math.sin(t*0.5);
   tail.rotation.y=Math.sin(t*(1.6+w*3))*(0.32+w*0.15)*(1-s)+s*(1.05+Math.sin(t*0.8)*0.1);
   tail.rotation.x=0.45*s;
@@ -3558,8 +3586,8 @@ function update(dt,t){
   bgClouds.forEach(function(c){c.position.x=c.userData.x+Math.sin(t*0.05+c.userData.ph)*c.userData.amp;});
   if(W0.visible){updateFloaters(floaters,dt,t);
   ornaments.forEach(function(o){o.pivot.rotation.z=Math.sin(t*0.9+o.ph)*0.1;o.pivot.rotation.x=Math.sin(t*0.7+o.ph*1.3)*0.07;
-    if(o.spin)o.holder.rotation.y=Math.sin(t*0.5+o.ph)*1.1;o.halo.material.opacity=0.42+0.3*(0.5+0.5*Math.sin(t*1.6+o.ph*2));});
-  warm.intensity=0.8+0.12*Math.sin(t*1.3);
+    if(o.spin)o.holder.rotation.y=Math.sin(t*0.5+o.ph)*1.1;o.halo.material.opacity=(0.42+0.3*(0.5+0.5*Math.sin(t*1.6+o.ph*2)))*(1+endGlow*1.2);});
+  warm.intensity=(0.8+0.12*Math.sin(t*1.3))*(1+endGlow*1.5);
   updatePetals(dt,t);updateClouds(t);}
   updateFox(dt,t);updateFx(dt);updateWsp(dt);
   isles.forEach(function(I){if(!I.root.visible||!worlds[I.ch].visible)return;
@@ -3596,13 +3624,27 @@ function openNext(k){var I=isles[k],P=I.next;if(!P)return Promise.resolve(false)
   P.o=0;P.burstT=0;I.root.updateMatrixWorld(true);P.g.getWorldPosition(_p);_p.y+=0.1;wburst(_p,P.col,0.8,0.22);
   return gt(1.8,function(v){P.o=v;}).then(function(){P.o=1;return true;});}
 function raiseStar(k){var S=isles[k].star;return gt(0.45,function(v){S.boost=easeOut(v);});}
+// 真結局的主島鏡頭（flow.js 的 endingTrue 照順序叫）：
+//   start()：鎖住操作；小狐狸坐到桂花樹下、背對鏡頭看月亮；鏡頭拉近到樹、小狐狸、月亮；樹上的光慢慢全亮
+//   ring()：畫面外一聲鈴響之後——耳朵一動、回頭往後看
+//   stop()：還原（鏡頭回主島、小狐狸站起來走動、光回平常），解鎖操作
+// 鏡頭：從小狐狸背後、稍微往上看，方位對準月亮（MOON 在正後方偏右一點、仰角約 14°）：小狐狸在下面背對鏡頭，月亮在上面，樹在左邊
+var ENDV={dx:0.1,y:1.55,dz:-0.2,r:9.5,phi:1.6,theta:-Math.atan2(MOON.x,-MOON.z),r2:6.8,y2:1.25};   // 拉遠一點，樹冠才不會擋住月亮
+var ending={
+  start:function(){busy=true;F.x=TX+0.8;F.z=TZ+0.85;F.yaw=Math.atan2(MOON.x-F.x,MOON.z-F.z);F.state='gaze';F.timer=1e9;F.sit=1;F.after=null;F.headYaw=F.headYawT=0;F.back=F.backT=0;
+    ctrl.target.set(F.x+ENDV.dx,ENDV.y,F.z+ENDV.dz);ctrl.r=ENDV.r;ctrl.phi=ENDV.phi;ctrl.theta=ENDV.theta;ctrl.vt=ctrl.vp=0;updateCamera();
+    endGlow=0;gt(2.2,function(v){endGlow=easeInOut(v);});
+    var ty=ctrl.target.y;gt(5.5,function(v){var e=easeInOut(v);ctrl.r=ENDV.r+(ENDV.r2-ENDV.r)*e;ctrl.target.y=ty+(ENDV.y2-ty)*e;});},   // 從看得到月亮的遠景慢慢推近到小狐狸
+  ring:function(){F.ear=0.35;return gwait(0.35).then(function(){F.backT=1;});},
+  stop:function(){F.backT=0;F.back=0;F.state='idle';F.timer=rand(1.5,3);endGlow=0;setView(loc);busy=false;}
+};
 
 return {scene:scene,camera:camera,update:update,resize:resize,preRender:preRender,fox:function(){return F;},foxModel:function(){return FOXM;},
   setHandlers:function(h){HND=h;},setLoc:setLoc,getLoc:function(){return loc;},isBusy:function(){return busy;},setBusy:function(b){busy=b;},
   travel:travel,warpTo:warpTo,tween:gt,wait:gwait,setProgress:setProgress,lightLamp:lightLamp,openNext:openNext,raiseStar:raiseStar,flyStar:flyStar,
   starScreen:starScreen,lampTop:lampTop,hasNext:function(k){return !!(isles[k]&&isles[k].next);},
   nextOf:function(k){var I=isles[k];return I&&I.next?I.next.to:null;},chapter:function(){return chapterOfLoc(loc);},chapterOfStage:chapterOfStage,
-  setLift:function(k,px){if(isles[k])isles[k].liftPx=px;},count:isles.length,ctrl:ctrl,
+  setLift:function(k,px){if(isles[k])isles[k].liftPx=px;},count:isles.length,ctrl:ctrl,ending:ending,setTreeBell:setTreeBell,
   // 白天世界的零件：戰鬥畫面第二章的白天背景直接拿這些來用，外觀才會跟外面一模一樣
   dayKit:function(){return {skyMat:skyMat,LOOKS:LOOKS,dayTextures:dayTextures,VEIL_VS:VEIL_VS,VEIL_FS:VEIL_FS,veilGeo:veilGeo,MIST_VS:MIST_VS,mistNoiseTex:mistNoiseTex,
     dayFloaters:dayFloaters,miniStoneGeo:miniStoneGeo,miniTurfGeo:miniTurfGeo,latheC:latheC,turfCol:turfCol,TURF:TURF,TURF_PK:TURF_PK,PINK_BUSH:PINK_BUSH,DAY_OL:DAY_OL,DAYFALL_FS:DAYFALL_FS,TOTEM:TOTEM,totemTex:totemTex};}};
@@ -5070,6 +5112,7 @@ var AudioFX=(function(){
     mirror:function(){[24,31,36].forEach(function(sm,k){tone(note(sm),1.1,'sine',0.045,k*0.05);});tone(note(12),0.9,'triangle',0.03,0.02);},   // 封面點天狐
     cord:function(){tone(196,0.4,'triangle',0.05,0,300,0.04);[0,4,7].forEach(function(sm,k){tone(note(sm+19),0.55,'sine',0.03,0.1+k*0.06);});},   // 拉紅繩
     bell:function(n){var f=note(24+(3-Math.max(0,Math.min(3,n)))*2);tone(f,0.7,'sine',0.07);tone(f*2.76,0.35,'sine',0.02,0.005);tone(f*5.4,0.16,'sine',0.008,0.01);},   // 震落一顆鈴鐺（剩越少越高）
+    farBell:function(v){v=v==null?1:v;var f=note(19);[0,0.2].forEach(function(w,i){var k=(i?0.6:1)*v;tone(f,2.6,'sine',0.05*k,w,null,0.004);tone(f*2.76,1.2,'sine',0.014*k,w+0.004);tone(f*5.4,0.5,'sine',0.005*k,w+0.008);tone(f*0.5,1.8,'sine',0.02*k,w);});},   // 結局：金鈴一聲（搖一下響兩下、尾音長；v＝音量）
     bellTap:function(){var f=note(28);tone(f,0.28,'sine',0.04);tone(f*2.76,0.12,'sine',0.012);},   // 隔著紅繩換不過去
     untie:function(){[31,28,24,19].forEach(function(sm,k){tone(note(sm),0.6,'sine',0.045,k*0.07);});noise(0.3,0.025,3000,6000,0,0.6,'highpass');},   // 紅繩解開
     shard:function(){[36,43,40].forEach(function(sm,k){tone(note(sm),0.25,'triangle',0.022,k*0.05);});noise(0.25,0.035,5000,9000,0,0.8,'highpass');},   // 天鏡射出鏡片
@@ -5765,22 +5808,38 @@ function onEnrage(){BS.boss.setGlow(1);AudioFX.enrage();bossBarEl.classList.add(
 function stageFx(){return BS.deco(APP.stage)||{};}
 // 走完一步、整串連鎖都停下來：各機制檢查要不要觸發（天鏡：鏡片全部打碎 → 反照），要的話邏輯先算、再叫畫法
 function afterMove(){MECHS.forEach(function(m){if(m.afterMove&&m.afterMove(battle,board,SES.mech[m.key],battle.boss[m.key],fighting()))MECH_VIEWS[m.key].afterMove();});}
-function onBossDown(){G.mode='won';BS.boss.defeat();cdEl.classList.add('hidden');var p=bossScreen();
+function onBossDown(){G.mode='won';if(APP.endTest==='true')AudioFX.farBell();   /* 真結局：倒下那一刻鈴響一聲（之後：有信又戴金鈴時） */BS.boss.defeat();cdEl.classList.add('hidden');var p=bossScreen();
   for(var k=0;k<4;k++)after(k*0.18,function(){burst(p.x+rand(-40,40),p.y+rand(-40,30),3,true);});ringFx(p.x,p.y,L.cs*0.5,L.cs*5,GOLD,0.8);addShake(12);
-  after(1.6,function(){if(CONFIG.stages[APP.stage].final||APP.endTest){endingNormal();return;}   // 最終 BOSS：結局（不跳結算）
+  after(1.6,function(){if(CONFIG.stages[APP.stage].final||APP.endTest){(APP.endTest==='true'?endingTrue:endingNormal)();return;}   // 最終 BOSS：結局（不跳結算）；有信又戴金鈴＝真結局（判斷等最終戰做好才接，現在只有 ?ending=true）
     var tk=downTalk(APP.stage);if(!tk){showResult('win');return;}
     DLG.say(tk.who,tk.lines).then(function(){Save.data().story.lines[tk.id]=1;Save.save();showResult('win');});});}   // 章末 BOSS：還停在戰鬥場景講完話才結算
 // 一般結局（最終 BOSS 打倒，docs/03_design_story.md「劇情」第 4、5 條）：還停在戰鬥場景 → 她說「……你是誰。」→
 //   第一次（還沒有信）：信從 BOSS 平台飄起來、打開、三行字（LETTER.show）→ 不跳結算，直接回月下主島、跳「挑戰任務已解鎖」。
 //   真結局（有信、隊伍裡有狐狸戴金鈴）之後再接（台詞已經在 CONFIG.talk['ending-true']）。
 function endingNormal(){var T=CONFIG.talk['ending-normal'],first=!Save.data().story.letter;
-  DLG.say(T.who,T.lines).then(function(){return first?LETTER.show(bossScreen()):null;}).then(finishFinal);}
+  DLG.say(T.who,T.lines).then(function(){return first?LETTER.show(bossScreen()):null;}).then(function(){finishFinal('normal');});}
+// 真結局（docs/03_design_story.md「劇情」第 6 條）：倒下那一刻鈴響一聲（onBossDown）→ 九尾「……這鈴聲。」「……長大了呢。」→ 暗掉 →
+//   月下主島：樹上的光全亮、小狐狸一個人坐在桂花樹下看月亮 → 畫面外一聲鈴響、耳朵一動往後看 → 看到是誰之前暗掉 →
+//   製作名單（CONFIG.credits）→ 回主島，桂花樹上多一個小鈴鐺（story.endings.true，之後永遠都在）→ 第一次跳「挑戰任務已解鎖」。
+//   計時都用 ENDING.wait（跟著主迴圈）；主島的鏡頭在 garden.js 的 GARDEN.ending。
+function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait;
+  DLG.say(T.who,T.lines).then(function(){return ENDING.fadeTo(1,1.2);})
+  .then(function(){finishFinal('true');gameEl.classList.add('cine');GARDEN.ending.start();return W(0.6);})
+  .then(function(){return ENDING.fadeTo(0,1.8);}).then(function(){return W(3.2);})
+  .then(function(){AudioFX.farBell(0.7);return W(0.45);}).then(function(){return GARDEN.ending.ring();})
+  .then(function(){return W(1.1);}).then(function(){return ENDING.fadeTo(1,0.5);})
+  .then(function(){GARDEN.ending.stop();gameEl.classList.remove('cine');GARDEN.setTreeBell(true);return W(0.8);})
+  .then(function(){return ENDING.credits();}).then(function(){return W(0.6);}).then(function(){return ENDING.fadeTo(0,1.8);})
+  .then(function(){if(!maybeChalNotice())showHint();});}
 // 看完結局：通關、掉落、挑戰解鎖照記（跟結算一樣），回月下主島（loc −1）。
 // 測試網址 ?letter 借別關演（APP.endTest）：不記通關、不發掉落、不真的解鎖挑戰，只跳提示看樣子（信會記進存檔）。
-function finishFinal(){var real=!!CONFIG.stages[APP.stage].final,d=Save.data();G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
-  if(real){markCleared(APP.stage);grantDrop(APP.stage);grantUlt(APP.stage);d.story.endings.normal=1;if(!chalOpen()){d.seen.chal=1;APP.chalNew=true;}Save.save();}   // 第一次才解鎖、才跳提示（跟 showResult 一樣）
+function finishFinal(kind){var real=!!CONFIG.stages[APP.stage].final,d=Save.data();G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
+  if(real){markCleared(APP.stage);grantDrop(APP.stage);grantUlt(APP.stage);d.story.endings[kind]=1;if(!chalOpen()){d.seen.chal=1;APP.chalNew=true;}Save.save();}   // 第一次才解鎖、才跳提示（跟 showResult 一樣）
   else APP.chalNew=true;
-  APP.endTest=false;APP.newStar=-1;APP.gardenLoc=-1;goGarden();}
+  APP.endTest=false;APP.newStar=-1;APP.gardenLoc=-1;
+  if(kind==='true'){if(!real)APP.bellPreview=true;   // 真結局：回主島但先不跳任何提示（鏡頭演完才跳）；?ending=true 借來的關：鈴鐺只在這次掛著、不記存檔
+    FX2D.clear();showPanel(null);G.mode='menu';setScreen('garden');closeBox(true);refreshGarden();GARDEN.setLoc(-1);if(!running)startLoop();hideHint();return;}
+  goGarden();}
 // 打倒第 k 關 BOSS 時要講的話（CONFIG.talk 裡 stage＝k、when＝'down'，而且還沒講過的；講過記在存檔 story.lines）
 function downTalk(k){var T=CONFIG.talk||{},lines=Save.data().story.lines,id;
   for(id in T)if(T[id].stage===k&&T[id].when==='down'&&!lines[id])return {id:id,who:T[id].who,lines:T[id].lines};
@@ -5968,7 +6027,7 @@ function maybeReveal(){var l=GARDEN.getLoc();if(l<0||!heldPortals()[l]||GARDEN.i
   GARDEN.setBusy(true);hideHint();closeBox(true);markPortalSeen(l);
   GARDEN.wait(0.8).then(function(){AudioFX.portalOpen();showGToast(nextLabel(l)+'的傳送陣開啟了，點它就能前往',2800);return GARDEN.openNext(l);})
   .then(function(){refreshGarden();GARDEN.setBusy(false);});return true;}
-function refreshGarden(){GARDEN.setProgress(clearedArr(),APP.newStar,APP.gardenLoc,heldPortals());setStarNum(starsNow());document.getElementById('gWard').classList.toggle('new',Save.anyFresh());refreshMap();}
+function refreshGarden(){GARDEN.setProgress(clearedArr(),APP.newStar,APP.gardenLoc,heldPortals());GARDEN.setTreeBell(!!(Save.data().story.endings.true||APP.bellPreview));   /* 真結局之後桂花樹上的小鈴鐺 */setStarNum(starsNow());document.getElementById('gWard').classList.toggle('new',Save.anyFresh());refreshMap();}
 // ---- 地圖（開啟第二章之後才出現）：只傳送到各章的主島；第一次出現時按鈕上有小紅點 ----
 var gMapEl=document.getElementById('gMap'),gMapBoxEl=document.getElementById('gMapBox'),gMapListEl=document.getElementById('gMapList');
 function refreshMap(){var n=openChapters().length;gMapEl.hidden=n<2;gMapEl.classList.toggle('new',n>=2&&!Save.data().seen.map);if(n<2)gMapBoxEl.classList.remove('show');}
@@ -6290,7 +6349,7 @@ function syncOrbs(t){
 /* =====================================================================
    主迴圈（暫停或切到背景時停止渲染）
    ===================================================================== */
-var last$1=performance.now(),raf=0,running=false;
+var last$2=performance.now(),raf=0,running=false;
 // ?fps（開發用，跟 ?test 一樣是網址參數）：左下角小窗顯示每秒幾格、這一秒最慢的一格隔了幾毫秒、每格幾個 draw call
 // （一格裡所有 render 加起來，庭院的水面倒影也算）。給實機看全螢幕版的效能（2026-09-29）；沒帶 ?fps 時什麼都不做。
 var FPS=/[?&]fps/.test(location.search)?(function(){var el=document.createElement('div'),n=0,t0=performance.now(),t1=t0,worst=0;
@@ -6301,9 +6360,9 @@ var FPS=/[?&]fps/.test(location.search)?(function(){var el=document.createElemen
       if(now-t0>=1000){el.textContent=Math.round(n*1000/(now-t0))+' fps　最慢一格 '+Math.round(worst)+' ms\n'+r.calls+' draw call／格　'+Math.round(r.triangles/1000)+'k 三角形';n=0;t0=now;worst=0;}}};})():null;
 function frame(now){
   if(!running)return;
-  LETTER.tick(now);   // 信的演出（跟著主迴圈跑）
+  LETTER.tick(now);ENDING.tick(now);   // 信、結局的演出（跟著主迴圈跑）
   if(FPS)FPS.begin();
-  var rdt=Math.max(0,Math.min(0.05,(now-last$1)/1000))*(window.__speed||1);last$1=now;VT+=rdt;   /* 第一格的時間戳可能比 startLoop 還早，負的就當 0 */
+  var rdt=Math.max(0,Math.min(0.05,(now-last$2)/1000))*(window.__speed||1);last$2=now;VT+=rdt;   /* 第一格的時間戳可能比 startLoop 還早，負的就當 0 */
   DLG.update(rdt);   // 對話框的逐字、自動消失
   if(APP.screen!=='battle'){var gsn=APP.screen==='garden'?GARDEN:APP.screen==='fox'?WARD:TEAM;gsn.update(rdt,VT);if(APP.screen==='garden'){GARDEN.preRender(renderer);updateGardenHud();}
     renderer.clear();renderExt(gsn.scene,gsn.camera);if(FPS)FPS.end();raf=requestAnimationFrame(frame);return;}
@@ -6328,7 +6387,7 @@ function frame(now){
   ortho.position.set(-sx,sy,0);bcam.position.set(CAM.pos.x+sx*0.01,CAM.pos.y-sy*0.01,CAM.pos.z);bcam.lookAt(CAM.look);
   renderer.clear();renderExt(battleScene,bcam);renderer.clearDepth();renderExt(boardScene,ortho);if(FPS)FPS.end();
   raf=requestAnimationFrame(frame);}
-function startLoop(){if(running)return;running=true;last$1=performance.now();raf=requestAnimationFrame(frame);}
+function startLoop(){if(running)return;running=true;last$2=performance.now();raf=requestAnimationFrame(frame);}
 function stopLoop(){running=false;cancelAnimationFrame(raf);}
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){if(G.mode==='playing'||G.mode==='intro')pauseGame();else stopLoop();}
@@ -6345,13 +6404,13 @@ document.addEventListener('visibilitychange',function(){
 //   LETTER.thumb()      換裝頁那一格的小圖（信封）
 // 動畫跟著主迴圈走：flow.js 的 frame() 每格叫 LETTER.tick(now)（不另開 requestAnimationFrame：測試的虛擬時鐘只接得住一個迴圈）。
 // 畫法全在這個檔和 index.html 的 #letter 樣式：之後改樣子只動這兩個地方。
-var el=document.getElementById('letter'),envEl=el.querySelector('.lEnv'),flapEl=el.querySelector('.lFlap'),cordEl=el.querySelector('.lCord'),innerEl=el.querySelector('.lInner'),
-    paperEl=el.querySelector('.lPaper'),textEl=el.querySelector('.lText'),tapEl=el.querySelector('.lTap');
+var el$1=document.getElementById('letter'),envEl=el$1.querySelector('.lEnv'),flapEl=el$1.querySelector('.lFlap'),cordEl=el$1.querySelector('.lCord'),innerEl=el$1.querySelector('.lInner'),
+    paperEl=el$1.querySelector('.lPaper'),textEl=el$1.querySelector('.lText'),tapEl=el$1.querySelector('.lTap');
 // 時間表（秒）：飄過來、繩子鬆開、封口掀開、信紙抽出、展開、每一行開始、每個字間隔、字浮出的時間
 var T_FLY=1.5,T_CORD=2.0,T_FLAP=2.5,T_PULL=3.1,T_OPEN=3.8,T_LINE0=4.0,T_LINE=1.3,T_CH=0.13,T_FADE=0.35,T_CLOSE=0.6,GUARD=0.6;
-var cur=null,last=-1;
+var cur=null,last$1=-1;
 function clamp01(x){return x<0?0:x>1?1:x;}
-function ease(k){k=clamp01(k);return k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;}
+function ease$1(k){k=clamp01(k);return k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;}
 function seg(t,a,b){return clamp01((t-a)/(b-a));}
 // 字有點歪：每個字固定一點點旋轉、位移（照字的位置算，每次都一樣）
 function wob(i,j){var s=Math.sin(i*12.9898+j*78.233)*43758.5453;s-=Math.floor(s);var u=Math.sin(i*39.3468+j*11.135)*24634.6345;u-=Math.floor(u);return [(s-0.5)*6,(u-0.5)*2.4];}
@@ -6359,36 +6418,36 @@ function build(){textEl.innerHTML='';CONFIG.letter.lines.forEach(function(ln,i){
   Array.prototype.forEach.call(ln,function(ch,j){var c=document.createElement('i'),w=wob(i,j);c.textContent=ch;c.style.transform='rotate('+w[0].toFixed(2)+'deg) translateX('+w[1].toFixed(2)+'px)';p.appendChild(c);});
   textEl.appendChild(p);});}
 function lineEnd(){var L0=CONFIG.letter.lines,n=L0.length;return T_LINE0+(n-1)*T_LINE+(L0[n-1].length-1)*T_CH+T_FADE;}
-function render(){var t=cur.t,W=el.clientWidth,H=el.clientHeight,cx=W/2,cy=H*0.46,f=cur.from;
+function render(){var t=cur.t,W=el$1.clientWidth,H=el$1.clientHeight,cx=W/2,cy=H*0.46,f=cur.from;
   // 背景壓暗
   var close=cur.closing>=0?clamp01(cur.closing/T_CLOSE):0;
-  el.style.backgroundColor='rgba(6,9,26,'+(0.6*ease(seg(t,0,T_FLY))*(1-close)).toFixed(3)+')';
+  el$1.style.backgroundColor='rgba(6,9,26,'+(0.6*ease$1(seg(t,0,T_FLY))*(1-close)).toFixed(3)+')';
   // 信封：從 from 飄到畫面中間（中間拱起一點、左右輕輕晃）、慢慢變大；信紙展開時往下沉、淡掉
-  var k=ease(seg(t,0,T_FLY)),x=f.x+(cx-f.x)*k,y=f.y+(cy-f.y)*k-Math.sin(Math.PI*k)*H*0.06,rot=Math.sin(seg(t,0,T_FLY)*TAU)*7*(1-k),sc=0.3+0.7*k,
-      out=ease(seg(t,T_PULL,T_OPEN));
+  var k=ease$1(seg(t,0,T_FLY)),x=f.x+(cx-f.x)*k,y=f.y+(cy-f.y)*k-Math.sin(Math.PI*k)*H*0.06,rot=Math.sin(seg(t,0,T_FLY)*TAU)*7*(1-k),sc=0.3+0.7*k,
+      out=ease$1(seg(t,T_PULL,T_OPEN));
   envEl.style.transform='translate('+x.toFixed(1)+'px,'+(y+out*40).toFixed(1)+'px) translate(-50%,-50%) rotate('+rot.toFixed(2)+'deg) scale('+sc.toFixed(3)+')';
   envEl.style.opacity=(1-out).toFixed(3);
   // 紅繩鬆開往下掉
-  var c=ease(seg(t,T_FLY,T_CORD));cordEl.style.opacity=(1-c).toFixed(3);cordEl.style.transform='translateY('+(c*16).toFixed(1)+'px) rotate('+(c*-8).toFixed(1)+'deg)';
+  var c=ease$1(seg(t,T_FLY,T_CORD));cordEl.style.opacity=(1-c).toFixed(3);cordEl.style.transform='translateY('+(c*16).toFixed(1)+'px) rotate('+(c*-8).toFixed(1)+'deg)';
   // 封口往上掀（過了一半就翻到信紙後面）
-  var fa=ease(seg(t,T_CORD,T_FLAP))*180;flapEl.style.transform='rotateX('+fa.toFixed(1)+'deg)';flapEl.style.zIndex=fa>90?1:4;
+  var fa=ease$1(seg(t,T_CORD,T_FLAP))*180;flapEl.style.transform='rotateX('+fa.toFixed(1)+'deg)';flapEl.style.zIndex=fa>90?1:4;
   // 裡面折好的信紙往上抽出來
-  var pu=ease(seg(t,T_FLAP,T_PULL));innerEl.style.transform='translateY('+(-pu*62).toFixed(1)+'%)';
+  var pu=ease$1(seg(t,T_FLAP,T_PULL));innerEl.style.transform='translateY('+(-pu*62).toFixed(1)+'%)';
   // 展開：大張的信紙從信封的位置放大到畫面中間
-  var op=ease(seg(t,T_PULL+0.15,T_OPEN)),ps=(0.4+0.6*op)*(1-0.12*ease(close));
+  var op=ease$1(seg(t,T_PULL+0.15,T_OPEN)),ps=(0.4+0.6*op)*(1-0.12*ease$1(close));
   paperEl.style.opacity=(op*(1-close)).toFixed(3);
   paperEl.style.transform='translate('+(cx).toFixed(1)+'px,'+(cy-(1-op)*H*0.05).toFixed(1)+'px) translate(-50%,-50%) scale('+ps.toFixed(3)+')';
   // 字一行一行、一個字一個字浮出來
   Array.prototype.forEach.call(textEl.children,function(ln,i){Array.prototype.forEach.call(ln.children,function(ch,j){
     var a=seg(t,T_LINE0+i*T_LINE+j*T_CH,T_LINE0+i*T_LINE+j*T_CH+T_FADE);ch.style.opacity=a.toFixed(3);ch.style.filter=a<1?'blur('+((1-a)*2).toFixed(2)+'px)':'';});});
-  tapEl.style.opacity=(cur.closing<0?ease(seg(t,cur.end+0.4,cur.end+1.2)):0).toFixed(3);}
-function tick(now){if(!cur)return;var dt=last<0?0:Math.min(0.05,Math.max(0,(now-last)/1000));last=now;cur.t+=dt;
-  if(cur.closing>=0){cur.closing+=dt;if(cur.closing>=T_CLOSE){var r=cur.res;cur=null;el.classList.remove('show');r();return;}}
+  tapEl.style.opacity=(cur.closing<0?ease$1(seg(t,cur.end+0.4,cur.end+1.2)):0).toFixed(3);}
+function tick(now){if(!cur)return;var dt=last$1<0?0:Math.min(0.05,Math.max(0,(now-last$1)/1000));last$1=now;cur.t+=dt;
+  if(cur.closing>=0){cur.closing+=dt;if(cur.closing>=T_CLOSE){var r=cur.res;cur=null;el$1.classList.remove('show');r();return;}}
   render();}
 function tap(){if(!cur||cur.closing>=0||cur.t<GUARD)return;
   if(cur.t<cur.end){cur.t=cur.end;render();return;}   // 還在演：直接跳到字都出現
   cur.closing=0;}   // 收起來
-el.addEventListener('click',tap);
+el$1.addEventListener('click',tap);
 document.addEventListener('keydown',function(e){if(cur&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tap();}});
 var MODEL=null,THUMB=null;
 // 信紙（桂花黃、直書三行、角落一朵小桂花）畫在 canvas 上：換裝頁 3D 那張的貼圖
@@ -6405,8 +6464,8 @@ function flower(g,x,y,s){[[0,0],[16,-10],[-12,-14],[4,-24]].forEach(function(p,i
 var LETTER={
   show:function(from){var d=Save.data(),first=!d.story.letter;d.story.letter=1;if(first)d.fresh.letter=1;Save.save();   // 第一次拿到：換裝按鈕、「信」分頁亮小紅點
     if(cur)return Promise.resolve();build();
-    return new Promise(function(res){var W=el.parentNode.clientWidth,H=el.parentNode.clientHeight;
-      cur={t:0,closing:-1,from:from||{x:W/2,y:H*0.36},end:lineEnd(),res:res};el.classList.add('show');last=-1;render();});},
+    return new Promise(function(res){var W=el$1.parentNode.clientWidth,H=el$1.parentNode.clientHeight;
+      cur={t:0,closing:-1,from:from||{x:W/2,y:H*0.36},end:lineEnd(),res:res};el$1.classList.add('show');last$1=-1;render();});},
   tick:tick,
   busy:function(){return !!cur;},
   thumb:function(){if(THUMB)return THUMB;var c=document.createElement('canvas');c.width=c.height=128;var g=c.getContext('2d');
@@ -6426,6 +6485,37 @@ var LETTER={
     MODEL=G;return G;}
 };
 
+// 結局（ending.js，2026-09-29）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 企劃：docs/03_design_story.md「劇情」第 4、6 條。一般結局在 flow.js 的 endingNormal；這裡是真結局要用的：
+//   黑幕淡入淡出（#ending，蓋滿整個螢幕）、製作名單（CONFIG.credits）、主島的鏡頭（小狐狸坐在桂花樹下看月亮 → 鈴響 → 耳朵一動往後看 → 暗掉）。
+// 全部跟著主迴圈走：flow.js 的 frame() 每格叫 ENDING.tick(now)（不另開 requestAnimationFrame：測試的虛擬時鐘只接得住一個迴圈）。
+var el=document.getElementById('ending'),credEl=el.querySelector('.enCred');
+var last=-1,waits=[],fadeA=0,fade=null,cred=null;   // waits：等幾秒的 Promise；fade：黑幕從 a 到 b；cred：捲動中的名單
+function ease(k){k=k<0?0:k>1?1:k;return k*k*(3-2*k);}
+function setFade(a){fadeA=a;el.style.opacity=a.toFixed(3);el.classList.toggle('show',a>0.001||!!cred);}
+// 名單：遊戲名、每一列（職稱＋名字）、最後一行；從畫面下面一點往上捲到全部離開，速度固定（每秒 SPEED px；現在的佔位名單約 30 秒）
+var SPEED=45;
+function buildCredits(){var C=CONFIG.credits,h='<h3>'+C.title+'</h3>';
+  C.rows.forEach(function(r){h+='<dl><dt>'+r[0]+'</dt>'+r.slice(1).map(function(n){return '<dd>'+n+'</dd>';}).join('')+'</dl>';});
+  if(C.end)h+='<p>'+C.end+'</p>';credEl.innerHTML=h;}
+var ENDING={
+  tick:function(now){var dt=last<0?0:Math.min(0.05,Math.max(0,(now-last)/1000));last=now;if(!dt)return;
+    if(fade){fade.t+=dt;var k=Math.min(1,fade.t/fade.dur);setFade(fade.a+(fade.b-fade.a)*ease(k));if(k>=1){var r=fade.res;fade=null;r();}}
+    if(cred){cred.t+=dt;var H=el.clientHeight,y=H*0.85-cred.t*SPEED;credEl.style.transform='translateY('+y.toFixed(1)+'px)';credEl.style.opacity=Math.min(1,cred.t/0.8).toFixed(3);
+      if(y<-credEl.offsetHeight-20||cred.skip){var rc=cred.res;cred=null;credEl.style.opacity='0';rc();}}
+    if(waits.length)waits=waits.filter(function(w){w.t-=dt;if(w.t<=0){w.res();return false;}return true;});},
+  // 等 sec 秒（遊戲的時間，暫停就停）
+  wait:function(sec){return new Promise(function(res){waits.push({t:sec,res:res});});},
+  // 黑幕淡到 to（0＝看得到、1＝全黑），花 dur 秒
+  fadeTo:function(to,dur){return new Promise(function(res){fade={a:fadeA,b:to,t:0,dur:dur||0.8,res:res};});},
+  // 製作名單：黑幕要先是全黑；捲完才 resolve。點一下可以跳過（剛開始 1.5 秒內不算）
+  credits:function(){buildCredits();credEl.style.transform='translateY('+(el.clientHeight*0.85)+'px)';
+    return new Promise(function(res){cred={t:0,skip:false,res:res};setFade(fadeA);});},
+  busy:function(){return !!(fade||cred||fadeA>0.001);},
+  clear:function(){waits=[];fade=null;cred=null;setFade(0);}
+};
+el.addEventListener('click',function(){if(cred&&cred.t>1.5)cred.skip=true;});
+
 // 入口：接在所有 module 的最後，組好除錯入口 window.__game、開始遊戲。
 // 執行順序：每個 module 第一行 import 前一個 module（照拆檔前的區塊順序串成一條鏈），這裡只接在鏈的最後一個後面。
 // ES module 深度優先、先執行被 import 的；照這條鏈，任何 module 被拜訪時後面的 module 都已在堆疊上，
@@ -6437,7 +6527,9 @@ layout();fillBoardStatic();updateBars();goGarden();startLoop();
 var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else if(/[?&]test5/.test(QS)){APP.stage=4;startTrial();}else if(/[?&]test4/.test(QS)){APP.stage=3;startTrial();}else if(/[?&]test3/.test(QS)){APP.stage=2;startTrial();}else if(/[?&]test2/.test(QS)){APP.stage=1;startTrial();}else if(/[?&]test/.test(QS)){APP.stage=0;startTrial();}else if(/[?&]team/.test(QS)){goTeam(1);}
 // ?letter（開發用）：最終 BOSS 還沒做，先用網址看一般結局：進一關戰鬥（預設第三關；可以跟 ?test～?test6 一起用），一開打就讓 BOSS 倒下 →
 //   「……你是誰。」→ 信 → 回月下主島 →「挑戰任務已解鎖」。借來的這一關不記通關、不發掉落、不真的解鎖挑戰（信會記進存檔，換裝頁多「信」分頁）。
-if(/[?&]letter/.test(QS)){APP.endTest=true;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
+//   ?ending=normal 同上；?ending=true 看真結局（倒下鈴響 →「……這鈴聲。」「……長大了呢。」→ 主島小狐狸看月亮、鈴響回頭 → 製作名單 → 樹上多小鈴鐺；鈴鐺只這次掛著、不記存檔）。
+var endQ=/[?&]ending=(normal|true)/.exec(QS),endK=endQ?endQ[1]:/[?&]letter/.test(QS)?'normal':null;
+if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   var endIv=setInterval(function(){if(G.mode==='playing'){clearInterval(endIv);battle.bossHp=0;updateBars();onBossDown();}},100);}</script>
 </head>
 <body>
@@ -6524,6 +6616,7 @@ if(/[?&]letter/.test(QS)){APP.endTest=true;if(APP.screen!=='battle'){APP.stage=2
   </div>
   <div id="dlgFloats" aria-live="polite"></div>
   <div id="dlg" role="dialog" aria-live="polite"><div class="dlgBox"><b class="dlgWho"></b><p class="dlgText"></p><i class="dlgNext" aria-hidden="true"></i></div></div>
+  <div id="ending" aria-hidden="true"><div class="enCred"></div></div>
   <div id="letter" role="dialog" aria-label="信"><div class="lEnv" aria-hidden="true"><i class="lBack"></i><i class="lInner"></i><i class="lPocket"></i><i class="lFlap"></i><i class="lCord"><i class="lKnot"></i></i></div>
     <div class="lPaper"><p class="lText"></p><svg class="lFlower" viewBox="0 0 40 34" aria-hidden="true"><g fill="#f2a743"><circle cx="12" cy="20" r="4"/><circle cx="20" cy="13" r="4"/><circle cx="27" cy="21" r="3.6"/><circle cx="18" cy="25" r="3.4"/></g><g fill="#d9781f"><circle cx="12" cy="20" r="1.4"/><circle cx="20" cy="13" r="1.4"/><circle cx="27" cy="21" r="1.3"/><circle cx="18" cy="25" r="1.2"/></g><path d="M4 31 Q16 26 34 30" stroke="#8a6a3a" stroke-width="1.4" fill="none"/></svg></div>
     <small class="lTap">點一下收起來</small></div>
