@@ -3,27 +3,15 @@
 <head>
 <meta charset="utf-8">
 <script>/* 全螢幕新版預覽頁：預設打開 ?fps 效能小窗（只有這個預覽頁這樣，正式版不會） */if(!/[?&]fps/.test(location.search))history.replaceState(null,"",location.pathname+(location.search?location.search+"&fps":"?fps")+location.hash);</script>
-<script>/* 預覽頁試修（2026-09-29 遊星）：CK 的 iPhone 12 加到主畫面時，底下少畫 47px。推測是 100dvh 在主畫面模式等於「螢幕扣掉瀏海」(797)，
-   所以主畫面模式改用 100vh；另外在效能小窗下面印出各種高度，截圖就能確認。只在這個預覽頁，原始碼還沒改。 */
-(function(){var sa=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
-  if(sa)document.documentElement.classList.add('standalone');
-  var st=document.createElement('style');st.textContent='html.standalone,html.standalone body{height:100vh}#diagBox{position:fixed;left:4px;bottom:calc(46px + var(--safe-bottom,0px));z-index:99;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.6);color:#ff9;font:11px/1.35 monospace;white-space:pre;pointer-events:none}';
-  document.head.appendChild(st);
-  document.addEventListener('DOMContentLoaded',function(){
-    var d=document.createElement('div');d.id='diagBox';document.body.appendChild(d);
-    var m=document.createElement('div');m.style.cssText='position:absolute;left:-9px;top:0;width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(m);
-    function u(x){m.style.height=x;return Math.round(m.getBoundingClientRect().height);}
-    function tick(){var g=document.getElementById('game'),p=document.getElementById('safeProbe'),cs=p?getComputedStyle(p):null;
-      d.textContent='主畫面 '+(sa?'是':'否')+'  螢幕 '+screen.height+'  inner '+innerHeight+'\nbody '+document.body.clientHeight+'  game '+(g?g.clientHeight:'-')+'  vh '+u('100vh')+'  dvh '+u('100dvh')+'  lvh '+u('100lvh')+
-        '\n安全區 上 '+(cs?parseFloat(cs.paddingTop):'-')+' 下 '+(cs?parseFloat(cs.paddingBottom):'-');}
-    tick();setInterval(tick,1000);});})();
-</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="狐仙全螢幕">
 <title>狐仙三消（全螢幕新版）</title>
+<script>/* 全螢幕（2026-09-29 第三輪）：加到主畫面開的（standalone）在 <html> 加 class，高度改用 100vh（見下面的 html.standalone）。
+   CK 的 iPhone 12 實測：主畫面模式的 100dvh 只有 797（扣掉瀏海），底下少畫 47px；100vh 是 844＝整個螢幕。 */
+if(navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches))document.documentElement.classList.add('standalone');</script>
 <style>
 :root{
   --bg:#0b1330; --gold:#e8c67e; --ink:#f4ecd8; --glass:rgba(14,22,52,.62); --line:rgba(232,198,126,.45); --panel:rgba(16,24,58,.9);
@@ -44,6 +32,7 @@ body{height:100vh;height:100dvh;margin:0;overflow:hidden;background:var(--bg);co
   font-family:"Noto Serif TC","Songti TC","Source Han Serif TC","PMingLiU",serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
   overscroll-behavior:none;touch-action:none}
+html.standalone,html.standalone body{height:100vh}   /* 主畫面模式：100dvh 會少掉瀏海那段，改用 100vh（瀏覽器照舊 100vh；100dvh） */
 #game{position:relative;height:100%;margin:0 auto;overflow:hidden;background:var(--bg)}
 #c{position:absolute;top:0;left:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
 /* #frame＝安全框（全螢幕 2026-09-29）：#game 和畫布畫滿整頁，按鈕、血條、珠盤這些都放在 #frame 裡、照安全框排。
@@ -256,16 +245,16 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* 進關前的 BOSS 封面頁（雜誌封面）：大標題畫在 3D 場景裡（BOSS 可以蓋過字），這裡是其餘的小字與符印 */
 #teamHud{position:absolute;inset:0;pointer-events:none;--acc:#a8e6c8;--acc2:#e8c67e;--shade:4,14,24;--tb:154px;
   --disp:"Noto Serif HK","Noto Serif CJK TC","Noto Serif TC","Songti TC","PMingLiU",serif}
-#teamHud[data-stage="1"]{--acc:#ff9f8c;--acc2:#f3b86e;--shade:8,12,30}
+#teamHud[data-stage="1"]{--acc:#ff9f8c;--acc2:#f3b86e;--shade:8,12,30;--shEnd:.7}
 #teamHud[data-stage="1"]::before{height:22%;background:linear-gradient(180deg,rgba(var(--shade),0),rgba(var(--shade),.45) 55%,rgba(var(--shade),.7))}
-#teamHud[data-stage="2"]{--acc:#ffb6dc;--acc2:#edc680;--shade:30,9,40}
+#teamHud[data-stage="2"]{--acc:#ffb6dc;--acc2:#edc680;--shade:30,9,40;--shEnd:.74}
 #teamHud[data-stage="2"]::before{height:24%;background:linear-gradient(180deg,rgba(var(--shade),0),rgba(var(--shade),.5) 55%,rgba(var(--shade),.74))}
 /* 第四關桃夭的封面是白天（藍天、白霧）：字改成深紫紅＋白色柔光，下面那層改成淡淡的白粉霧，開始鍵改成實心的桃粉色 */
-#teamHud.uiOff>*,#teamHud.uiOff::before,#game[data-screen="team"].coverUiOff #muteBtn{opacity:0!important;pointer-events:none!important}   /* 封面的介面藏起來（只有場景編輯器會用） */
+#teamHud.uiOff>*,#teamHud.uiOff::before,#teamHud.uiOff::after,#game[data-screen="team"].coverUiOff #muteBtn{opacity:0!important;pointer-events:none!important}   /* 封面的介面藏起來（只有場景編輯器會用） */
 .seNote{color:#9a97b0;font-size:11.5px;margin:4px 0}
 .seCode{width:100%;height:58px;margin:4px 0;background:#12131d;color:#e9e6f2;border:1px solid #444862;border-radius:6px;font:11px/1.3 ui-monospace,monospace;resize:vertical;-webkit-user-select:text;user-select:text}
 #teamHud[data-stage="3"]{--acc:#dc4f86;--acc2:#e0508a;--shade:255,244,249;--dk:#43295c}
-#teamHud[data-stage="3"]::before{display:none}   /* 2026-09-27 使用者：封面最下面那層半透明白霧拿掉（場景裡的霧已經自己擺好了） */
+#teamHud[data-stage="3"]::before,#teamHud[data-stage="3"]::after{display:none}   /* 2026-09-27 使用者：封面最下面那層半透明白霧拿掉（場景裡的霧已經自己擺好了） */
 #teamHud[data-stage="3"] .cvTop{color:rgba(67,41,92,.72);text-shadow:0 0 4px rgba(255,255,255,.9)}
 #teamHud[data-stage="3"] .cvTop #cvIssue{color:#c9477c}
 #teamHud[data-stage="3"] .cvDeck,#teamHud[data-stage="3"] .cvTag{text-shadow:0 0 3px #fff,0 0 8px rgba(255,255,255,.95),0 0 14px rgba(255,255,255,.7)}
@@ -284,6 +273,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* 第五、六關的暫時封面（2026-09-28）：白天的亮背景，字跟第四關一樣改深色＋白色柔光；下面那層改成淡淡的白霧，開始鍵是實心的 */
 #teamHud[data-stage="4"]{--acc:#1a8f72;--acc2:#cf3446;--shade:255,251,246;--dk:#1c3d38;--g0:#62d2b2;--g1:#1f9c7a}
 #teamHud[data-stage="5"]{--acc:#bc5a16;--acc2:#b86c10;--shade:255,245,234;--dk:#3e2814;--g0:#f8b650;--g1:#de781c}
+#teamHud.dayCv{--shEnd:.75}
 #teamHud.dayCv::before{height:22%;background:linear-gradient(180deg,rgba(var(--shade),0),rgba(var(--shade),.5) 60%,rgba(var(--shade),.75))}
 #teamHud.dayCv .cvSide{width:min(44%,172px)}
 #teamHud.dayCv .cvTop{color:rgba(30,36,56,.72);text-shadow:0 0 4px rgba(255,255,255,.9)}
@@ -304,6 +294,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #teamHud[data-stage="5"] .cvTop #cvIssue{color:#ffd88a}
 #teamHud.dayCv .goBtn{border-color:rgba(255,255,255,.75);background:linear-gradient(180deg,var(--g0),var(--g1));color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3);box-shadow:0 2px 14px rgba(0,0,0,.18)}
 #teamHud::before{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(180deg,rgba(var(--shade),0),rgba(var(--shade),.72) 50%,rgba(var(--shade),.9))}
+/* 全螢幕（2026-09-29 第三輪）：上面那層深色從安全框底再往下接到螢幕最底（底部橫條後面），顏色＝漸層最底的那一色（--shEnd 跟著各關的漸層改）。
+   沒有安全區時高度是 0、什麼都不畫；框裡的漸層、字、按鈕都沒動。 */
+#teamHud::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--safe-bottom);background:rgba(var(--shade),var(--shEnd,.9))}
 #teamHud p,#teamHud dl,#teamHud h1{margin:0}
 #backBtn{position:absolute;left:12px;top:9px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--gold);font-size:21px;line-height:1;pointer-events:auto;padding:0 0 3px;z-index:2}
 .cvTop{position:absolute;left:56px;right:58px;top:17px;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.24em;color:rgba(244,236,216,.7);text-shadow:0 1px 3px rgba(0,0,0,.6)}
