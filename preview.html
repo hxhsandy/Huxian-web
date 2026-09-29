@@ -2,6 +2,10 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
+<script>/* 預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
+   網址加 ?quick：進戰鬥後 BOSS 只剩一點血，打一下就倒，方便看台詞。 */
+(function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
+if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=Math.round(g.battle.bossMax*0.03);},500);})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -130,6 +134,30 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dmg.team{font-size:22px;color:#ff9fb8;text-shadow:0 0 8px rgba(190,90,200,.9),0 2px 3px rgba(0,0,0,.75)}
 .dmg.heal{font-size:17px;color:#ffc4da;text-shadow:0 0 8px rgba(255,120,170,.8),0 2px 3px rgba(0,0,0,.7)}
 
+/* 對話框（2026-09-29，src/dialogue.js）：劇情台詞，放在安全框裡。樣子對齊面板：深藍半透明、金色細邊、宋體。
+   #dlg＝擋住畫面的那種：蓋滿安全框、接住所有點擊（點一下換下一句），框在畫面下半、珠盤上方；下面淡淡壓暗一點。
+   #dlgFloats＝不擋操作的短句（浮在 BOSS 旁邊、幾秒後自己消失）：不接點擊，排在暫停面板（#overlay）下面。 */
+#dlg{position:absolute;inset:0;z-index:9;display:none;background:linear-gradient(to top,rgba(6,9,26,.5),rgba(6,9,26,0) 55%)}
+#dlg.show{display:block;animation:dlgIn .3s ease-out both}
+#dlg.out{animation:dlgOut .3s ease-in both}
+@keyframes dlgIn{from{opacity:0}to{opacity:1}}
+@keyframes dlgOut{from{opacity:1}to{opacity:0}}
+.dlgBox{position:absolute;left:50%;bottom:20%;width:min(340px,calc(100% - 32px));transform:translateX(-50%);box-sizing:border-box;padding:20px 22px 18px;border-radius:16px;
+  background:var(--panel);border:1px solid var(--line);box-shadow:0 0 40px rgba(232,198,126,.12),inset 0 0 0 4px rgba(232,198,126,.06)}
+#dlg.show .dlgBox{animation:dlgUp .3s ease-out both}
+@keyframes dlgUp{from{transform:translate(-50%,10px)}to{transform:translateX(-50%)}}
+.dlgWho{position:absolute;left:18px;top:-12px;padding:1px 12px;border-radius:999px;background:#10183a;border:1px solid var(--line);color:var(--gold);font-size:13px;font-weight:normal;letter-spacing:.3em;text-indent:.3em}
+.dlgText{margin:0;min-height:1.7em;font-size:18px;line-height:1.7;letter-spacing:.12em;color:var(--ink)}
+.dlgNext{position:absolute;right:16px;bottom:10px;width:0;height:0;border:5px solid transparent;border-top:7px solid var(--gold);border-bottom:0;opacity:0}
+#dlg.done .dlgNext{animation:dlgBlink 1s ease-in-out infinite}   /* 這句跑完了：右下角的小三角一閃一閃，點一下換下一句 */
+@keyframes dlgBlink{0%,100%{opacity:.25}50%{opacity:.95}}
+#dlgFloats{position:absolute;inset:0;pointer-events:none}
+.dlgFloat{position:absolute;transform:translate(-50%,-100%);max-width:calc(100% - 16px);box-sizing:border-box;padding:6px 12px;border-radius:12px;background:rgba(16,24,58,.8);border:1px solid var(--line);
+  color:var(--ink);font-size:14px;line-height:1.5;letter-spacing:.1em;white-space:nowrap;opacity:0;transition:opacity .3s}
+.dlgFloat.show{opacity:1}
+.dlgFloat b{display:block;font-size:11px;font-weight:normal;letter-spacing:.3em;color:var(--gold)}
+.dlgFloat i{font-style:normal}
+.dlgFloat s{text-decoration:none;visibility:hidden}
 #overlay{position:absolute;inset:0;top:calc(-1 * var(--safe-top));bottom:calc(-1 * var(--safe-bottom));padding-top:calc(64px + var(--safe-top))!important;padding-bottom:calc(24px + var(--safe-bottom))!important;display:none;align-items:center;justify-content:center;background:rgba(6,9,26,.55);
   backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:24px}
 #overlay.show{display:flex}
@@ -571,7 +599,14 @@ var CONFIG={
   //   在哪一關第一次打倒 BOSS 取得寫在 stages[].ultDrop（打過這關，拿到下一關用得到的招）
   ultAlt:{
     water:{name:'淨流',delay:2},              // 解開盤面上全部的鎖鏈，但 BOSS 攻擊倒數只 +2 秒
-    heart:{name:'清心',heal:0.15,guard:6}}     // 解除所有媚惑、6 秒內不會再被迷住，但只回 15%、沒有護盾
+    heart:{name:'清心',heal:0.15,guard:6}},    // 解除所有媚惑、6 秒內不會再被迷住，但只回 15%、沒有護盾
+  // 劇情台詞（2026-09-29；字都是暫定，要改字改這裡就好）。企劃在 docs/03_design_story.md「劇情」：只有章末 BOSS 打倒時講話，每次一到兩句、每句不超過 12 字。
+  //   id（存檔 story.lines 記講過的）→ who：框上寫的名字；lines：一句一句；stage：第幾關（0 起算）；when：'down'＝打倒這關 BOSS 時，只講第一次（src/flow.js 的 onBossDown）。
+  //   對話框在 src/dialogue.js（擋住畫面的 DLG.say、不擋的 DLG.float）。
+  talk:{
+    'daji-down':  {stage:2,when:'down',who:'妲己',lines:['……長大了呢。','燈，要一直點下去喔。']},
+    'tianhu-down':{stage:5,when:'down',who:'天狐',lines:['她也走過這條路。','……沒有回來。']}
+  }
 };
 window.CONFIG=CONFIG;
 var COLS=CONFIG.board.cols,ROWS=CONFIG.board.rows,NT=CONFIG.orbs.length,A=CONFIG.anim,HEART=5;
@@ -5520,6 +5555,59 @@ function freshSession(){return {
 var SES=freshSession();
 function newSession(){SES=freshSession();}
 
+// 對話框（dialogue.js，2026-09-29）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 劇情台詞共用的對話框：HTML 疊層，放在安全框 #frame 裡（index.html 的 #dlg、#dlgFloats）。台詞在 config.js 的 CONFIG.talk。
+// 兩種用法：
+//   DLG.say(who,lines)        擋住畫面：框上寫說話的人，字一個一個跑出來；點一下＝這句直接跑完／換下一句；最後一句點掉、框收起來才 resolve。
+//                             （章末 BOSS 打倒時、之後最終戰的結局台詞）
+//   DLG.float(who,text,opt)   不擋操作：小框浮在 (opt.x, opt.y) 上方（安全框座標，例如 bossScreen() 的結果），字跑完停 opt.hold 秒（預設 2.5）
+//                             自己淡掉，淡掉後 resolve。（之後最終戰第三段金鈴彈開時的短句，遊戲不暫停）
+//   DLG.update(dt)            主迴圈每格叫：逐字、自動消失都跟著主迴圈的時間走（暫停、切到背景就停；測試的虛擬時鐘也準）
+//   DLG.clear()               開新的一場時收掉（還沒講完的就不 resolve 了）
+//   DLG.busy()                擋住畫面的對話框開著嗎
+// CH：每個字幾秒；SLOW：這個字後面多停幾秒（刪節號、標點）；GUARD：剛出現的這幾秒內點了不算
+// （打倒 BOSS 那一下手還在盤面上點，免得一下就跳過；換下一句也擋一小段，免得連點跳兩句）；FADE：收起來的淡出秒數（要跟 CSS 的一樣）
+var CH=0.075,SLOW={'…':0.14,'，':0.22,'、':0.22,'。':0.3,'？':0.3,'！':0.3},GUARD=0.45,GUARD_NEXT=0.2,FADE=0.3;
+var boxEl=document.getElementById('dlg'),whoEl=boxEl.querySelector('.dlgWho'),textEl=boxEl.querySelector('.dlgText'),floatsEl=document.getElementById('dlgFloats');
+var cur=null,floats=[];   // cur：擋住畫面的那一段；floats：浮著的短句
+function line(text){return {text:String(text),n:0,acc:0};}   // n：已經出現幾個字
+function typed(o,dt){if(o.n>=o.text.length)return false;o.acc+=dt;var ch=false;
+  while(o.n<o.text.length){var d=CH+(o.n>0?SLOW[o.text[o.n-1]]||0:0);if(o.acc<d)break;o.acc-=d;o.n++;ch=true;}
+  return ch;}
+function render(){var o=cur.o;textEl.textContent=o.text.slice(0,o.n);boxEl.classList.toggle('done',o.n>=o.text.length);}
+function tap(){if(!cur||cur.closing>=0||cur.age<cur.guard)return;var o=cur.o;
+  if(o.n<o.text.length){o.n=o.text.length;render();return;}   // 還在跑：這句直接跑完
+  if(cur.i+1<cur.lines.length){cur.i++;cur.o=line(cur.lines[cur.i]);cur.age=0;cur.guard=GUARD_NEXT;render();return;}   // 下一句
+  cur.closing=0;boxEl.classList.add('out');}   // 講完了：收起來（update 裡淡出完才 resolve）
+boxEl.addEventListener('click',tap);
+document.addEventListener('keydown',function(e){if(cur&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tap();}});   // 電腦上按 Enter／空白鍵也可以
+var DLG={
+  say:function(who,lines){return new Promise(function(res){
+    cur={lines:lines.slice(),i:0,o:line(lines[0]),age:0,guard:GUARD,closing:-1,res:res};
+    whoEl.textContent=who||'';whoEl.hidden=!who;boxEl.classList.remove('out','done');boxEl.classList.add('show');render();});},
+  float:function(who,text,opt){opt=opt||{};return new Promise(function(res){
+    var el=document.createElement('div');el.className='dlgFloat';
+    el.innerHTML=(who?'<b></b>':'')+'<span><i></i><s></s></span>';   // <i> 已經出現的字、<s> 還沒出現的字（佔位、看不到），框的大小一開始就固定
+    if(who)el.firstChild.textContent=who;
+    var f={el:el,t:el.querySelector('i'),rest:el.querySelector('s'),o:line(text),hold:opt.hold==null?2.5:opt.hold,out:false,res:res};
+    f.rest.textContent=f.o.text;floatsEl.appendChild(el);
+    var w=el.offsetWidth,W=floatsEl.clientWidth,x=Math.max(w/2+8,Math.min(W-w/2-8,opt.x==null?W/2:opt.x));   // 不超出安全框的左右
+    el.style.left=x+'px';el.style.top=(opt.y==null?floatsEl.clientHeight*0.3:opt.y)+'px';
+    void el.offsetWidth;el.classList.add('show');floats.push(f);});},
+  update:function(dt){
+    if(cur){cur.age+=dt;
+      if(cur.closing>=0){cur.closing+=dt;if(cur.closing>=FADE){var r=cur.res;cur=null;boxEl.classList.remove('show','out','done');r();}}
+      else if(typed(cur.o,dt))render();}
+    if(floats.length)floats=floats.filter(function(f){
+      if(typed(f.o,dt)){f.t.textContent=f.o.text.slice(0,f.o.n);f.rest.textContent=f.o.text.slice(f.o.n);}
+      if(f.o.n<f.o.text.length)return true;
+      f.hold-=dt;if(f.hold<=0&&!f.out){f.out=true;f.el.classList.remove('show');}
+      if(f.hold<=-FADE){f.el.remove();f.res();return false;}
+      return true;});},
+  clear:function(){cur=null;boxEl.classList.remove('show','out','done');floats.forEach(function(f){f.el.remove();});floats=[];},
+  busy:function(){return !!cur;}
+};
+
 // 遊戲流程、觸控、每幀同步、主迴圈（flow.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    遊戲流程
@@ -5645,7 +5733,12 @@ function stageFx(){return BS.deco(APP.stage)||{};}
 function afterMove(){MECHS.forEach(function(m){if(m.afterMove&&m.afterMove(battle,board,SES.mech[m.key],battle.boss[m.key],fighting()))MECH_VIEWS[m.key].afterMove();});}
 function onBossDown(){G.mode='won';BS.boss.defeat();cdEl.classList.add('hidden');var p=bossScreen();
   for(var k=0;k<4;k++)after(k*0.18,function(){burst(p.x+rand(-40,40),p.y+rand(-40,30),3,true);});ringFx(p.x,p.y,L.cs*0.5,L.cs*5,GOLD,0.8);addShake(12);
-  after(1.6,function(){showResult('win');});}
+  after(1.6,function(){var tk=downTalk(APP.stage);if(!tk){showResult('win');return;}
+    DLG.say(tk.who,tk.lines).then(function(){Save.data().story.lines[tk.id]=1;Save.save();showResult('win');});});}   // 章末 BOSS：還停在戰鬥場景講完話才結算
+// 打倒第 k 關 BOSS 時要講的話（CONFIG.talk 裡 stage＝k、when＝'down'，而且還沒講過的；講過記在存檔 story.lines）
+function downTalk(k){var T=CONFIG.talk||{},lines=Save.data().story.lines,id;
+  for(id in T)if(T[id].stage===k&&T[id].when==='down'&&!lines[id])return {id:id,who:T[id].who,lines:T[id].lines};
+  return null;}
 function onTimeUp(){G.mode='timeup';S.sel=null;S.hint=null;showBanner('時間到');}
 var bannerT=0;function showBanner(text){bannerEl.querySelector('span').textContent=text;bannerEl.classList.add('show');clearTimeout(bannerT);bannerT=setTimeout(function(){bannerEl.classList.remove('show');},1600);}
 function updateBars(){
@@ -5760,6 +5853,7 @@ var Save=(function(){var KEY='fox3-save',V=2,data=null;
   var FOXK=['little','fire','water','wood','light','dark','heart'];
   function blank(){return {v:V,cleared:{},items:{bow:1},fresh:{},outfit:{},ults:{},ult:{},story:{lines:{},letter:0,endings:{}},seen:{},chal:{}};}   // chal：達成的小挑戰（關卡索引）   // v2：ults 拿到的大招變奏、ult 每隻狐狸帶哪一招（'alt' 是變奏）；seen：播過「開啟」動畫的換章傳送陣（ch1＝通往第二章）
   function migrate(d){var b=blank();Object.keys(b).forEach(function(k){if(d[k]==null||typeof d[k]!==typeof b[k])d[k]=b[k];});
+    var bs=b.story;Object.keys(bs).forEach(function(k){if(d.story[k]==null||typeof d.story[k]!==typeof bs[k])d.story[k]=bs[k];});   // story.lines：講過的劇情台詞（id→1，見 CONFIG.talk）
     FOXK.forEach(function(f){if(!d.outfit[f]||typeof d.outfit[f]!=='object')d.outfit[f]=f==='little'?{}:{head:'sym-'+f};});
     Object.keys(FOX_ITEMS).forEach(function(id){if(FOX_ITEMS[id].from==='start')delete d.fresh[id];});   // 一開始就有的飾品不算新東西
     CONFIG.stages.forEach(function(st,k){if(d.cleared[k]&&st.drop&&!d.items[st.drop]){d.items[st.drop]=1;d.fresh[st.drop]=1;}   // 已經通關的關卡直接補發飾品與大招變奏
@@ -5802,7 +5896,7 @@ function applyOutfit(f){var o=Save.outfitOf(f);SLOTS.forEach(function(s){var id=
 function applyAllOutfits(){WKEYS.forEach(applyOutfit);}
 applyAllOutfits();
 function setBossHud(){var st=CONFIG.stages[APP.stage];bossBarEl.querySelector('.name').textContent=st.name;var at=bossBarEl.querySelector('.attr');at.textContent=st.attrName;at.className='attr a-'+st.attr;}
-function resetBattleFx(){FX2D.clear();cdEl.classList.remove('sealed');tweens.length=0;MECH_VIEW_LIST.forEach(function(mv){if(mv.reset)mv.reset();});shotPool.forEach(function(q){q.on=false;q.m.visible=false;q.cb=null;});setInflight(0);motes.forEach(function(m){m.on=false;});parts.forEach(function(q){q.on=false;});
+function resetBattleFx(){FX2D.clear();DLG.clear();cdEl.classList.remove('sealed');tweens.length=0;MECH_VIEW_LIST.forEach(function(mv){if(mv.reset)mv.reset();});shotPool.forEach(function(q){q.on=false;q.m.visible=false;q.cb=null;});setInflight(0);motes.forEach(function(m){m.on=false;});parts.forEach(function(q){q.on=false;});
   [beams,rings].forEach(function(pool){pool.forEach(function(f){f.life=0;f.m.visible=false;});});setShake(0);bannerEl.classList.remove('show');toastEl.classList.remove('show');}
 // ---- 月下庭院：星星計數、關卡資訊框、傳送、第一次通關的收集動畫 ----
 var gHintEl=document.getElementById('gHint'),gToastEl=document.getElementById('gToast'),gToastT=0,gHintT=0,
@@ -6155,6 +6249,7 @@ function frame(now){
   if(!running)return;
   if(FPS)FPS.begin();
   var rdt=Math.max(0,Math.min(0.05,(now-last)/1000))*(window.__speed||1);last=now;VT+=rdt;   /* 第一格的時間戳可能比 startLoop 還早，負的就當 0 */
+  DLG.update(rdt);   // 對話框的逐字、自動消失
   if(APP.screen!=='battle'){var gsn=APP.screen==='garden'?GARDEN:APP.screen==='fox'?WARD:TEAM;gsn.update(rdt,VT);if(APP.screen==='garden'){GARDEN.preRender(renderer);updateGardenHud();}
     renderer.clear();renderExt(gsn.scene,gsn.camera);if(FPS)FPS.end();raf=requestAnimationFrame(frame);return;}
   var frozen=G.mode==='ult',dt=frozen?0:rdt;S.time+=dt;var t=S.time;
@@ -6190,7 +6285,7 @@ document.addEventListener('visibilitychange',function(){
 // 前面的區塊 import 後面的函式不會讓後面的先執行，所以整個遊戲的執行順序跟拆檔前一模一樣。新增 module 要接進鏈裡。
 // 測試用
 window.__game={bcam:bcam,TEAM:TEAM,WARD:WARD,Save:Save,goWard:function(){goWard();},board:board,views:views,S:S,G:G,battle:battle,BS:BS,GARDEN:GARDEN,foxScreen:foxScreen,tryUlt:tryUlt,petals:petals,APP:APP,goTeam:function(k){goTeam(k);},startTrial:function(){startTrial();},
-  attemptSwap:function(r1,c1,r2,c2){attemptSwap(r1,c1,r2,c2);},L:L,PFL:PFL,showResult:function(k){showResult(k);}};
+  attemptSwap:function(r1,c1,r2,c2){attemptSwap(r1,c1,r2,c2);},L:L,PFL:PFL,DLG:DLG,showResult:function(k){showResult(k);}};
 layout();fillBoardStatic();updateBars();goGarden();startLoop();
 var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else if(/[?&]test5/.test(QS)){APP.stage=4;startTrial();}else if(/[?&]test4/.test(QS)){APP.stage=3;startTrial();}else if(/[?&]test3/.test(QS)){APP.stage=2;startTrial();}else if(/[?&]test2/.test(QS)){APP.stage=1;startTrial();}else if(/[?&]test/.test(QS)){APP.stage=0;startTrial();}else if(/[?&]team/.test(QS)){goTeam(1);}</script>
 </head>
@@ -6276,6 +6371,8 @@ var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else i
       <p class="wHint" id="wHint" aria-live="polite"></p>
     </div>
   </div>
+  <div id="dlgFloats" aria-live="polite"></div>
+  <div id="dlg" role="dialog" aria-live="polite"><div class="dlgBox"><b class="dlgWho"></b><p class="dlgText"></p><i class="dlgNext" aria-hidden="true"></i></div></div>
   <div id="overlay">
     <div class="panel" id="pStart"><h2>狐仙三消</h2><p>在 60 秒內用三消打倒三尾狐。<br>每消一組珠，同屬性的狐狸就會出手。</p>
       <button class="btn" id="startBtn" type="button">開始</button><p class="tip">滑動相鄰的兩顆珠交換，連成三顆以上就消除。<br>能量集滿的狐狸會跳起來，點牠放大招。<br>火屬性剋三尾狐，水屬性打牠只有一半傷害。</p></div>
