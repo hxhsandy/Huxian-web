@@ -137,12 +137,15 @@ window.ITEM_LAB_DRAFTS = [
       var tassel = new T.Group(); tassel.position.set(-0.082, -0.061, 0.023); g.add(tassel);
       var thread = new T.CylinderGeometry(0.0045, 0.0045, 0.035, 6);
       thread.translate(0, -0.0175, 0);
+      var tie = L.SPH_LO.clone();
+      tie.applyMatrix4(new T.Matrix4().makeScale(0.011, 0.011, 0.009));
+      tie.translate(0, -0.045, 0);
       var fringe = new T.CylinderGeometry(0.009, 0.021, 0.087, 10);
       fringe.translate(0, -0.098, 0);
       var tip = L.SPH_LO.clone();
       tip.applyMatrix4(new T.Matrix4().makeScale(0.021, 0.006, 0.021));
       tip.translate(0, -0.142, 0);
-      tassel.add(L.itemPart(L.mergeGeos([thread, fringe, tip]), L.toon(0xd8344a, { emissive: 0x5a0c14 }), L.outlineMat(0x8a1a2a, 0.003)));
+      tassel.add(L.itemPart(L.mergeGeos([thread, tie, fringe, tip]), L.toon(0xd8344a, { emissive: 0x5a0c14 }), L.outlineMat(0x8a1a2a, 0.003)));
       g.position.set(-0.185 - H[0], 0.19 - H[1], 0.1 - H[2]);
       g.userData.tassel = tassel;
       return g;
@@ -166,7 +169,7 @@ window.ITEM_LAB_DRAFTS = [
       var knot = L.itemPart(L.SPH_LO, red);
       knot.scale.set(0.028, 0.027, 0.018); knot.position.z = 0.012; g.add(knot);
       var gold = L.toon(0xf2c65a, { emissive: 0x6a4a10 });
-      var bead = L.itemPart(L.SPH_LO, gold);
+      var bead = L.itemPart(L.SPH_LO, gold, L.outlineMat(0x8f1c2e, 0.0045));
       bead.scale.set(0.013, 0.013, 0.008); bead.position.set(0, 0.002, 0.03); g.add(bead);
       var tassel = new T.Group(); tassel.position.set(0, -0.065, 0.006); g.add(tassel);
       var cap = new T.CylinderGeometry(0.015, 0.016, 0.018, 10);
@@ -205,7 +208,7 @@ window.ITEM_LAB_DRAFTS = [
       g.add(sun);
       var core = L.itemPart(L.SPH_LO, L.toon(0xffa83a, { emissive: 0x8b3907 }));
       core.scale.set(0.04, 0.04, 0.012); core.position.z = 0.015; g.add(core);
-      g.position.set(0.2 - H[0], 0.15 - H[1], 0.1 - H[2]);
+      g.position.set(0.235 - H[0], 0.205 - H[1], 0.075 - H[2]);
       g.rotation.set(-0.15, 0.5, -0.3);
       g.userData.halo = halo;
       return g;
