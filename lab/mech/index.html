@@ -5507,7 +5507,7 @@ function updateHUD(){
 
 // ---- 盤面動畫 ----
 function squash(v){v.sx=1.16;v.sy=0.82;tween(A.land,function(k){v.sx=1.16-0.16*k;v.sy=0.82+0.18*k;},easeOutBack);}
-function drop(v,to,dur,delay){var go=function(){var from=v.row;return tween(dur,function(k){v.row=from+(to-from)*k;},easeFall).then(function(){v.row=to;squash(v);});};
+function drop$1(v,to,dur,delay){var go=function(){var from=v.row;return tween(dur,function(k){v.row=from+(to-from)*k;},easeFall).then(function(){v.row=to;squash(v);});};
   return delay?wait(delay).then(go):go();}
 function animSwap(va,vb){var ar=va.row,ac=va.col,br=vb.row,bc=vb.col;
   return tween(A.swap,function(k){va.row=ar+(br-ar)*k;va.col=ac+(bc-ac)*k;vb.row=br+(ar-br)*k;vb.col=bc+(ac-bc)*k;va.z=Math.sin(k*Math.PI)*0.6;},easeInOut).then(function(){va.z=0;});}
@@ -5548,8 +5548,8 @@ function animClear(st){
       var q=cellXY(v.row,v.col);ringFx(q.x,q.y,cs*0.3,cs*1.1,GOLD,0.35);
       return tween(0.22,function(k){v.s=1.45-0.45*k;v.f=2-k;},easeOutBack);}));});}
 function animFall(st){var ps=[];
-  st.moves.forEach(function(m){var v=views.get(m.id);if(v)ps.push(drop(v,m.to,Math.min(A.fallMax,A.fallBase+A.fallPerCell*(m.to-m.from))));});
-  st.spawns.forEach(function(s){var v=makeView(s.id,s.type,s.from,s.c);ps.push(drop(v,s.to,Math.min(A.fallMax,A.fallBase+A.fallPerCell*(s.to-s.from))));});
+  st.moves.forEach(function(m){var v=views.get(m.id);if(v)ps.push(drop$1(v,m.to,Math.min(A.fallMax,A.fallBase+A.fallPerCell*(m.to-m.from))));});
+  st.spawns.forEach(function(s){var v=makeView(s.id,s.type,s.from,s.c);ps.push(drop$1(v,s.to,Math.min(A.fallMax,A.fallBase+A.fallPerCell*(s.to-s.from))));});
   return Promise.all(ps);}
 function animShuffle(st){toastEl.classList.add('show');var cr=(ROWS-1)/2,cc=(COLS-1)/2,ps=[];
   st.moves.forEach(function(m){var v=views.get(m.id);if(!v)return;var fr=v.row,fc=v.col,changed=false;
@@ -5588,7 +5588,7 @@ function fillBoardStatic(){views.clear();board.fill();for(var r=0;r<ROWS;r++)for
 function dropInBoard(){
   S.locked=true;S.sel=null;S.hint=null;views.clear();board.fill();var ps=[];
   for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var o=board.g[r][c],v=makeView(o.id,o.type,r-ROWS-1.2,c);
-    ps.push(drop(v,r,0.42,c*0.035+(ROWS-1-r)*0.045));}
+    ps.push(drop$1(v,r,0.42,c*0.035+(ROWS-1-r)*0.045));}
   return Promise.all(ps).then(settle);}
 
 // ---- 畫面切換：庭院 → 隊伍展示 → 戰鬥 ----
@@ -6135,53 +6135,199 @@ var LETHE_VIEW = {
   coverSkill: function (c) { return '每 ' + c.interval + ' 秒一道忘川水沖過 ' + c.cols + ' 排，狂暴後每 ' + c.enrageInterval + ' 秒沖 ' + c.enrageCols + ' 排。被沖到的珠子褪成灰白、形狀還在，照樣能消。'; }
 };
 
-// 機制試玩場（3／3）：遊戲載入好之後，把新機制放進機制清單、換到指定的關卡開戰，加一個小面板（換數字、換場景）。
+// 鬼火（第七關 青燐）的邏輯——機制試玩場的素版（2026-09-29 遊星）。接口照 src/mechanics/lock.js 開頭。
+// 規則（CK 2026-09-29 選 A）：青燐每 interval 秒（狂暴後 enrageInterval）丟 count 團鬼火（狂暴後 enrageCount），附在珠子上、開始倒數 fuse 秒（狂暴後 enrageFuse）。
+//   倒數內把那顆珠消掉（跟平常一樣連線），鬼火就滅；倒數到 0：鬼火狐跳出盤面撞一隻隊伍的狐狸，扣 dmg 血。盤面上最多 max 團。
+//   fair：只附在「現在換一步就消得到」的珠上（CK 擔心運氣差一直連不上）。
+// 搬進 src/mechanics/ 時要改的：倒數要每格扣、要知道珠還在不在，這裡是從 state.js 直接拿 SES 和 board（接口的 battle.tick 拿不到 session）；
+//   可以讓接口多一個 update(b,dt,s,board)，或把倒數放在 battle 上。隨機要換成 prng。
+// 現在換一步就能消到的珠（id → 1）：每一對相鄰、顏色不同的珠試著換，換完連成三顆以上的那一排都算
+function matchable(bd) {
+  var R = bd.R, C = bd.C, ok = {};
+  function T(r, c) { if (r < 0 || c < 0 || r >= R || c >= C) return -9; var o = bd.g[r][c]; return o && o.type >= 0 && !o.locked && !o.petal && !o.shard ? o.type : -9; }
+  [[0, 1], [1, 0]].forEach(function (d) {
+    for (var r = 0; r < R; r++) for (var c = 0; c < C; c++) {
+      var r2 = r + d[0], c2 = c + d[1]; if (r2 >= R || c2 >= C) continue;
+      var a = T(r, c), b = T(r2, c2); if (a < 0 || b < 0 || a === b) continue;
+      var at = function (rr, cc) { return rr === r && cc === c ? b : rr === r2 && cc === c2 ? a : T(rr, cc); };
+      var orig = function (rr, cc) { return rr === r && cc === c ? bd.g[r2][c2] : rr === r2 && cc === c2 ? bd.g[r][c] : bd.g[rr][cc]; };
+      [[r, c, b], [r2, c2, a]].forEach(function (p) {
+        var rr = p[0], cc = p[1], t = p[2], h = [[rr, cc]], v = [[rr, cc]], k;
+        for (k = cc - 1; at(rr, k) === t; k--) h.push([rr, k]); for (k = cc + 1; at(rr, k) === t; k++) h.push([rr, k]);
+        for (k = rr - 1; at(k, cc) === t; k--) v.push([k, cc]); for (k = rr + 1; at(k, cc) === t; k++) v.push([k, cc]);
+        [h, v].forEach(function (line) { if (line.length >= 3) line.forEach(function (q) { var o = orig(q[0], q[1]); if (o) ok[o.id] = 1; }); });
+      });
+    }
+  });
+  return ok;
+}
+function onBoard(id) { for (var r = 0; r < board.R; r++) for (var c = 0; c < board.C; c++) { var o = board.g[r][c]; if (o && o.id === id) return true; } return false; }
+var WISP = {
+  key: 'wisp',   // CONFIG.stages[k].wisp：{first, interval, enrageInterval, count, enrageCount, fuse, enrageFuse, dmg, max, fair}
+  battle: {
+    init: function (b, cfg) { b.wispT = cfg ? cfg.first : Infinity; b.wispBooms = 0; b.wispOut = 0; },   // wispBooms：這場炸了幾團（第七關挑戰「一顆都沒炸開」用）；wispOut：滅了幾團
+    tick: function (b, dt, cfg, ev) {
+      b.wispT -= dt;
+      if (b.wispT <= 0) { ev.push({ type: 'wisp', count: b.enraged ? cfg.enrageCount : cfg.count, fuse: b.enraged ? cfg.enrageFuse : cfg.fuse }); b.wispT += b.enraged ? cfg.enrageInterval : cfg.interval; }
+      var s = SES.mech.wisp; if (!s) return;
+      for (var i = s.list.length - 1; i >= 0; i--) {
+        var w = s.list[i];
+        w.left -= dt;
+        // 炸開：鬼火狐衝去撞一隻狐狸。盤面一次算完整串連鎖、畫面慢慢播，那顆珠已經不在盤面上＝這一串正在把它消掉，等 onClear 算它滅了，不炸
+        if (w.left <= 0 && onBoard(w.id)) {
+          s.list.splice(i, 1); b.wispBooms++;
+          var fox = (Math.random() * 6) | 0, dmg = Math.min(cfg.dmg, b.teamHp); b.teamHp -= dmg;
+          ev.push({ type: 'wispBoom', id: w.id, fox: fox, dmg: dmg });
+        }
+      }
+    } },
+  // pending：丟過來、還沒附上去的（盤面忙的時候先記著）；list：盤面上的鬼火 {id, left, max}
+  session: function () { return { pending: [], list: [] }; },
+  onEvent: function (e, s) { if (e.type === 'wisp') s.pending.push({ count: e.count, fuse: e.fuse }); },
+  place: function (bd, s, cfg) {
+    if (!s.pending.length) return null;
+    var got = [], taken = {}, fair = cfg.fair ? matchable(bd) : null;
+    s.list.forEach(function (w) { taken[w.id] = 1; });
+    s.pending.forEach(function (p) {
+      for (var n = 0; n < p.count && s.list.length < cfg.max; n++) {
+        var cand = [], loose = [];
+        for (var r = 0; r < bd.R; r++) for (var c = 0; c < bd.C; c++) { var o = bd.g[r][c]; if (!o || o.type < 0 || o.special || taken[o.id]) continue; loose.push([r, c, o]); if (!fair || fair[o.id]) cand.push([r, c, o]); }
+        if (!cand.length) cand = loose; if (!cand.length) break;
+        var pk = cand[(Math.random() * cand.length) | 0]; taken[pk[2].id] = 1;
+        s.list.push({ id: pk[2].id, left: p.fuse, max: p.fuse }); got.push({ r: pk[0], c: pk[1], id: pk[2].id });
+      }
+    });
+    s.pending = [];
+    return got.length ? got : null;
+  },
+  onClear: function (b, st, s) {   // 附身的珠被消掉：滅
+    (st.items || []).forEach(function (it) { for (var i = s.list.length - 1; i >= 0; i--) if (s.list[i].id === it.id) { s.list.splice(i, 1); b.wispOut++; } });
+  }
+};
+
+// 鬼火的畫法——機制試玩場的素版（2026-09-29 遊星）：青燐丟綠光到珠上、附身的珠冒綠火＋倒數秒數（HTML 小標籤）、
+// 消掉時噗一下、炸開時鬼火狐（綠色光球）飛去撞狐狸。接口照 src/mechanics/lock_view.js 開頭；邏輯在 wisp.js。
+// 只求上手機試手感：火焰、鬼火狐的正式樣子、音效之後再做。
+
+var GREEN = new THREE.Color(0xb8ff4a), GREEN2 = new THREE.Color(0x7be05a);
+var css$1 = document.createElement('style');
+css$1.textContent = '#wispTags{top:0;height:100%}' +
+  '.wispTag{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .25s,transform .25s}' +
+  '.wispTag .gl{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(200,255,120,.5) 0%,rgba(140,230,70,.28) 42%,rgba(90,200,60,0) 70%);animation:wispGl .5s ease-in-out infinite alternate}' +
+  '.wispTag .fl{position:absolute;left:50%;top:50%;width:calc(var(--s) * .34);height:calc(var(--s) * .5);transform:translate(-50%,-118%);border-radius:50% 50% 50% 50% / 62% 62% 38% 38%;background:linear-gradient(#f4ffc8,#b8ff4a 45%,#5cc93c);box-shadow:0 0 10px 3px rgba(184,255,74,.75);animation:wispFl .32s ease-in-out infinite alternate}' +
+  '.wispTag b{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:800 calc(var(--s) * .34)/1 sans-serif;color:#fff;text-shadow:0 0 3px #173a10,0 0 3px #173a10,0 1px 2px #000}' +
+  '.wispTag.hot b{color:#ffdf6a}.wispTag.hot .fl{animation-duration:.14s}.wispTag.bye{opacity:0;transform:scale(1.6)}' +
+  '@keyframes wispGl{from{opacity:.75}to{opacity:1}}@keyframes wispFl{from{transform:translate(-50%,-118%) scale(.92,1)}to{transform:translate(-50%,-126%) scale(1.06,1.08)}}';
+document.head.appendChild(css$1);
+var box$1 = document.createElement('div'); box$1.id = 'wispTags'; box$1.className = 'hud bhud'; box$1.setAttribute('aria-hidden', 'true');
+var ct = document.getElementById('charmTags'); ct.parentNode.insertBefore(box$1, ct.nextSibling);
+var tags = {};   // id → 標籤
+function tagFor(id) { var t = tags[id]; if (!t) { t = document.createElement('div'); t.className = 'wispTag'; t.innerHTML = '<i class="gl"></i><i class="fl"></i><b></b>'; box$1.appendChild(t); tags[id] = t; } return t; }
+function drop(id, fade) { var t = tags[id]; if (!t) return; delete tags[id]; if (fade) { t.classList.add('bye'); setTimeout(function () { t.remove(); }, 260); } else t.remove(); }
+function orbXY(v) { return { x: L.bx + (v.col + 0.5 + v.ox) * L.cs, y: L.by + (v.row + 0.5 + v.oy) * L.cs }; }
+function puff(x, y, n) { for (var k = 0; k < n; k++) { var a = Math.random() * 6.283, sp = (0.8 + Math.random() * 1.8) * L.cs; emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp - L.cs * 1.2, 0.35 + Math.random() * 0.25, (0.1 + Math.random() * 0.1) * L.cs, k % 2 ? GREEN : GREEN2, L.cs * 3); } }
+var WISP_VIEW = {
+  key: 'wisp',
+  place: function (list) {   // 青燐丟綠光到珠上
+    var bp = bossScreen(); BS.boss.attack(); AudioFX.charge();
+    list.forEach(function (it) { var q = cellXY(it.r, it.c); beam(bp.x, bp.y, q.x, q.y, L.cs * 0.3, GREEN, 0.4); });
+    return wait(0.22).then(function () { AudioFX.lock(); list.forEach(function (it) { var q = cellXY(it.r, it.c); ringFx(q.x, q.y, L.cs * 0.9, L.cs * 0.35, GREEN, 0.3); puff(q.x, q.y, 6); }); });
+  },
+  onClear: function (st, ps) {   // 附身的珠被消掉：噗一下（時間跟那顆珠消掉的時候一樣）
+    (st.items || []).forEach(function (it) { if (!tags[it.id]) return; var t = tags[it.id]; t.dying = 1;
+      ps.push(after(it.depth * A.chainStep, function () { var v = views.get(it.id), q = v ? orbXY(v) : cellXY(it.r, it.c); puff(q.x, q.y, 12); ringFx(q.x, q.y, L.cs * 0.3, L.cs * 1.2, GREEN, 0.35); AudioFX.unlock(); drop(it.id, true); })); });
+  },
+  onEvent: function (e) {   // 炸開：鬼火狐（綠光球）從珠上跳出去撞一隻狐狸
+    if (e.type !== 'wispBoom') return;
+    var v = views.get(e.id), from = v ? orbXY(v) : { x: L.W / 2, y: L.by }; drop(e.id, true); puff(from.x, from.y, 10); AudioFX.bossAttack();
+    fireShot(from, foxScreen(e.fox), GREEN, 0, function () {
+      var fp = foxScreen(e.fox); BS.foxes[e.fox].hit(); ringFx(fp.x, fp.y, L.cs * 0.3, L.cs * 1.2, GREEN, 0.4); addShake(5);
+      popNum(fp.x, fp.y - 14, '-' + e.dmg, 'team', '鬼火'); updateBars();
+      if (battle.teamHp <= 0 && G.mode === 'playing') { G.mode = 'lost'; after(1.3, function () { showResult('hp'); }); }
+    }, 1.3);
+  },
+  hud: function () {   // 每一格：標籤跟著珠子走、秒數、最後 3 秒變黃、火跳得快
+    var s = SES.mech.wisp, live = {};
+    if (s && G.mode !== 'result') s.list.forEach(function (w) {
+      var v = views.get(w.id); if (!v) return; live[w.id] = 1;
+      var t = tagFor(w.id), q = orbXY(v), n = String(Math.max(0, Math.ceil(w.left)));
+      t.style.left = q.x.toFixed(1) + 'px'; t.style.top = q.y.toFixed(1) + 'px'; t.style.setProperty('--s', (L.cs * 1.25).toFixed(1) + 'px');
+      var b = t.lastChild; if (b.textContent !== n) b.textContent = n; t.classList.toggle('hot', w.left <= 3);
+    });
+    Object.keys(tags).forEach(function (id) { if (!live[id] && !tags[id].dying) drop(id, false); });
+  },
+  reset: function () { Object.keys(tags).forEach(function (id) { drop(id, false); }); },
+  coverSkill: function (c) { return '每 ' + c.interval + ' 秒丟 ' + c.count + ' 團鬼火附在珠上，倒數 ' + c.fuse + ' 秒；把那顆珠消掉就滅，沒消掉鬼火狐會衝出來撞隊伍。狂暴後每 ' + c.enrageInterval + ' 秒 ' + c.enrageCount + ' 團、倒數 ' + c.enrageFuse + ' 秒。'; }
+};
+
+// 機制試玩場（3／3）：遊戲載入好之後，把新機制放進機制清單、換到指定的關卡開戰，加一個小面板（換數字、換場景、換機制）。
 // 網址參數（都可以不給）：
-//   ?stage=1～6   用哪一關的場景、BOSS 模型、血量、時限（預設 1）；那一關原本的招會關掉（&keep=1 留著，看兩招一起）
-//   &every=15 &enrage=12   多久沖一次（秒）／狂暴後多久一次　&cols=1 &ecols=2   一次沖幾排／狂暴後幾排
-//   &max=12   盤面上最多幾顆灰珠（滿了這一次就不沖；0＝不限；預設 12）　&warn=1   預告幾秒　&first=4   開場第幾秒第一次　&allgray=1   開場整盤都是灰的（只看灰珠長相、分不分得出來）
+//   ?m=lethe｜wisp   試哪一個機制（預設 lethe＝第八關夢婆・忘川；wisp＝第七關青燐・鬼火）
+//   &stage=1～6   用哪一關的場景、BOSS 模型、血量、時限（預設 1）；那一關原本的招會關掉（&keep=1 留著，看兩招一起）
 //   &shot=1   不顯示面板（截圖用）
+//   各機制自己的數字見下面 MECH 表（例如忘川 &every=15&enrage=12&cols=1&ecols=1&max=12&warn=1&first=4&allgray=1）
 
 var Q = new URLSearchParams(location.search), g = window.__game;
 function num(k, d, lo, hi) { var v = parseFloat(Q.get(k)); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; }
-var P = { every: num('every', 15, 2, 30), enrage: num('enrage', 12, 2, 30), max: num('max', 12, 0, 42) | 0, cols: num('cols', 1, 1, 3) | 0, ecols: num('ecols', 1, 1, 4) | 0,   // 預設＝CK 2026-09-29 手機試完選的
-  warn: num('warn', 1, 0.3, 3), first: num('first', 4, 1, 20), stage: num('stage', 1, 1, 6) | 0, allgray: Q.get('allgray') === '1', keep: Q.get('keep') === '1' };
+// 每個機制：名字、邏輯、畫法、網址參數（預設值）、組成關卡設定、面板上的選項
+var MECH = {
+  lethe: { name: '第八關 夢婆・忘川', icon: '💧', logic: LETHE, view: LETHE_VIEW,
+    // 預設＝CK 2026-09-29 手機試完選的（第一版 7／5 秒太難）
+    params: { every: [15, 2, 30], enrage: [12, 2, 30], cols: [1, 1, 3], ecols: [1, 1, 4], warn: [1, 0.3, 3], max: [12, 0, 42], first: [4, 1, 20] },
+    cfg: function (P) { return { first: P.first, interval: P.every, enrageInterval: P.enrage, cols: P.cols, enrageCols: P.ecols, warn: Math.min(P.warn, P.every - 0.5), max: P.max || Infinity }; },
+    info: function (P) { return '每 ' + P.every + ' 秒沖 ' + P.cols + ' 排，狂暴後每 ' + P.enrage + ' 秒沖 ' + P.ecols + ' 排；預告 ' + P.warn + ' 秒；灰珠' + (P.max ? '最多 ' + P.max + ' 顆' : '不限') + '。灰珠照樣能消、照樣集能量。'; },
+    menu: [['多常沖', [[{ every: 15, enrage: 12 }, 'CK 選的 15／12'], [{ every: 12, enrage: 9 }, '12／9'], [{ every: 10, enrage: 8 }, '10／8'], [{ every: 7, enrage: 5 }, '第一版 7／5']]],
+      ['一次幾排', [[{ cols: 1, ecols: 1 }, '狂暴也一排'], [{ cols: 1, ecols: 2 }, '一排／狂暴兩排'], [{ cols: 2, ecols: 3 }, '兩排／狂暴三排']]],
+      ['灰珠上限（滿了就不沖）', [[{ max: 12 }, '最多 12 顆'], [{ max: 18 }, '最多 18 顆'], [{ max: 0 }, '不限']]],
+      ['預告', [[{ warn: 1 }, '1 秒'], [{ warn: 1.5 }, '1.5 秒'], [{ warn: 0.6 }, '0.6 秒']]],
+      ['灰珠長相', [[{ allgray: 1 }, '開場整盤都灰'], [{ allgray: '' }, '正常']]]] },
+  wisp: { name: '第七關 青燐・鬼火', icon: '🔥', logic: WISP, view: WISP_VIEW,
+    // 第一版（2026-09-29，CK 選「消掉附身的珠就滅」）：待 CK 手機試
+    params: { every: [12, 3, 30], enrage: [9, 3, 30], count: [2, 1, 4], ecount: [3, 1, 5], fuse: [10, 3, 20], efuse: [8, 3, 20], dmg: [50, 10, 200], max: [4, 1, 8], fair: [1, 0, 1], first: [5, 1, 20] },
+    cfg: function (P) { return { first: P.first, interval: P.every, enrageInterval: P.enrage, count: P.count, enrageCount: P.ecount, fuse: P.fuse, enrageFuse: P.efuse, dmg: P.dmg, max: P.max, fair: !!P.fair }; },
+    info: function (P) { return '每 ' + P.every + ' 秒丟 ' + P.count + ' 團鬼火、倒數 ' + P.fuse + ' 秒；狂暴後每 ' + P.enrage + ' 秒 ' + P.ecount + ' 團、倒數 ' + P.efuse + ' 秒。炸開扣 ' + P.dmg + ' 血（隊伍 1000）；盤面最多 ' + P.max + ' 團；' + (P.fair ? '只附在換一步就消得到的珠上' : '隨便附') + '。把附身的珠消掉就滅。'; },
+    menu: [['多常丟', [[{ every: 12, enrage: 9 }, '預設 12／9'], [{ every: 15, enrage: 12 }, '更少 15／12'], [{ every: 9, enrage: 7 }, '更勤 9／7']]],
+      ['一次幾團', [[{ count: 2, ecount: 3 }, '2／狂暴 3'], [{ count: 1, ecount: 2 }, '1／狂暴 2'], [{ count: 3, ecount: 4 }, '3／狂暴 4']]],
+      ['倒數幾秒', [[{ fuse: 10, efuse: 8 }, '10／狂暴 8'], [{ fuse: 12, efuse: 10 }, '12／10'], [{ fuse: 8, efuse: 6 }, '8／6']]],
+      ['附在哪', [[{ fair: 1 }, '換一步就消得到的珠（不怕運氣差）'], [{ fair: 0 }, '隨便一顆']]],
+      ['炸一次扣多少', [[{ dmg: 50 }, '50（5%）'], [{ dmg: 80 }, '80'], [{ dmg: 30 }, '30']]]] }
+};
+var KEY = MECH[Q.get('m')] ? Q.get('m') : 'lethe', M = MECH[KEY], P = { stage: num('stage', 1, 1, 6) | 0, allgray: Q.get('allgray') === '1', keep: Q.get('keep') === '1' };
+Object.keys(M.params).forEach(function (k) { var d = M.params[k]; P[k] = num(k, d[0], d[1], d[2]); if (Number.isInteger(d[0]) && Number.isInteger(d[1])) P[k] = Math.round(P[k]); });
 
 // 1. 放進機制清單（邏輯、畫法各一份；清單是同一個陣列，遊戲的主迴圈、Battle 會照著跑）
-MECHS.push(LETHE); MECH_VIEW_LIST.push(LETHE_VIEW); MECH_VIEWS.lethe = LETHE_VIEW;
-// 2. 那一關換成夢婆的試玩：原本的招關掉（除非 keep）、掛上忘川
+MECHS.push(M.logic); MECH_VIEW_LIST.push(M.view); MECH_VIEWS[M.logic.key] = M.view;
+// 2. 那一關換成試玩的 BOSS：原本的招關掉（除非 keep）、掛上新機制
 var st = CONFIG.stages[P.stage - 1];
 if (!P.keep) ['lock', 'petal', 'cord', 'shard', 'charm'].forEach(function (k) { st[k] = null; });
-st.lethe = { first: P.first, interval: P.every, enrageInterval: P.enrage, cols: P.cols, enrageCols: P.ecols, warn: Math.min(P.warn, P.every - 0.5), max: P.max || Infinity };
-st.name = '夢婆（試玩）';
+st[M.logic.key] = M.cfg(P);
+st.name = M.name.split(' ')[1].split('・')[0] + '（試玩）';
+window.__labSES = function () { return SES; };   // 測試用：拿這一場的機制狀態（鬼火在哪幾顆珠上）
 // 3. 開戰（試玩場的存檔是分開的，隨便打）
 g.APP.stage = P.stage - 1; g.startTrial();
-// 只看灰珠長相：每一場開打時，整盤都變灰
-if (P.allgray) { var lastSes = null; setInterval(function () { if (G.mode === 'playing' && SES !== lastSes) { lastSes = SES; var s = SES.mech.lethe;
+// 忘川：只看灰珠長相——每一場開打時，整盤都變灰
+if (KEY === 'lethe' && P.allgray) { var lastSes = null; setInterval(function () { if (G.mode === 'playing' && SES !== lastSes) { lastSes = SES; var s = SES.mech.lethe;
   views.forEach(function (v) { if (v.type >= 0 && !v.special) { v.gray = 1; if (s) s.gray.add(v.id); } }); } }, 150); }
 
 if (!Q.get('shot')) {
   var css = document.createElement('style');
   css.textContent = '#labBtn{position:fixed;left:6px;top:50%;transform:translateY(-50%);z-index:99;width:36px;height:36px;font-size:18px;line-height:36px;text-align:center;background:#9fe3f0;border:0;border-radius:50%;padding:0;opacity:.88;box-shadow:0 2px 8px rgba(0,0,0,.35)}' +
-    '#labBox{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 34px);z-index:99;max-height:66vh;overflow:auto;background:rgba(15,19,40,.96);color:#f1ead6;border:1px solid rgba(159,227,240,.5);border-radius:14px;padding:10px 12px;font:13px/1.5 sans-serif;display:none}' +
+    '#labBox{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 34px);z-index:99;max-height:70vh;overflow:auto;background:rgba(15,19,40,.96);color:#f1ead6;border:1px solid rgba(159,227,240,.5);border-radius:14px;padding:10px 12px;font:13px/1.5 sans-serif;display:none}' +
     '#labBox.show{display:block}#labBox h4{margin:8px 0 4px;color:#9fe3f0;font-size:13px}#labBox h4:first-child{margin-top:0}#labBox small{color:#a8a6c2}' +
     '#labBox a{display:inline-block;margin:4px 6px 0 0;padding:3px 10px;border:1px solid rgba(159,227,240,.5);border-radius:999px;color:#f1ead6;text-decoration:none}#labBox a.on{background:rgba(159,227,240,.25)}';
   document.head.appendChild(css);
-  var btn = document.createElement('button'), box = document.createElement('div'); btn.id = 'labBtn'; btn.type = 'button'; btn.textContent = '💧'; btn.setAttribute('aria-label', '機制試玩場'); box.id = 'labBox';
-  var cur = { every: P.every, enrage: P.enrage, cols: P.cols, ecols: P.ecols, warn: P.warn, max: P.max, stage: P.stage };
-  function link(over, txt) {
-    var o = Object.assign({}, cur, { allgray: '' }, over), p = new URLSearchParams();
+  var btn = document.createElement('button'), box = document.createElement('div'); btn.id = 'labBtn'; btn.type = 'button'; btn.textContent = M.icon; btn.setAttribute('aria-label', '機制試玩場'); box.id = 'labBox';
+  var cur = { m: KEY, stage: P.stage }; Object.keys(M.params).forEach(function (k) { cur[k] = P[k]; });
+  var link = function (over, txt, base) {
+    var o = Object.assign({}, base || cur, { allgray: '' }, over), p = new URLSearchParams();
     Object.keys(o).forEach(function (k) { if (o[k] !== '' && o[k] !== undefined) p.set(k, o[k]); });
-    var on = Object.keys(over).every(function (k) { return String(over[k]) === String(k === 'allgray' ? (P.allgray ? '1' : '') : cur[k]); });
+    var on = !base && Object.keys(over).every(function (k) { return String(over[k]) === String(k === 'allgray' ? (P.allgray ? '1' : '') : cur[k]); });
     return '<a' + (on ? ' class="on"' : '') + ' href="?' + p + '">' + txt + '</a>';
-  }
-  var h = '<h4>💧 夢婆・忘川（素版）</h4><small>現在：每 ' + P.every + ' 秒沖 ' + P.cols + ' 排，狂暴後每 ' + P.enrage + ' 秒沖 ' + P.ecols + ' 排；預告 ' + P.warn + ' 秒；灰珠' + (P.max ? '最多 ' + P.max + ' 顆' : '不限') + '。灰珠照樣能消、照樣集能量。</small>' +
-    '<h4>多常沖</h4>' + link({ every: 15, enrage: 12 }, 'CK 選的 15／12') + link({ every: 12, enrage: 9 }, '12／9') + link({ every: 10, enrage: 8 }, '10／8') + link({ every: 7, enrage: 5 }, '第一版 7／5') +
-    '<h4>一次幾排</h4>' + link({ cols: 1, ecols: 2 }, '一排／狂暴兩排') + link({ cols: 1, ecols: 1 }, '狂暴也一排') + link({ cols: 2, ecols: 3 }, '兩排／狂暴三排') +
-    '<h4>灰珠上限（滿了就不沖）</h4>' + link({ max: 0 }, '不限') + link({ max: 12 }, '最多 12 顆') + link({ max: 18 }, '最多 18 顆') +
-    '<h4>預告</h4>' + link({ warn: 1 }, '1 秒') + link({ warn: 1.5 }, '1.5 秒') + link({ warn: 0.6 }, '0.6 秒') +
-    '<h4>灰珠長相</h4>' + link({ allgray: 1 }, '開場整盤都灰') + link({ allgray: '' }, '正常') +
-    '<h4>場景（BOSS 模型、血量、時限跟著那一關）</h4>' + [1, 2, 3, 4, 5, 6].map(function (k) { return link({ stage: k }, '第 ' + k + ' 關'); }).join('');
+  };
+  var h = '<h4>' + M.icon + ' ' + M.name + '（素版）</h4><small>現在：' + M.info(P) + '</small>';
+  M.menu.forEach(function (sec) { h += '<h4>' + sec[0] + '</h4>' + sec[1].map(function (it) { return link(it[0], it[1]); }).join(''); });
+  h += '<h4>場景（BOSS 模型、血量、時限跟著那一關）</h4>' + [1, 2, 3, 4, 5, 6].map(function (k) { return link({ stage: k }, '第 ' + k + ' 關'); }).join('');
+  h += '<h4>換機制</h4>' + Object.keys(MECH).map(function (k) { return k === KEY ? '<a class="on">' + MECH[k].icon + ' ' + MECH[k].name + '</a>' : link({}, MECH[k].icon + ' ' + MECH[k].name, { m: k, stage: P.stage }); }).join('');
   box.innerHTML = h;
   btn.addEventListener('click', function (e) { e.stopPropagation(); box.classList.toggle('show'); });
   box.addEventListener('click', function (e) { e.stopPropagation(); });
