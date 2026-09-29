@@ -135,7 +135,7 @@ function render(){
     fr.src=page.src+st.screen;
     fr.onload=function(){try{var doc=fr.contentDocument,css='';
         if(mode.how==='home'&&page.pad)css=':root{padding-top:'+d.safe[0]+'px!important;padding-bottom:'+d.safe[1]+'px!important}html{scroll-padding-top:'+d.safe[0]+'px!important}';
-        var x=doc.createElement('style');x.id='phoneSim';x.textContent=css+':root{--safe-top:'+(mode.how==='home'?d.safe[0]:0)+'px;--safe-bottom:'+(mode.how==='home'?d.safe[1]:0)+'px}';doc.head.appendChild(x);
+        var x=doc.createElement('style');x.id='phoneSim';var t0=(mode.how==='home'?d.safe[0]:0)+'px',b0=(mode.how==='home'?d.safe[1]:0)+'px';x.textContent=css+':root{--sim-safe-top:'+t0+';--sim-safe-bottom:'+b0+';--safe-top:'+t0+';--safe-bottom:'+b0+'}';   /* 網頁用 --safe-top: var(--sim-safe-top, env(safe-area-inset-top)) 讀安全區，模擬器就能替它設 */doc.head.appendChild(x);
       }catch(e){cap.innerHTML+='<small style="color:#ff8a8a">這頁不在同一個網站，沒辦法替它設定安全區</small>';}};
     scr.appendChild(fr);
     if(mode.how==='safari'){scr.appendChild(statusBar(d,top,'#0b1330'));
