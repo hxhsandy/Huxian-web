@@ -72,7 +72,8 @@ window.ITEM_LAB_DRAFTS = [
         swing.add(new T.Mesh(L.mergeGeos([rod, bead]), silver));
         chains.push(swing); g.add(swing);
       });
-      g.position.set(0, -0.052, 0.062); g.userData.chains = chains;
+      g.position.set(0, -0.052, -0.015); g.scale.setScalar(0.9);
+      g.userData.chains = chains;
       return g;
     },
     upd: function (obj, t) {
