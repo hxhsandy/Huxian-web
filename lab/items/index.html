@@ -6033,8 +6033,11 @@ var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else i
 var HEAD_TOP = [0, 0.24, 0.02], BOW_DIR = [-0.87, 0.02, 0.49], BOW_LEAN = 0.45, ITEM_OL = outlineMat(0xe9c47c, 0.006);
 function itemPart(geo, mat, ol) { var m = new THREE.Mesh(geo, mat); if (ol !== false) addOutline(m, ol || ITEM_OL); return m; }
 // 草稿 build(anchor, L) 拿到的工具箱
+// 一片永遠面向鏡頭的光（跟封面 team.js 的 addSprite 一樣）
+function sprite(parent, tex, col, op, add) { var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: col, transparent: true, opacity: op, depthWrite: false, fog: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending })); sp.raycast = noRay; parent.add(sp); return sp; }
 var LIB = { THREE: window.THREE, toon: toon, outlineMat: outlineMat, addOutline: addOutline, itemPart: itemPart, ITEM_OL: ITEM_OL,
-  SPH: SPH, SPH_LO: SPH_LO, mergeGeos: mergeGeos, peachBlossomGeo: peachBlossomGeo, HEAD_TOP: HEAD_TOP, BOW_DIR: BOW_DIR, BOW_LEAN: BOW_LEAN };
+  SPH: SPH, SPH_LO: SPH_LO, mergeGeos: mergeGeos, peachBlossomGeo: peachBlossomGeo, HEAD_TOP: HEAD_TOP, BOW_DIR: BOW_DIR, BOW_LEAN: BOW_LEAN ,
+  glowTex: glowTex, canvasTex: canvasTex, MAPLE_TEX: MAPLE_TEX, MAPLE_COL: MAPLE_COL, xf: xf, sprite: sprite };   // 2026-09-29 加：做燈籠、楓葉用（參考模型見 shared/huxian-lab/refs/）
 
 var DRAFTS = [], ERRORS = [], SLOTS = ['head', 'neck', 'tail'];
 function errorMark() { var m = new THREE.Mesh(SPH, new THREE.MeshBasicMaterial({ color: 0xff2255 })); m.scale.setScalar(0.06); return m; }   // build 出錯時戴一顆紅球，一眼看得到
