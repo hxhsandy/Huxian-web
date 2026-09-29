@@ -1944,9 +1944,10 @@ var FOX_STYLE=[
     {fur:0xee98bf,paw:0x9a5a72,earTip:0x9a5a72,nose:0x5a3040,earIn:0xffe4ee,item:'sym-heart',ol:0xf3b7d2}];
 var BS=(function(){
   var sc=battleScene,i;
-  var skyMat=new THREE.ShaderMaterial({uniforms:{moonDir:{value:MOON.clone().normalize()}},
+  // tint／tintK：最終戰三段換背景時天空疊的顏色（api.segLook）；平常 tintK＝0，mix 之後跟原本一模一樣
+  var skyMat=new THREE.ShaderMaterial({uniforms:{moonDir:{value:MOON.clone().normalize()},tint:{value:new THREE.Vector3()},tintK:{value:0}},
     vertexShader:'varying vec3 vDir; void main(){ vDir=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-    fragmentShader:['varying vec3 vDir; uniform vec3 moonDir;',
+    fragmentShader:['varying vec3 vDir; uniform vec3 moonDir; uniform vec3 tint; uniform float tintK;',
       'float hash(vec3 p){ p=fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }',
       'float noise(vec3 x){ vec3 i=floor(x); vec3 f=fract(x); f=f*f*(3.0-2.0*f);',
       ' return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),',
@@ -1956,6 +1957,7 @@ var BS=(function(){
       ' vec3 col=mix(mid,top,smoothstep(0.0,0.6,h)); col=mix(low,col,smoothstep(-0.45,0.05,h));',
       ' float n=noise(d*5.0)*0.6+noise(d*13.0)*0.4; col*=0.9+0.16*n;',
       ' float m=max(dot(d,moonDir),0.0); col+=vec3(0.95,0.8,0.5)*pow(m,30.0)*0.24+vec3(0.35,0.42,0.65)*pow(m,5.0)*0.09;',
+      ' col=mix(col,tint*(0.75+0.5*n)+col*0.3,tintK);',
       ' gl_FragColor=vec4(col,1.0); }'].join('\n'),side:THREE.BackSide,depthWrite:false});
   var nightSky=new THREE.Mesh(new THREE.SphereGeometry(160,32,20),skyMat);sc.add(nightSky);
   var N=520,pos=[],col=[],size=[],ph=[];i=0;
@@ -2423,6 +2425,19 @@ var BS=(function(){
     charmPoke:function(i){foxes[i].poke=1;},
     clearCharm:function(){foxes.forEach(function(f){f.charmOn=false;f.charmK=0;f.poke=0;f.setCharm(0);f.hearts.forEach(function(h){h.visible=false;});});}};
   api.isDay=isDay;
+  // 最終戰三段的背景（docs/03：倒著走回她的記憶；src/final.js 換段時淡換）：0 冥（青綠的天、青白的月、深青的石台）→ 1 丘（桃粉暖光、暖色的月、桃花色石台）→
+  //   2 月（第三關的紫藤血月＝原本的樣子）。暫時的：天空疊一層顏色、月亮／月暈／石台換色；飄落物、紅飄帶在 final.js 換。segLook(a,b,k)：從第 a 段的樣子混到第 b 段，k 0～1
+  var SEG_LOOK=[{sky:[0.02,0.1,0.09],skyK:0.6,moon:0xc4f2e4,halo:[0x3fae98,0x9fe6cf],plat:[0x2c4a52,0x1f3a44,0x0c1a22]},
+    {sky:[0.3,0.13,0.2],skyK:0.5,moon:0xffe2c4,halo:[0xd88aa0,0xffc8a8],plat:[0x6a4f86,0x544078,0x21163a]},
+    {sky:[0,0,0],skyK:0,moon:0xff6a5c,halo:[0xc86a86,0xff7a68],plat:[0x4b2c7a,0x3b2268,0x190c34]}];
+  var _ca=new THREE.Color(),_cb=new THREE.Color();
+  function mixHex(a,b,k){return _ca.setHex(a).lerp(_cb.setHex(b),k).getHex();}
+  api.segLook=function(a,b,k){var A=SEG_LOOK[a],B=SEG_LOOK[b],u=skyMat.uniforms,j;k=Math.max(0,Math.min(1,k));
+    u.tint.value.set(A.sky[0]+(B.sky[0]-A.sky[0])*k,A.sky[1]+(B.sky[1]-A.sky[1])*k,A.sky[2]+(B.sky[2]-A.sky[2])*k);u.tintK.value=A.skyK+(B.skyK-A.skyK)*k;
+    moonBase.setHex(mixHex(A.moon,B.moon,k));moon.material.color.copy(moonBase).multiplyScalar(moonK);
+    halos.forEach(function(h,q){j=q?1:0;h.material.color.setHex(mixHex(A.halo[j],B.halo[j],k));});
+    paintPlat(mixHex(A.plat[0],B.plat[0],k),mixHex(A.plat[1],B.plat[1],k),mixHex(A.plat[2],B.plat[2],k));};
+  api.ribbons=function(on){sky.show(on);};   // 第三關的紅飄帶（最終戰只在第三段「月」）
   // 最終戰第三段（src/final.js）：月亮被冥界的霧遮住、暗暗的；有信時鈴每彈開一次就亮一點。k＝0（最暗）～1（平常）
   api.moonLight=function(k){moonK=0.3+0.7*Math.max(0,Math.min(1,k));moon.material.color.copy(moonBase).multiplyScalar(moonK);};
   api.deco=function(k){return stageDeco[k];};
@@ -2437,7 +2452,7 @@ var BS=(function(){
     nightSky.visible=moon.visible=!day;halos.forEach(function(h){h.visible=!day;});clouds.forEach(function(c){c.visible=!day;});if(dayBg)dayBg.show(day);
     stars.renderOrder=day?-7:0;sparks.forEach(function(sp){sp.renderOrder=day?-7:0;});   // 白天先畫星星，太陽和紗幔才蓋得住（跟外面一樣）
     cm.material=day?dayBg.cloudMat:nightCloudMat;co.material.uniforms.color.value.setHex(day?dayBg.DAY_OL:0xcaa972);islOl.uniforms.color.value.setHex(day?dayBg.DAY_OL:0xc9a660);rimLine.visible=!day;
-    moonBase.setHex(dj?0xff6a5c:0xffffff);moonK=1;moon.material.color.copy(moonBase);halos.forEach(function(h,j){h.material.color.setHex(dj?(j?0xff7a68:0xc86a86):(j?0xffe6b0:0x9fb0e0));});   // 第三關：偏紅的血月（場景打光不變）
+    moonBase.setHex(dj?0xff6a5c:0xffffff);moonK=1;moon.material.color.copy(moonBase);skyMat.uniforms.tintK.value=0;halos.forEach(function(h,j){h.material.color.setHex(dj?(j?0xff7a68:0xc86a86):(j?0xffe6b0:0x9fb0e0));});   // 第三關：偏紅的血月（場景打光不變）
     var fc=FIRECOL[k]||FIRECOL[0];fireP.forEach(function(q,i){q.s.material.color.setHex(i%3?fc[0]:fc[1]);q.life=0;});tipGlow.forEach(function(g){g.material.color.setHex(fc[2]);});};
   return api;
 })();
@@ -7093,8 +7108,10 @@ el.addEventListener('click',function(){if(cred&&cred.t>1.5)cred.skip=true;});
 //   FINAL.story()       開戰時給 Battle 的故事狀態：{letter:有沒有信, bells:[六隻狐狸戴不戴金鈴]}（battle.reset 的第三個參數）
 //   FINAL.onEvent(e)    主迴圈收到 Battle 的事件（金鈴那幾種）
 // 測試網址 ?story=lb｜l｜b｜0（開發用，main.js 放進 APP.storyTest）：最終戰當作「有信（l）、有狐狸戴金鈴（b，算水狐）」來打，結局也照這個判斷；不看存檔裡的信和鈴，打完不記通關（一般結局的信照樣記進存檔，跟 ?letter 一樣）
-// 換段（CK 2026-09-29）：盤面停、BOSS 不出手、時間停（G.mode＝'intro'）→ 一顆寶石碎成光點、BOSS 震一下 → 1.3 秒後換成下一段的招 →
-//   血條慢慢補滿（1.6 秒，不要一下子就滿）→ 最後一段一補滿就狂暴。換段不說話（只有橫幅寫第幾段）；背景換段（冥 → 丘 → 月）還沒做。
+// 換段（CK 2026-09-29）：盤面停、BOSS 不出手、時間停（G.mode＝'intro'）→ 一顆寶石碎成光點、BOSS 震一下、背景淡換成下一段的 → 1.3 秒後換成下一段的招 →
+//   血條慢慢補滿（1.6 秒，不要一下子就滿）→ 最後一段一補滿就狂暴。換段不說話（只有橫幅寫第幾段）。
+// 背景倒著走回她的記憶（暫時的樣子，render/battle.js 的 segLook）：冥（青綠的天、青白的月、白色飄落物）→ 丘（桃粉暖光、暖色的月、桃花瓣）→
+//   月（第三關的紫藤血月、紅飄帶、紫藤花）。開戰時直接是「冥」；換段時 1.2 秒淡換，飄落物和紅飄帶在淡到一半時換。
 //   前一段留在盤面上的東西不清（CK 想先試）；預告了、還沒放上去的招，各包在 place 收到 null 時自己丟掉。
 // 金鈴（第三段；規則在 battle.js 和 mechanics/charm.js，03「最終戰與結局」）：
 //   第三段一開始，月亮被冥界的霧遮住、暗暗的（沒有信就一直暗著）。有信時戴鈴的狐狸把媚惑彈開（bellBounce）：粉紅光打過去、鈴大聲響、
@@ -7105,6 +7122,7 @@ var barEl=document.getElementById('bossbar'),gemsEl=barEl.querySelector('.gems')
 var GEM=new THREE.Color(0xe9d8ff),WHITE=new THREE.Color(0xffffff);
 var BELL='gold-bell',FOXES=['fire','water','wood','light','dark','heart'],SLOTS=['head','neck','tail'];   // 金鈴（第三關妲己的掉落）；隊伍＝六隻狐狸
 var T_BREAK=1.3,T_FILL=1.6;   // 寶石碎掉之後幾秒換招、血條補滿花幾秒
+var SEG_PETAL=['white','peach','daji'],SEG_RIBBON=[false,false,true];   // 各段的飄落物（effects.js 的 PETAL_STYLE）、紅飄帶
 var MOON_DIM=0,moonNow=1,moonTw=0;   // 第三段開始時月亮多暗（BS.moonLight 的 0～1）；moonNow：現在的亮度；moonTw：月亮變亮的補間（第幾次，新的蓋掉舊的）
 function gemXY(el){var r=el.getBoundingClientRect(),f=frameEl.getBoundingClientRect();return {x:r.left+r.width/2-f.left,y:r.top+r.height/2-f.top};}
 // 最右邊那顆還在的寶石碎掉：縮小淡掉（CSS）＋光點往外噴＋一圈白光
@@ -7124,6 +7142,7 @@ function say(line){var T=CONFIG.talk['final-bell'];if(line<0||line>=T.lines.leng
 function segDown(){var ses=SES,k=battle.seg+1,bp=bossScreen();G.mode='intro';
   BS.boss.attack();addShake(12);AudioFX.enrage();ringFx(bp.x,bp.y,L.cs*0.6,L.cs*4,WHITE,0.6);breakGem();
   showBanner('第 '+(k+1)+' 段「'+battle.boss.segs[k].name+'」');
+  tween(1.2,function(v){BS.segLook(k-1,k,v);});after(0.6,function(){if(SES!==ses)return;setPetalStyle(SEG_PETAL[k]);BS.ribbons(SEG_RIBBON[k]);});   // 背景淡換
   if(k===battle.boss.segs.length-1)moonTo(MOON_DIM);   // 第三段「月」：月亮被冥界的霧遮住（換段一開始就慢慢暗下來）
   return wait(T_BREAK).then(function(){if(SES!==ses)return null;
     battle.nextSeg().forEach(function(e){MECH_VIEW_LIST.forEach(function(mv){if(mv.onEvent)mv.onEvent(e);});});   // 反照中換段：反照的畫面收掉
@@ -7131,7 +7150,7 @@ function segDown(){var ses=SES,k=battle.seg+1,bp=bossScreen();G.mode='intro';
   .then(function(){if(SES!==ses)return;var en=battle.segReady();updateBars();if(G.mode==='intro')G.mode='playing';if(en)onEnrage();});
 }
 var FINAL={
-  hud:function(st){moonNow=1;moonTw++;barEl.classList.toggle('segs',!!st.segs);   /* 開新的一場：月亮回到平常（BS.setStage 也會重設） */gemsEl.innerHTML=st.segs?st.segs.map(function(){return '<i></i>';}).join(''):'';},
+  hud:function(st){moonNow=1;moonTw++;barEl.classList.toggle('segs',!!st.segs);if(st.segs){BS.segLook(0,0,1);BS.ribbons(SEG_RIBBON[0]);setPetalStyle(SEG_PETAL[0]);}   /* 最終戰開場是「冥」 */   /* 開新的一場：月亮回到平常（BS.setStage 也會重設） */gemsEl.innerHTML=st.segs?st.segs.map(function(){return '<i></i>';}).join(''):'';},
   update:function(){if(battle.segDown&&G.mode==='playing'){battle.segDown=false;segDown();}},
   down:function(){if(battle.boss.segs)breakGem();},
   story:function(){var q=APP.storyTest;if(q)return {letter:q.indexOf('l')>=0,bells:[0,1,2,3,4,5].map(function(i){return i===1&&q.indexOf('b')>=0;})};   /* 測試網址 ?story=…：戴鈴的算水狐 */
