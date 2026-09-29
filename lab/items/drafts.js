@@ -294,5 +294,156 @@ window.ITEM_LAB_DRAFTS = [
       obj.userData.bob.position.y = 0.045 + 0.009 * Math.sin(t * 1.7);
       obj.userData.bob.rotation.z = 0.07 * Math.sin(t * 1.25);
       obj.userData.glow.material.opacity = 0.36 + 0.18 * Math.sin(t * 1.9);
-    } }
+    } },
+
+  { id: 'twin-wisps', slot: 'tail', name: '小鬼火燈籠',
+    desc: '照不遠，但找得到回來的路。',
+    note: '尾巴兩側各一團圓潤青綠鬼火，火尖輕晃、柔光呼吸；沒有燈籠。',
+    build: function (anchor, L) {
+      var T = L.THREE, r = anchor.userData.tailR || 0.12;
+      var g = new T.Group(), face = new T.Group(), flames = [], glows = [];
+      g.add(face);
+      if (!anchor.userData.thumb) {
+        var d = new T.Vector3(L.BOW_DIR[0], L.BOW_DIR[1], L.BOW_DIR[2]).normalize();
+        var flat = new T.Vector3(d.x, 0, d.z).normalize();
+        face.position.copy(flat).multiplyScalar(r + 0.035);
+        face.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
+      }
+      var sh = new T.Shape();
+      sh.moveTo(0, -0.052);
+      sh.bezierCurveTo(-0.057, -0.055, -0.073, 0.002, -0.042, 0.042);
+      sh.bezierCurveTo(-0.048, 0.016, -0.006, 0.066, -0.014, 0.113);
+      sh.bezierCurveTo(0.014, 0.091, 0.045, 0.067, 0.031, 0.03);
+      sh.bezierCurveTo(0.073, 0.058, 0.071, -0.049, 0, -0.052);
+      var bodyGeo = new T.ExtrudeGeometry(sh, { depth: 0.026, bevelEnabled: true, bevelThickness: 0.013, bevelSize: 0.006, bevelSegments: 2, curveSegments: 12 });
+      var bodyMat = L.toon(0x56cdb5, { emissive: 0x176d67 });
+      var coreMat = L.toon(0xb9ffe3, { emissive: 0x4ccfaf });
+      [0, 1].forEach(function (i) {
+        var flame = new T.Group();
+        flame.position.set(i ? 0.015 : -0.14, i ? -0.068 : 0.09, 0.065);
+        flame.scale.setScalar(i ? 0.84 : 0.94);
+        face.add(flame);
+        flame.add(L.itemPart(bodyGeo, bodyMat, L.outlineMat(0x236f70, 0.0035)));
+        var core = L.itemPart(L.SPH_LO, coreMat, false);
+        core.scale.set(0.027, 0.039, 0.007);
+        core.position.set(0, -0.008, 0.045);
+        flame.add(core);
+        var glow = L.sprite(flame, L.glowTex, 0x73ffe0, 0.29, true);
+        glow.position.z = -0.055;
+        glow.scale.set(0.25, 0.25, 1);
+        flames.push(flame); glows.push(glow);
+      });
+      g.userData.flames = flames; g.userData.glows = glows;
+      return g;
+    },
+    upd: function (obj, t) {
+      obj.userData.flames.forEach(function (flame, i) {
+        flame.rotation.z = 0.12 * Math.sin(t * 2.8 + i * 1.6);
+        flame.position.y = (i ? -0.068 : 0.09) + 0.012 * Math.sin(t * 1.7 + i * 1.3);
+        flame.scale.y = (i ? 0.84 : 0.94) * (1 + 0.055 * Math.sin(t * 3.5 + i));
+        obj.userData.glows[i].material.opacity = 0.24 + 0.1 * Math.sin(t * 2.2 + i);
+      });
+    } },
+
+  { id: 'phosphor-beads', slot: 'neck', name: '燐火珠串',
+    desc: '一串會發光的珠子。青燐說，是在路上撿的燈火，每一顆都往同一個方向亮。',
+    note: '五顆大珠排成微笑弧；中間三顆較大，正中紅珠輕微發光。',
+    build: function (anchor, L) {
+      var T = L.THREE, g = new T.Group();
+      var green = L.toon(0x277d65, { emissive: 0x123c38 });
+      var red = L.toon(0xc9344d, { emissive: 0x531023 });
+      var beads = [[-0.108, 0.008, 0.023], [-0.056, -0.031, 0.032], [0, -0.05, 0.037], [0.056, -0.031, 0.032], [0.108, 0.008, 0.023]];
+      var greenGeos = [];
+      beads.forEach(function (p, i) {
+        if (i === 2) {
+          var center = L.itemPart(L.SPH_LO, red, L.outlineMat(0x8b263b, 0.003));
+          center.scale.setScalar(p[2]); center.position.set(p[0], p[1], 0.016);
+          g.add(center);
+        } else {
+          var geo = L.SPH_LO.clone();
+          geo.applyMatrix4(new T.Matrix4().makeScale(p[2], p[2], p[2]));
+          geo.translate(p[0], p[1], 0.016); greenGeos.push(geo);
+        }
+      });
+      g.add(L.itemPart(L.mergeGeos(greenGeos), green, L.outlineMat(0x145544, 0.003)));
+      var glow = L.sprite(g, L.glowTex, 0xff6675, 0.25, true);
+      glow.position.set(0, -0.05, -0.006); glow.scale.set(0.17, 0.17, 1);
+      g.position.set(0, -0.035, 0.006);
+      g.userData.glow = glow;
+      return g;
+    },
+    upd: function (obj, t) { obj.userData.glow.material.opacity = 0.18 + 0.09 * Math.sin(t * 1.8); } },
+
+  { id: 'spider-lily', slot: 'head', name: '彼岸花',
+    desc: '聞起來什麼味道都沒有，好像忘了什麼。',
+    note: '頭頂一大朵緞帶形紅色彼岸花，捲瓣與花蕊像小髮飾。',
+    build: function (anchor, L) {
+      var T = L.THREE, g = new T.Group(), bloom = new T.Group();
+      g.add(bloom);
+      var petal = new T.Shape();
+      petal.moveTo(-0.009, 0);
+      petal.bezierCurveTo(-0.036, 0.04, -0.033, 0.104, -0.008, 0.145);
+      petal.bezierCurveTo(0.002, 0.157, 0.026, 0.154, 0.028, 0.132);
+      petal.bezierCurveTo(-0.002, 0.117, 0.008, 0.071, 0.009, 0);
+      petal.closePath();
+      var petalGeo = new T.ExtrudeGeometry(petal, { depth: 0.011, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.003, bevelSegments: 2, curveSegments: 12 });
+      var red = L.toon(0xa92947, { emissive: 0x37101e });
+      var petalGeos = [];
+      [-1.04, -0.62, -0.24, 0.2, 0.62, 1.04].forEach(function (a, i) {
+        var geo = petalGeo.clone();
+        var pos = new T.Vector3((i - 2.5) * 0.012, 0, i % 2 ? 0.018 : 0.002);
+        var rot = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), a);
+        var scale = new T.Vector3(i === 2 || i === 3 ? 0.96 : 0.8, i === 0 || i === 5 ? 0.85 : 1, 1);
+        geo.applyMatrix4(new T.Matrix4().compose(pos, rot, scale));
+        petalGeos.push(geo);
+      });
+      bloom.add(L.itemPart(L.mergeGeos(petalGeos), red, L.outlineMat(0x67253d, 0.003)));
+      var core = L.itemPart(L.SPH_LO, L.toon(0xea7188, { emissive: 0x67233b }), false);
+      core.scale.set(0.036, 0.022, 0.018); core.position.set(0, 0.008, 0.027); bloom.add(core);
+      var curlGeos = [];
+      [-1, 1].forEach(function (s) {
+        var path = new T.CatmullRomCurve3([
+          new T.Vector3(s * 0.018, 0.01, 0.015), new T.Vector3(s * 0.095, 0.075, 0.02),
+          new T.Vector3(s * 0.137, 0.15, 0.015), new T.Vector3(s * 0.111, 0.17, 0.012)
+        ]);
+        curlGeos.push(new T.TubeGeometry(path, 18, 0.0045, 6, false));
+      });
+      bloom.add(L.itemPart(L.mergeGeos(curlGeos), L.toon(0xbb3854, { emissive: 0x431326 }), false));
+      g.position.set(0, 0.018, 0.04);
+      g.scale.setScalar(1.2);
+      g.rotation.x = -0.23;
+      g.userData.bloom = bloom;
+      return g;
+    },
+    upd: function (obj, t) { obj.userData.bloom.rotation.z = 0.035 * Math.sin(t * 1.2); } },
+
+  { id: 'magatama', slot: 'neck', name: '勾玉',
+    desc: '背面刻著一棵小小的樹。',
+    note: '圓頭、彎尾、有小孔的厚綠玉；沿玉色微微發光。',
+    build: function (anchor, L) {
+      var T = L.THREE, g = new T.Group(), sh = new T.Shape();
+      sh.moveTo(-0.04, 0.076);
+      sh.bezierCurveTo(-0.12, 0.066, -0.114, -0.012, -0.064, -0.039);
+      sh.bezierCurveTo(-0.018, -0.064, -0.032, -0.101, -0.069, -0.117);
+      sh.bezierCurveTo(-0.095, -0.133, -0.067, -0.157, -0.014, -0.139);
+      sh.bezierCurveTo(0.063, -0.115, 0.106, -0.042, 0.091, 0.014);
+      sh.bezierCurveTo(0.08, 0.068, 0.026, 0.097, -0.04, 0.076);
+      var hole = new T.Path();
+      hole.absarc(-0.012, 0.036, 0.015, 0, Math.PI * 2, true);
+      sh.holes.push(hole);
+      var jade = L.itemPart(
+        new T.ExtrudeGeometry(sh, { depth: 0.021, bevelEnabled: true, bevelThickness: 0.007, bevelSize: 0.006, bevelSegments: 2, curveSegments: 18 }),
+        L.toon(0x2f9a68, { emissive: 0x103c2b }), L.outlineMat(0x276b4d, 0.004));
+      g.add(jade);
+      var shine = L.itemPart(L.SPH_LO, L.toon(0xa5e5b5, { emissive: 0x326e4e }), false);
+      shine.scale.set(0.009, 0.027, 0.003); shine.position.set(-0.063, 0.015, 0.031);
+      shine.rotation.z = -0.45; g.add(shine);
+      var glow = L.sprite(g, L.glowTex, 0x56d984, 0.14, true);
+      glow.position.z = -0.036; glow.scale.set(0.27, 0.29, 1);
+      g.position.set(0, -0.038, 0.01); g.rotation.z = -0.17;
+      g.scale.setScalar(0.83);
+      g.userData.glow = glow;
+      return g;
+    },
+    upd: function (obj, t) { obj.userData.glow.material.opacity = 0.11 + 0.05 * Math.sin(t * 1.5); } }
 ];
