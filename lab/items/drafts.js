@@ -238,7 +238,7 @@ window.ITEM_LAB_DRAFTS = [
       sh.closePath();
       var leaf = L.itemPart(
         new T.ExtrudeGeometry(sh, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 2 }),
-        L.toon(0xd35b25, { emissive: 0x4c1b0a }), L.outlineMat(0xe4a05e, 0.004));
+        L.toon(0xd35b25, { emissive: 0x4c1b0a }), L.outlineMat(0xffcf62, 0.004));
       g.add(leaf);
       var stem = L.itemPart(new T.CylinderGeometry(0.004, 0.0045, 0.07, 6),
         L.toon(0xb85c29, { emissive: 0x371508 }), false);
@@ -247,7 +247,7 @@ window.ITEM_LAB_DRAFTS = [
       var face = new T.Mesh(new T.PlaneGeometry(size, size),
         new T.MeshBasicMaterial({ map: L.MAPLE_TEX, color: L.MAPLE_COL[0], transparent: true, depthWrite: false, side: T.DoubleSide }));
       face.position.set(0, size * 0.08, 0.022); g.add(face);
-      g.position.set(0, -0.05, 0.035);
+      g.position.set(0, -0.065, 0.025);
       return g;
     } },
 
@@ -264,7 +264,8 @@ window.ITEM_LAB_DRAFTS = [
         face.position.copy(flat).multiplyScalar(r * 0.98 + 0.02);
         face.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
       }
-      bob.position.set(anchor.userData.thumb ? 0 : -0.075, 0.045, 0.025);
+      bob.position.set(anchor.userData.thumb ? -0.025 : -0.1, 0.045, 0.025);
+      bob.scale.setScalar(1.18);
       var wood = L.toon(0x3e171a, { emissive: 0x160708 });
       var woodEdge = L.outlineMat(0xd9b46a, 0.004);
       var paper = new T.Mesh(new T.CylinderGeometry(0.052, 0.052, 0.095, 6),
@@ -282,13 +283,16 @@ window.ITEM_LAB_DRAFTS = [
       bob.add(L.itemPart(L.mergeGeos(ribs), wood, woodEdge));
       var loop = L.itemPart(new T.TorusGeometry(0.011, 0.003, 6, 12), wood, false);
       loop.position.y = 0.073; bob.add(loop);
-      var glow = L.sprite(bob, L.glowTex, 0xffa050, 0.25, true);
-      glow.scale.set(0.23, 0.23, 1);
+      var glow = L.sprite(bob, L.glowTex, 0xffd450, 0.36, true);
+      glow.position.z = -0.08;
+      glow.scale.set(0.34, 0.34, 1);
       g.userData.bob = bob;
+      g.userData.glow = glow;
       return g;
     },
     upd: function (obj, t) {
       obj.userData.bob.position.y = 0.045 + 0.009 * Math.sin(t * 1.7);
       obj.userData.bob.rotation.z = 0.07 * Math.sin(t * 1.25);
+      obj.userData.glow.material.opacity = 0.36 + 0.18 * Math.sin(t * 1.9);
     } }
 ];
