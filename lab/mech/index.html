@@ -6299,6 +6299,9 @@ function setupFinal(st, P) {
     if (s.lethe) { s.lethe.cols = null; s.lethe.pending = false; } if (s.wisp) s.wisp.pending = [];
     if (s.petal) s.petal.pending = 0; if (s.shard) s.shard.pending = 0; if (s.lock) s.lock.pending = 0;
     MECH_VIEWS.lethe.reset();
+    // 反照（天鏡打光全部鏡片，傷害 ×2）換段時結束：下一段沒有天鏡，反照的倒數和標籤都讀 battle.boss.shard，留著會每一格出錯、整個卡死
+    //   （2026-09-29 CK 在試玩場打到第三段瞬間卡死：第二段用反照打空、切到第三段時 shard 設定變 null）。搬進 src 時一樣要處理。
+    battle.glare = 0;
   }
   // 換段清掉前一段留下的（clear=1）
   function clearLeft() {
