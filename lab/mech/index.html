@@ -6262,7 +6262,7 @@ var WISP_VIEW = {
 };
 
 // 最終戰（第九關 九尾）三段的素版——機制試玩場（2026-09-29 遊星）。規則見 docs/03_design_story.md「最終戰與結局」。
-// 三條血、時限共用；打空一條就換段（頓一下、BOSS 震、血刷滿），倒著走回記憶：
+// 三條血、時限共用；打空一條就換段（頓一下、BOSS 震、血慢慢補滿；第三段補滿那一刻狂暴），倒著走回記憶：
 //   第一段「冥」：鬼火＋忘川（比單關少）　第二段「丘」：落英＋天鏡（比單關少）　第三段「月」：媚惑，而且一開始就狂暴
 // 換段時前一段留在盤面上的東西（灰珠、鬼火、花瓣、鏡片）：clear＝0 不清（CK 2026-09-29 想先試，比較難）／1 清掉（遊星推）。
 //   不清時，留下來的鬼火會照樣倒數、炸開（鬼火那包保持開著、只是不再丟新的）；鏡片清不掉（佔格子），兩種模式都留著。
@@ -6321,7 +6321,7 @@ function setupFinal(st, P) {
       if (P.clear) clearLeft();
       apply(seg, false);
       document.querySelector('#bossbar .name').textContent = st.name;
-      return tween(0.5, function (k) { battle.bossHp = Math.round(battle.bossMax * k); updateBars(); });   // 血條刷滿
+      return tween(1.6, function (k) { battle.bossHp = Math.round(battle.bossMax * k); updateBars(); });   // 血條慢慢補滿（CK 2026-09-29：不要一下子就滿；正式版還有寶石碎掉的演出）
     }).then(function () {
       busy = false;
       if (seg === 2) { battle.enraged = true; if (battle.atk > st.enrageInterval) battle.atk = st.enrageInterval; onEnrage(); }
@@ -6372,12 +6372,12 @@ var MECH = {
       ['炸一次扣多少', [[{ dmg: 50 }, '50（5%）'], [{ dmg: 80 }, '80'], [{ dmg: 30 }, '30']]]] },
   // 最終戰：三段各自的招寫在 final.js；這裡只調血量、時限、換段清不清
   final: { name: '第九關 九尾・最終戰', icon: '🌙', final: true, stage: 3,
-    params: { hp: [10000, 2000, 30000], time: [120, 30, 300], clear: [0, 0, 1], hit: [10, 3, 30] },
+    params: { hp: [10000, 2000, 30000], time: [150, 30, 300], clear: [0, 0, 1], hit: [10, 3, 30] },   // 預設＝CK 2026-09-29 選的：普攻 10%、換段不清、每段 10000、150 秒
     info: function (P) { return 'BOSS 普攻每次打掉隊伍 ' + P.hit + '%（單關是 20%）。三段各 ' + P.hp + ' 血、共用 ' + P.time + ' 秒：冥（鬼火＋忘川）→ 丘（落英＋天鏡）→ 月（媚惑、一開始就狂暴）。換段時前一段留下的東西' + (P.clear ? '清掉' : '不清（鬼火照樣倒數、會炸）') + '。'; },
     menu: [['BOSS 普攻多痛', [[{ hit: 10 }, '10%（砍半）'], [{ hit: 15 }, '15%'], [{ hit: 20 }, '20%（跟單關一樣）'], [{ hit: 7 }, '7%']]],
       ['換段時，前一段留下的灰珠、鬼火、花瓣', [[{ clear: 0 }, '不清（CK 想試）'], [{ clear: 1 }, '清掉']]],
       ['每段血量', [[{ hp: 10000 }, '10000'], [{ hp: 8000 }, '8000'], [{ hp: 12000 }, '12000']]],
-      ['時限', [[{ time: 120 }, '120 秒'], [{ time: 150 }, '150 秒'], [{ time: 100 }, '100 秒']]]] }
+      ['時限', [[{ time: 150 }, 'CK 選的 150 秒'], [{ time: 120 }, '120 秒'], [{ time: 180 }, '180 秒']]]] }
 };
 var KEY = MECH[Q.get('m')] ? Q.get('m') : 'lethe', M = MECH[KEY], P = { stage: num('stage', M.stage || 1, 1, 6) | 0, allgray: Q.get('allgray') === '1', keep: Q.get('keep') === '1' };
 Object.keys(M.params).forEach(function (k) { var d = M.params[k]; P[k] = num(k, d[0], d[1], d[2]); if (Number.isInteger(d[0]) && Number.isInteger(d[1])) P[k] = Math.round(P[k]); });
