@@ -6057,10 +6057,13 @@ if (PICK && !FOX_ITEMS[PICK]) { ERRORS.push('找不到 ' + PICK); PICK = DRAFTS[
 var d = g.Save.data(), FOXK = ['little', 'fire', 'water', 'wood', 'light', 'dark', 'heart'];
 Object.keys(FOX_ITEMS).forEach(function (id) { if (!FOX_ITEMS[id].owner) d.items[id] = 1; });
 d.fresh = {}; d.seen.ch1 = 1;
-if (PICK) { var slot = FOX_ITEMS[PICK].slot;
-  FOXK.forEach(function (f, k) { d.outfit[f][slot] = PICK;
-    if (f === 'little') g.GARDEN.foxModel().wear(slot, PICK); else g.BS.foxes[k - 1].wear(slot, PICK);
-    g.WARD.wear(f, slot, PICK); }); }
+if (PICK) { var slot = FOX_ITEMS[PICK].slot; FOXK.forEach(function (f) { d.outfit[f][slot] = PICK; }); }
+// 遊戲載入時草稿還沒放進飾品表，存檔裡戴著的草稿那時候戴不上去；這裡把所有戴著的草稿（不只這次選的）重新戴一次，戰鬥、庭院、換裝頁才會一致
+FOXK.forEach(function (f, k) { ['head', 'neck', 'tail'].forEach(function (s) { var id = d.outfit[f][s];
+  if (!id || id.indexOf('lab-') !== 0) return;
+  if (!FOX_ITEMS[id]) { delete d.outfit[f][s]; return; }   // 草稿被刪掉了：拿掉
+  if (f === 'little') g.GARDEN.foxModel().wear(s, id); else g.BS.foxes[k - 1].wear(s, id);
+  g.WARD.wear(f, s, id); }); });
 g.Save.save();
 
 var view = Q.get('view') || 'garden';
