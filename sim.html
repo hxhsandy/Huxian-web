@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>手機模擬器</title>
+<!--
+  手機模擬器：把同一個網站上的遊戲頁，放進幾款常見手機的外框裡看（瀏海、動態島、圓角、狀態列、底部橫條）。
+  裡面跑的是真的頁面（可以點、可以玩），外框和瀏海形狀是畫出來的近似；尺寸與安全區照 Apple 公布的規格，最後以實機為準。
+  別的遊戲要用：把這個檔案放到那個網站、改下面的 PAGES（要跟遊戲同一個網站，才能替它設定安全區）。
+  2026-09-29 遊星做給 CK（狐仙三消的版面討論用）。
+-->
+<style>
+:root{--bg:#0f1328;--panel:#181e3c;--ink:#f1ead6;--dim:#a8a6c2;--gold:#e8c67e;--line:rgba(232,198,126,.32);--safe:#ff5a6a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"PingFang TC","Noto Sans TC",sans-serif}
+header{position:sticky;top:0;z-index:10;background:rgba(15,19,40,.95);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+header h1{font-size:15px;margin:0 6px 0 0;color:var(--gold);font-weight:600;letter-spacing:.05em}
+.group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.group>span{font-size:12px;color:var(--dim);margin-right:2px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;line-height:1.2}
+.chip[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#1b1631}
+.chip:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px}
+label.tog{font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer}
+@media (max-width:719px){header{position:static}}
+#note{font-size:12px;color:var(--dim);padding:8px 16px 0;line-height:1.6}
+#stage{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:28px;padding:18px 16px 48px}
+.dev{display:flex;flex-direction:column;align-items:center;gap:8px}
+.cap{font-size:13px;text-align:center;line-height:1.5}
+.cap small{display:block;color:var(--dim);font-size:11.5px}
+.fit{position:relative}
+.shell{position:absolute;left:0;top:0;transform-origin:0 0;padding:11px;background:#060608;box-shadow:0 0 0 2px #34343f,0 18px 44px rgba(0,0,0,.55)}
+.screen{position:relative;overflow:hidden;background:#000}
+.screen iframe{position:absolute;left:0;border:0;display:block;background:#000}
+.ov{position:absolute;pointer-events:none}
+.status{left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;color:#fff;font-weight:600;font-size:15px;z-index:3}
+.status .t{letter-spacing:.02em}
+.status svg{display:block}
+.cut{background:#000;z-index:4}
+.homebar{height:5px;width:134px;border-radius:3px;background:rgba(255,255,255,.88);z-index:4;left:50%;transform:translateX(-50%)}
+.safari{left:0;right:0;bottom:0;background:rgba(30,30,34,.96);z-index:3;display:flex;flex-direction:column;align-items:center;padding-top:9px;gap:12px}
+.safari .url{width:88%;height:40px;border-radius:12px;background:#3a3a3f;display:flex;align-items:center;justify-content:center;color:#e8e8ec;font-size:14px}
+.safari .tools{width:84%;display:flex;justify-content:space-between;color:#4c8dff;font-size:18px}
+.safebox{z-index:2;border-top:1.5px dashed var(--safe);border-bottom:1.5px dashed var(--safe);left:0;right:0}
+.safebox i{position:absolute;right:4px;font-style:normal;font-size:10px;color:var(--safe);background:rgba(0,0,0,.55);padding:0 3px;border-radius:3px}
+</style>
+</head>
+<body>
+<header>
+  <h1>手機模擬器</h1>
+  <div class="group" id="gDev" role="group" aria-label="手機"><span>手機</span></div>
+  <div class="group" id="gMode" role="group" aria-label="模式"><span>模式</span></div>
+  <div class="group"><span>畫面</span><select id="sScreen" aria-label="畫面"></select></div>
+  <label class="tog"><input type="checkbox" id="cSafe" checked>顯示安全框</label>
+  <button class="chip" id="bReload" type="button">重新載入</button>
+</header>
+<p id="note"></p>
+<main id="stage"></main>
+<script>
+/* ---- 要看的頁面（跟這個檔案放在同一個網站）----
+   pad：這個頁面用 :root 的 padding 讓出安全區（狐仙三消 v112 的做法）；模擬「加到主畫面」時替它設成那支手機的數字。 */
+var PAGES={
+  now:{src:'index.html',name:'現在的版本（v112）',pad:true},
+  full:{src:'fullscreen.html',name:'全螢幕預覽版',pad:false}
+};
+var SCREENS=[['','庭院'],['?test','第一關戰鬥'],['?test2','第二關戰鬥'],['?test3','第三關戰鬥'],['?test4','第四關戰鬥'],['?test5','第五關戰鬥'],['?test6','第六關戰鬥'],['?team','第二關封面']];
+/* ---- 手機（CSS 像素＝網頁看到的大小）----
+   safe：加到主畫面時的安全區 [上, 下]；safari：Safari 瀏覽器裡網頁看得到的高度（網址列在下面時，約略值）
+   cut：瀏海 notch／動態島 island／沒有 none；r：螢幕圓角 */
+var DEVICES=[
+  {id:'se',name:'iPhone SE',sub:'第 2、3 代・短螢幕、沒瀏海',w:375,h:667,r:0,cut:'none',safe:[20,0],safari:548},
+  {id:'i13',name:'iPhone 13／14',sub:'瀏海（CK 的手機）',w:390,h:844,r:47,cut:'notch',safe:[47,34],safari:664},
+  {id:'i15',name:'iPhone 15／16',sub:'動態島',w:393,h:852,r:55,cut:'island',safe:[59,34],safari:659},
+  {id:'pm',name:'iPhone 15／16 Pro Max',sub:'動態島・大螢幕',w:430,h:932,r:55,cut:'island',safe:[59,34],safari:739}
+];
+var MODES=[
+  {id:'home',name:'加到主畫面・現在的版本',page:'now',how:'home'},
+  {id:'full',name:'加到主畫面・全螢幕預覽',page:'full',how:'home'},
+  {id:'safari',name:'Safari 瀏覽器',page:'now',how:'safari'}
+];
+var st={devs:['se','i13','i15'],mode:'home',screen:'?test4',safe:true};
+try{var saved=JSON.parse(localStorage.getItem('phoneSim')||'null');if(saved)Object.assign(st,saved);}catch(e){}
+function save(){try{localStorage.setItem('phoneSim',JSON.stringify(st));}catch(e){}}
+
+var $=function(s){return document.querySelector(s);};
+function chip(txt,pressed,fn){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=txt;b.setAttribute('aria-pressed',pressed?'true':'false');b.onclick=fn;return b;}
+function buildBar(){
+  var g=$('#gDev');g.querySelectorAll('button').forEach(function(b){b.remove();});
+  DEVICES.forEach(function(d){g.appendChild(chip(d.name,st.devs.indexOf(d.id)>=0,function(){
+    var i=st.devs.indexOf(d.id);if(i>=0){if(st.devs.length>1)st.devs.splice(i,1);}else st.devs.push(d.id);
+    st.devs.sort(function(a,b){return idx(a)-idx(b);});save();buildBar();render();}));});
+  var m=$('#gMode');m.querySelectorAll('button').forEach(function(b){b.remove();});
+  MODES.forEach(function(o){m.appendChild(chip(o.name,st.mode===o.id,function(){st.mode=o.id;save();buildBar();render();}));});
+  var s=$('#sScreen');if(!s.options.length)SCREENS.forEach(function(x){var o=document.createElement('option');o.value=x[0];o.textContent=x[1];s.appendChild(o);});
+  s.value=st.screen;$('#cSafe').checked=st.safe;
+  var mode=MODES.find(function(o){return o.id===st.mode;});
+  $('#note').textContent={home:'加到主畫面・現在的版本：安全區用上下內距讓出來（就是妳看到的上下兩條深色邊）。',
+    full:'加到主畫面・全螢幕預覽：拔掉安全區、畫面畫滿，介面還沒讓位，所以上排會被狀態列和瀏海蓋到。',
+    safari:'Safari 瀏覽器：網頁拿不到安全區；上面狀態列、下面網址列是 Safari 自己的（高度是約略值）。'}[mode.id]+
+    '　紅色虛線＝安全框（要按、要讀的東西該待在裡面）。外框、瀏海形狀是近似，尺寸照 Apple 規格；最後以實機為準。';
+}
+function idx(id){return DEVICES.findIndex(function(d){return d.id===id;});}
+
+function el(tag,cls,css){var e=document.createElement(tag);if(cls)e.className=cls;if(css)Object.assign(e.style,css);return e;}
+function statusBar(d,h,bg){
+  var s=el('div','ov status',{height:h+'px',padding:d.cut==='none'?'0 8px':'0 '+(d.cut==='island'?34:30)+'px',fontSize:d.cut==='none'?'12px':'15px',background:bg||'transparent'});
+  var t=el('span','t');t.textContent='9:41';
+  var ic=el('span');ic.innerHTML='<svg width="68" height="12" viewBox="0 0 68 12" fill="#fff"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/>'+
+    '<path d="M30 3.2a9 9 0 0 1 12 0l-1.4 1.5a7 7 0 0 0-9.2 0zM32.4 5.9a5.5 5.5 0 0 1 7.2 0L38.2 7.4a3.5 3.5 0 0 0-4.4 0zM36 11.5l-1.6-1.8a2.3 2.3 0 0 1 3.2 0z"/>'+
+    '<rect x="44.5" y="1" width="21" height="10" rx="3" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="46.5" y="3" width="15" height="6" rx="1.6"/><rect x="66.3" y="4" width="1.5" height="4" rx=".7" fill-opacity=".5"/></svg>';
+  if(d.cut==='none'){s.style.justifyContent='center';s.appendChild(t);}else{s.appendChild(t);s.appendChild(ic);}
+  return s;
+}
+function cutout(d){
+  if(d.cut==='notch')return el('div','ov cut',{left:(d.w-162)/2+'px',top:'0',width:'162px',height:'33px',borderRadius:'0 0 20px 20px'});
+  if(d.cut==='island')return el('div','ov cut',{left:(d.w-126)/2+'px',top:'11px',width:'126px',height:'37px',borderRadius:'19px'});
+  return null;
+}
+function render(){
+  var stage=$('#stage');stage.innerHTML='';
+  var mode=MODES.find(function(o){return o.id===st.mode;}),page=PAGES[mode.page];
+  var list=st.devs.map(function(id){return DEVICES[idx(id)];});
+  var narrow=window.innerWidth<720,availH=window.innerHeight-$('header').offsetHeight-$('#note').offsetHeight-90,availW=stage.clientWidth-32;
+  var sumW=list.reduce(function(a,d){return a+d.w+22;},0)+28*(list.length-1),maxH=Math.max.apply(null,list.map(function(d){return d.h+22;}));
+  var s=narrow?Math.min(1,availW/Math.max.apply(null,list.map(function(d){return d.w+22;}))):Math.min(1,availH/maxH,availW/sumW);
+  list.forEach(function(d){
+    var box=el('div','dev'),cap=el('div','cap');cap.innerHTML=d.name+'<small>'+d.sub+'・'+d.w+'×'+d.h+(mode.how==='home'?'・安全區 上 '+d.safe[0]+'／下 '+d.safe[1]:'・網頁高約 '+d.safari)+'</small>';
+    var fit=el('div','fit',{width:Math.round((d.w+22)*s)+'px',height:Math.round((d.h+22)*s)+'px'});
+    var shell=el('div','shell',{transform:'scale('+s+')',borderRadius:(d.r?d.r+11:14)+'px'});
+    var scr=el('div','screen',{width:d.w+'px',height:d.h+'px',borderRadius:d.r+'px'});
+    var top=0,hgt=d.h,sb=d.safe[0];
+    if(mode.how==='safari'){top=d.cut==='none'?20:d.safe[0];hgt=d.safari;}
+    var fr=el('iframe',null,{top:top+'px',width:d.w+'px',height:hgt+'px'});fr.title=d.name+' '+mode.name;
+    fr.src=page.src+st.screen;
+    fr.onload=function(){try{var doc=fr.contentDocument,css='';
+        if(mode.how==='home'&&page.pad)css=':root{padding-top:'+d.safe[0]+'px!important;padding-bottom:'+d.safe[1]+'px!important}html{scroll-padding-top:'+d.safe[0]+'px!important}';
+        var x=doc.createElement('style');x.id='phoneSim';x.textContent=css+':root{--safe-top:'+(mode.how==='home'?d.safe[0]:0)+'px;--safe-bottom:'+(mode.how==='home'?d.safe[1]:0)+'px}';doc.head.appendChild(x);
+      }catch(e){cap.innerHTML+='<small style="color:#ff8a8a">這頁不在同一個網站，沒辦法替它設定安全區</small>';}};
+    scr.appendChild(fr);
+    if(mode.how==='safari'){scr.appendChild(statusBar(d,top,'#0b1330'));
+      var sf=el('div','ov safari',{height:(d.h-top-hgt)+'px'});sf.innerHTML='<div class="url">hxhsandy.github.io</div><div class="tools"><span>‹</span><span>›</span><span>⇧</span><span>▢</span><span>⧉</span></div>';scr.appendChild(sf);}
+    else scr.appendChild(statusBar(d,sb));
+    var c=cutout(d);if(c)scr.appendChild(c);
+    if(d.safe[1]>0)scr.appendChild(el('div','ov homebar',{bottom:'8px'}));
+    if(st.safe){var sT=mode.how==='safari'?top:d.safe[0],sB=mode.how==='safari'?top+hgt:d.h-d.safe[1];
+      var sbx=el('div','ov safebox',{top:sT+'px',height:(sB-sT)+'px'});var lb=el('i',null,{top:'2px'});lb.textContent='安全框';sbx.appendChild(lb);scr.appendChild(sbx);}
+    shell.appendChild(scr);fit.appendChild(shell);box.appendChild(cap);box.appendChild(fit);stage.appendChild(box);
+  });
+}
+$('#sScreen').onchange=function(){st.screen=this.value;save();render();};
+$('#cSafe').onchange=function(){st.safe=this.checked;save();render();};
+$('#bReload').onclick=render;
+var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(render,200);});
+buildBar();render();
+</script>
+</body>
+</html>
