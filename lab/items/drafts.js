@@ -460,36 +460,35 @@ window.ITEM_LAB_DRAFTS = [
 
   { id: 'magatama', slot: 'neck', name: '勾玉',
     desc: '背面刻著一棵小小的樹。',
-    note: '圓頭孔眼、彎尾，整塊如打磨圓潤的厚綠玉；微微發光。',
+    note: '圓截面的綠玉環，紅繩穿過環心；金珠與紅流蘇輕輕擺動。',
     build: function (anchor, L) {
       var T = L.THREE, g = new T.Group();
-      var curve = new T.CatmullRomCurve3([
-        new T.Vector3(-0.069, -0.133, 0), new T.Vector3(0.003, -0.139, 0),
-        new T.Vector3(0.063, -0.107, 0), new T.Vector3(0.09, -0.047, 0),
-        new T.Vector3(0.073, 0.016, 0), new T.Vector3(0.028, 0.068, 0),
-        new T.Vector3(-0.025, 0.073, 0), new T.Vector3(-0.068, 0.042, 0)
-      ]);
-      var stone = roundedSweep(T, curve, 34, 14, function (u) {
-        return 0.002 + 0.068 * (0.28 + 0.72 * u) * Math.pow(Math.sin(Math.PI * u), 0.45);
-      }, 1.65);
-      var jade = L.itemPart(stone, L.toon(0x318e66, { emissive: 0x103b2b }), L.outlineMat(0x28694e, 0.004));
-      g.add(jade);
-      var holeMat = new T.MeshBasicMaterial({ color: 0x154935 });
-      [-1, 1].forEach(function (side) {
-        var hole = new T.Mesh(L.SPH_LO, holeMat);
-        hole.scale.set(0.014, 0.014, 0.004);
-        hole.position.set(-0.015, 0.055, side * 0.062);
-        g.add(hole);
+      var jade = L.itemPart(new T.TorusGeometry(0.059, 0.027, 14, 36),
+        L.toon(0x238957, { emissive: 0x0c3624 }), L.outlineMat(0x155c3e, 0.004));
+      jade.position.y = 0.044; g.add(jade);
+      var shine = L.itemPart(L.SPH_LO, L.toon(0x91dfaa, { emissive: 0x246c49 }), false);
+      shine.scale.set(0.01, 0.018, 0.006); shine.position.set(-0.059, 0.095, 0.018);
+      shine.rotation.z = -0.5; g.add(shine);
+
+      var tassel = new T.Group(); tassel.position.set(0, -0.012, 0.018); g.add(tassel);
+      var cord = L.itemPart(new T.CylinderGeometry(0.0065, 0.0065, 0.076, 8),
+        L.toon(0xcb2944, { emissive: 0x3d0c18 }), false);
+      cord.position.y = -0.038; tassel.add(cord);
+      var bead = L.itemPart(L.SPH_LO, L.toon(0xffd447, { emissive: 0x6e430b }),
+        L.outlineMat(0xa76914, 0.003));
+      bead.scale.setScalar(0.027); bead.position.y = -0.085; tassel.add(bead);
+      var red = L.toon(0xdb2943, { emissive: 0x480b19 });
+      var strands = [];
+      [-2, -1, 0, 1, 2].forEach(function (i) {
+        var len = i === 0 || i === 2 ? 0.077 : 0.091;
+        var geo = new T.CylinderGeometry(0.006, 0.008, len, 7);
+        geo.translate(i * 0.011, -0.125 - len / 2, 0);
+        strands.push(geo);
       });
-      var shine = L.itemPart(L.SPH_LO, L.toon(0xa5e5b5, { emissive: 0x326e4e }), false);
-      shine.scale.set(0.009, 0.023, 0.004); shine.position.set(-0.065, 0.048, 0.047);
-      shine.rotation.z = -0.45; g.add(shine);
-      var glow = L.sprite(g, L.glowTex, 0x56d984, 0.14, true);
-      glow.position.z = -0.09; glow.scale.set(0.31, 0.32, 1);
-      g.position.set(0, -0.03, 0.024); g.rotation.z = -0.17;
-      g.scale.setScalar(0.85);
-      g.userData.glow = glow;
+      tassel.add(L.itemPart(L.mergeGeos(strands), red, L.outlineMat(0x8c1730, 0.0025)));
+      g.position.set(0, -0.014, 0.034); g.scale.setScalar(0.88);
+      g.userData.tassel = tassel;
       return g;
     },
-    upd: function (obj, t) { obj.userData.glow.material.opacity = 0.11 + 0.05 * Math.sin(t * 1.5); } }
+    upd: function (obj, t) { obj.userData.tassel.rotation.z = 0.09 * Math.sin(t * 2.2); } }
 ];
