@@ -406,7 +406,7 @@ window.ITEM_LAB_DRAFTS = [
 
   { id: 'spider-lily', slot: 'head', name: '彼岸花',
     desc: '聞起來什麼味道都沒有，好像忘了什麼。',
-    note: '頭頂一大朵放射狀彼岸花；獨立彎曲的圓潤立體花瓣，側面也有花形。',
+    note: '耳旁一朵較小的放射狀彼岸花；彎曲立體花瓣在側面也能看到。',
     build: function (anchor, L) {
       var T = L.THREE, g = new T.Group(), bloom = new T.Group();
       g.add(bloom);
@@ -451,8 +451,8 @@ window.ITEM_LAB_DRAFTS = [
         L.toon(0xd13b50, { emissive: 0x4c1525 }), false));
       var core = L.itemPart(L.SPH_LO, L.toon(0x8b1e35, { emissive: 0x320a18 }), false);
       core.scale.set(0.032, 0.025, 0.032); core.position.set(0, 0.012, 0); bloom.add(core);
-      g.position.set(0, 0.018, 0.025);
-      g.scale.setScalar(1.08);
+      g.position.set(-0.13, -0.01, 0.06);
+      g.scale.setScalar(0.78);
       g.userData.bloom = bloom;
       return g;
     },
@@ -472,12 +472,10 @@ window.ITEM_LAB_DRAFTS = [
 
       var red = L.toon(0xd8344a, { emissive: 0x5a0c14 });
       var wrap = new T.CatmullRomCurve3([
-        new T.Vector3(-0.014, -0.001, 0.022), new T.Vector3(-0.018, -0.021, 0.032),
-        new T.Vector3(-0.016, -0.045, 0.032), new T.Vector3(0, -0.055, 0.027),
-        new T.Vector3(0.016, -0.045, 0.032), new T.Vector3(0.018, -0.021, 0.032),
-        new T.Vector3(0.014, -0.001, 0.022), new T.Vector3(0.014, -0.001, -0.022),
-        new T.Vector3(0.018, -0.042, -0.03), new T.Vector3(0, -0.054, -0.027),
-        new T.Vector3(-0.018, -0.042, -0.03), new T.Vector3(-0.014, -0.001, -0.022)
+        new T.Vector3(-0.009, -0.001, 0.021), new T.Vector3(-0.01, -0.02, 0.033),
+        new T.Vector3(-0.008, -0.044, 0.033), new T.Vector3(0, -0.055, 0.026),
+        new T.Vector3(0, -0.054, -0.028), new T.Vector3(0.002, -0.043, -0.031),
+        new T.Vector3(0.003, -0.02, -0.029), new T.Vector3(0.001, -0.001, -0.021)
       ], true);
       g.add(L.itemPart(new T.TubeGeometry(wrap, 48, 0.005, 7, true), red, false));
       var knot = L.itemPart(L.SPH_LO, red, false);
@@ -489,11 +487,11 @@ window.ITEM_LAB_DRAFTS = [
       var bead = L.itemPart(L.SPH_LO, L.toon(0xffd447, { emissive: 0x6e430b }),
         L.outlineMat(0xa76914, 0.003));
       bead.scale.setScalar(0.025); bead.position.y = -0.055; tassel.add(bead);
-      var fringe = new T.CylinderGeometry(0.011, 0.02, 0.068, 10);
-      fringe.translate(0, -0.101, 0);
+      var fringe = new T.CylinderGeometry(0.011, 0.02, 0.088, 10);
+      fringe.translate(0, -0.111, 0);
       var tip = L.SPH_LO.clone();
       tip.applyMatrix4(new T.Matrix4().makeScale(0.02, 0.005, 0.02));
-      tip.translate(0, -0.135, 0);
+      tip.translate(0, -0.155, 0);
       tassel.add(L.itemPart(L.mergeGeos([fringe, tip]), red, L.outlineMat(0x8a1a2a, 0.003)));
       g.position.set(0, -0.03, 0.034); g.scale.setScalar(0.82);
       g.userData.tassel = tassel;
