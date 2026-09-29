@@ -1251,12 +1251,14 @@ var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,powerPreferen
 var PR=Math.min(window.devicePixelRatio||1,2);
 renderer.setPixelRatio(PR);renderer.setClearColor(0x0b1330,1);renderer.autoClear=false;renderer.localClippingEnabled=true;
 
-// ?smoothglow（2026-09-29 預覽開關，給 CK 在手機上同一個畫面開關各截一張比）：手機上月亮、隊伍大招光圈的中間看得到雜點、霧讓它更明顯，
-//   猜是 iPhone 的 canvas 畫放射漸層（createRadialGradient）會加抖色（dither），小貼圖放大後就看得到。還沒確定，所以先做開關、不直接改。
-//   開的時候：不在畫面上的 canvas（貼圖、2D 特效的小圖）呼叫 createRadialGradient 改成自己一點一點算顏色（照 canvas 規格：兩個圓的圓錐漸層、
+// 放射漸層自己算（SMOOTH_GLOW，預設開）：iOS 的 canvas 畫放射漸層（createRadialGradient）會加抖色（dither），128px 這種小貼圖放大貼上去後，
+//   月亮、隊伍大招光圈的中間看得到一粒一粒的雜點，霧疊上去更明顯（電腦上沒有）。2026-09-29 先做成預覽開關 ?smoothglow 給 CK 在手機上比：
+//   開了雜點就沒了（第三關月亮、庭院大月亮都看過）→ 確定是漸層抖色，同一天改成預設開。一個地方管全部，不用逐張貼圖重寫。
+//   做法：不在畫面上的 canvas（貼圖、2D 特效的小圖）呼叫 createRadialGradient 改成自己一點一點算顏色（照 canvas 規格：兩個圓的圓錐漸層、
 //   顏色不預乘 alpha 線性內插、超出兩端用端點的顏色），算成一張圖、用 pattern 填上去：形狀、顏色都跟漸層一樣，只是沒有抖色。
-//   在畫面上的 canvas（#fx2d 每格畫的）照原本的（每格都算太慢）。只接 fillStyle（專案裡的放射漸層都是拿來填的）。沒開開關時什麼都不動。
-var SMOOTH_GLOW=typeof location!=='undefined'&&/[?&]smoothglow(&|=|$)/.test(location.search);
+//   在畫面上的 canvas（#fx2d 每格畫的）照原本的（每格都算太慢）。只接 fillStyle（專案裡的放射漸層都是拿來填的）。
+//   關掉（走原生漸層，跟 v114 逐像素一樣，測試比對舊基準用）：網址 ?rawglow，或頁面載入前設好 window.__RAWGLOW（tests/shot.js 的 RAWGLOW=1）
+var SMOOTH_GLOW=typeof location!=='undefined'&&typeof CanvasRenderingContext2D!=='undefined'&&!window.__RAWGLOW&&!/[?&]rawglow(&|=|$)/.test(location.search);
 if(SMOOTH_GLOW)(function(){
   var P=CanvasRenderingContext2D.prototype,orig=P.createRadialGradient,fs=Object.getOwnPropertyDescriptor(P,'fillStyle'),probe=document.createElement('canvas').getContext('2d');
   function rgba(css){probe.fillStyle='#000';probe.fillStyle=css;var v=probe.fillStyle;   // 瀏覽器會正規化成 #rrggbb 或 rgba(r, g, b, a)
