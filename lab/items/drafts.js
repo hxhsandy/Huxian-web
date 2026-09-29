@@ -213,5 +213,76 @@ window.ITEM_LAB_DRAFTS = [
       g.userData.halo = halo;
       return g;
     },
-    upd: function (obj, t) { obj.userData.halo.material.opacity = 0.15 + 0.07 * Math.sin(t * 1.9); } }
+    upd: function (obj, t) { obj.userData.halo.material.opacity = 0.15 + 0.07 * Math.sin(t * 1.9); } },
+
+  { id: 'maple-collar', slot: 'neck', name: '楓葉胸針',
+    desc: '背面用金線繡了一個小小的字，已經磨得看不清了。',
+    note: '五枚尖瓣與長葉柄的橘紅楓葉，胸前可辨的葉脈。',
+    build: function (anchor, L) {
+      var T = L.THREE, g = new T.Group(), sh = new T.Shape();
+      var edge = [[0, 0.099], [0.019, 0.047], [0.065, 0.071], [0.048, 0.026],
+        [0.09, 0.02], [0.051, -0.006], [0.064, -0.053], [0.018, -0.034],
+        [0.01, -0.06], [0.007, -0.104], [0, -0.109]];
+      sh.moveTo(edge[0][0], edge[0][1]);
+      for (var i = 1; i < edge.length; i++) sh.lineTo(edge[i][0], edge[i][1]);
+      for (i = edge.length - 2; i > 0; i--) sh.lineTo(-edge[i][0], edge[i][1]);
+      sh.closePath();
+      var leaf = L.itemPart(
+        new T.ExtrudeGeometry(sh, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 2 }),
+        L.toon(0xeb7038, { emissive: 0x59210d }), L.outlineMat(0x783323, 0.005));
+      g.add(leaf);
+      var veins = [], paths = [[[0, -0.052], [0, 0.068]], [[0, -0.024], [-0.058, 0.045]],
+        [[0, -0.024], [0.058, 0.045]], [[0, -0.046], [-0.049, -0.025]], [[0, -0.046], [0.049, -0.025]]];
+      paths.forEach(function (p) {
+        var dx = p[1][0] - p[0][0], dy = p[1][1] - p[0][1];
+        var v = new T.CylinderGeometry(0.0024, 0.0024, Math.hypot(dx, dy), 5);
+        v.rotateZ(-Math.atan2(dx, dy));
+        v.translate((p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2, 0.02);
+        veins.push(v);
+      });
+      g.add(new T.Mesh(L.mergeGeos(veins), L.toon(0xffbf6c, { emissive: 0x5a2810 })));
+      g.position.set(0, -0.05, 0.035);
+      return g;
+    } },
+
+  { id: 'tail-tassel', slot: 'tail', name: '流蘇尾飾',
+    desc: '桂花樹上掛的那串流蘇，不知道什麼時候掉下來的。',
+    note: '尾尖旁漂浮的暖黃色小燈籠，紙面微亮、短穗輕晃。',
+    build: function (anchor, L) {
+      var T = L.THREE, r = anchor.userData.tailR || 0.12;
+      var g = new T.Group(), face = new T.Group(), bob = new T.Group();
+      g.add(face); face.add(bob);
+      if (!anchor.userData.thumb) {
+        var d = new T.Vector3(L.BOW_DIR[0], L.BOW_DIR[1], L.BOW_DIR[2]).normalize();
+        var flat = new T.Vector3(d.x, 0, d.z).normalize();
+        face.position.copy(flat).multiplyScalar(r * 0.98 + 0.02);
+        face.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
+      }
+      bob.position.set(anchor.userData.thumb ? 0 : -0.075, 0.045, 0.025);
+      var gold = L.toon(0xeaa94d, { emissive: 0x724011 });
+      var body = L.itemPart(L.SPH_LO, L.toon(0xffd867, { emissive: 0x8a5410 }), L.outlineMat(0xa25c22, 0.005));
+      body.scale.set(0.052, 0.061, 0.039); bob.add(body);
+      var paper = new T.Mesh(L.SPH_LO, L.toon(0xffeda0, { emissive: 0x8f6d26 }));
+      paper.scale.set(0.033, 0.049, 0.005); paper.position.z = 0.037; bob.add(paper);
+      var ribs = [];
+      [-0.023, 0.023].forEach(function (x) {
+        var rib = new T.CylinderGeometry(0.0026, 0.0026, 0.085, 5);
+        rib.translate(x, 0, 0.04); ribs.push(rib);
+      });
+      bob.add(new T.Mesh(L.mergeGeos(ribs), gold));
+      var caps = [];
+      var top = new T.ConeGeometry(0.046, 0.023, 10); top.translate(0, 0.074, 0); caps.push(top);
+      var bottom = new T.CylinderGeometry(0.032, 0.027, 0.012, 10); bottom.translate(0, -0.064, 0); caps.push(bottom);
+      bob.add(L.itemPart(L.mergeGeos(caps), gold, L.outlineMat(0x9a541e, 0.003)));
+      var ring = L.itemPart(new T.TorusGeometry(0.013, 0.0035, 6, 16), gold, false);
+      ring.position.y = 0.091; bob.add(ring);
+      var tassel = L.itemPart(new T.ConeGeometry(0.01, 0.041, 8), gold, false);
+      tassel.rotation.z = Math.PI; tassel.position.y = -0.089; bob.add(tassel);
+      g.userData.bob = bob;
+      return g;
+    },
+    upd: function (obj, t) {
+      obj.userData.bob.position.y = 0.045 + 0.009 * Math.sin(t * 1.7);
+      obj.userData.bob.rotation.z = 0.07 * Math.sin(t * 1.25);
+    } }
 ];
