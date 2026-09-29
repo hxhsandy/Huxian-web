@@ -5361,7 +5361,8 @@ var PETAL_VIEW={
   coverSkill:function(c){return '每 '+c.interval+' 秒飄下 '+c.count+' 片落英蓋住珠子，狂暴後每 '+c.enrageInterval+' 秒 '+c.enrageCount+' 片。花瓣會染上底下珠子淡淡的顏色，旁邊有珠被消掉就會吹開。';}
 };
 
-// 媚惑的畫法：BOSS 射粉紅光迷住狐狸、狐狸頭上掛交叉的鎖鏈和剩下的秒數、醒來時鎖鏈斷開、清心擋下時的光圈；畫面四周的粉紅光（2D 特效層）。
+// 媚惑的畫法：BOSS 射粉紅光迷住狐狸、狐狸頭上掛交叉的鎖鏈和剩下的秒數、醒來時鎖鏈斷開、清心擋下時的光圈；畫面四周的粉紅光（2D 特效層）；
+// 盤面上跟被迷住的狐狸同顏色的珠子浮出淡淡的愛心（drawOrb）。
 // 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock_view.js 開頭。
 // 狐狸身上的愛心、晃動（BS.setCharm／charmPoke／clearCharm）在 render/battle.js，開場的 BS.clearCharm() 照舊在 beginBattle。
 // 媚惑：粉紅光束打到兩隻狐狸，牠們頭上繞愛心、旁邊顯示剩餘秒數；解除時彈一下
@@ -5392,12 +5393,34 @@ function updateCharmTags(){for(var i=0;i<6;i++){var el=charmTags[i],left=battle.
   if(on||el._brk){var q=lockPoint(i),sz=Math.round(L.W/6*1.15);el.style.left=q.x.toFixed(1)+'px';el.style.top=q.y.toFixed(1)+'px';el.style.setProperty('--lk',sz+'px');}
   if(on){var tx=String(Math.ceil(left)),b=el.lastChild.lastChild;if(b.textContent!==tx)b.textContent=tx;if(!el.classList.contains('on')){el.classList.add('on');}}
   else if(!el._brk)el.classList.remove('on');}}
+// 浮愛心（2026-09-29 CK 定）：被迷住的狐狸，盤面上跟牠同顏色的珠子浮出淡淡的愛心，一眼就知道「現在消這個顏色，這隻打不到 BOSS」。
+// 只是提示：能量照樣累積，規則一行都沒改。迷住結束（時間到醒來、被清心解除）愛心淡掉。
+// 看的是 battle.charmed（第 i 隻狐狸＝第 i 種顏色的珠子），所以最終戰第三段「月」的媚惑也一樣會浮。
+// 每顆愛心從珠子中間往上飄、飄到上緣縮掉，一直循環（每顆珠子錯開，v.ph）。
+// 網格在這裡建（這個 module 載入時，排在既有的網格後面，不影響它們的編號和畫的順序）；沒有愛心時整個藏起來，不多一個 draw call。
+var HEART_TEX=canvasTex(128,128,function(g,n){var c=n/2,s=n*0.36;
+  function heart(){g.beginPath();g.moveTo(c,c+0.62*s);g.bezierCurveTo(c-1.15*s,c-0.1*s,c-0.55*s,c-0.98*s,c,c-0.36*s);g.bezierCurveTo(c+0.55*s,c-0.98*s,c+1.15*s,c-0.1*s,c,c+0.62*s);g.closePath();}
+  g.shadowColor='rgba(255,120,200,.95)';g.shadowBlur=12;g.fillStyle='rgba(255,150,210,.9)';heart();g.fill();   // 外面一圈粉紅光
+  g.shadowBlur=0;var gr=g.createLinearGradient(0,c-s,0,c+0.7*s);gr.addColorStop(0,'#ffd6ee');gr.addColorStop(1,'#ff72bb');g.fillStyle=gr;heart();g.fill();
+  g.lineWidth=n*0.035;g.strokeStyle='rgba(255,255,255,.92)';heart();g.stroke();   // 白邊：浮在粉紅的心珠上也看得出來
+  g.fillStyle='rgba(255,255,255,.85)';g.beginPath();g.ellipse(c-0.42*s,c-0.42*s,0.17*s,0.09*s,-0.6,0,TAU);g.fill();});
+var heartMesh=new THREE.InstancedMesh(PLANE,new THREE.MeshBasicMaterial({map:HEART_TEX,transparent:true,opacity:0.75,depthWrite:false,clippingPlanes:[clip]}),42);
+heartMesh.frustumCulled=false;heartMesh.count=0;heartMesh.visible=false;boardScene.add(heartMesh);
+var hk=[0,0,0,0,0,0],hn=0,hT=-1;   // hk[i]：第 i 種顏色的愛心現在顯示到幾成（淡入淡出）；hn：這一格畫了幾顆；hT：上一格的時間
 var CHARM_VIEW={
   key:'charm',
   onEvent:function(e){if(e.type==='charm')onCharm(e);if(e.type==='uncharm')onUncharm(e.fox);if(e.type==='charmBlocked')onCharmBlocked();},
   hud:function(){updateCharmTags();FX2D.setCharm(fighting()&&battle.charmed&&battle.charmed.some(function(v){return v>0;}));},
   poke:function(i){BS.charmPoke(i);bumpCharmTag(i);},   // 被迷住的狐狸想出手、想放大招：晃一下、鎖鏈跳一下
   uncharm:onUncharm,   // 清心（心狐大招變奏）解除媚惑也用這個
+  reset:function(){hk=[0,0,0,0,0,0];hn=0;hT=-1;heartMesh.count=0;heartMesh.visible=false;},   // 開新的一場：愛心直接收掉
+  drawBegin:function(){hn=0;},
+  drawOrb:function(v,x,y,z,K,s,t){var k=v.type>=0?hk[v.type]:0;if(!(k>0)||hn>=42)return;
+    var p=((t*0.5+v.ph*0.159)%1+1)%1,sc=K*s*1.8*k*Math.min(1,p/0.15)*(p>0.75?(1-p)/0.25:1);   // 一開始很快長出來、最後四分之一縮掉
+    setM(heartMesh,hn++,x+Math.sin(t*2.6+v.ph)*K*0.1,y+K*s*(0.05+0.7*p),z+K*1.1*s,Math.sin(t*2+v.ph)*0.18,sc,sc,1);},
+  drawEnd:function(t){heartMesh.count=hn;heartMesh.visible=hn>0;heartMesh.instanceMatrix.needsUpdate=true;
+    var dt=hT<0?0:Math.min(0.1,Math.max(0,t-hT));hT=t;   // 淡入淡出（下一格起生效）
+    for(var i=0;i<6;i++){var on=battle.charmed&&battle.charmed[i]>0&&G.mode!=='result'?1:0;hk[i]+=(on-hk[i])*Math.min(1,dt*(on?5:4));if(!on&&hk[i]<0.01)hk[i]=0;}},
   coverSkill:function(c){return '每 '+c.interval+' 秒迷住 '+c.count+' 隻狐狸 '+c.dur+' 秒，狂暴後每 '+c.enrageInterval+' 秒一次。被迷住的狐狸不出手，能量照樣累積。';}
 };
 
