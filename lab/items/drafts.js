@@ -452,7 +452,7 @@ window.ITEM_LAB_DRAFTS = [
       var core = L.itemPart(L.SPH_LO, L.toon(0x8b1e35, { emissive: 0x320a18 }), false);
       core.scale.set(0.032, 0.025, 0.032); core.position.set(0, 0.012, 0); bloom.add(core);
       g.position.set(-0.13, -0.01, 0.06);
-      g.scale.setScalar(0.78);
+      g.scale.setScalar(0.70);
       g.userData.bloom = bloom;
       return g;
     },
