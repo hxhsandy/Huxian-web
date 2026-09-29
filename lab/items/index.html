@@ -5,13 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>狐仙三消 飾品實驗室</title>
+<script>/* 全螢幕（2026-09-29 第三輪）：加到主畫面開的（standalone）在 <html> 加 class，高度改用 100vh（見下面的 html.standalone）。
+   CK 的 iPhone 12 實測：主畫面模式的 100dvh 只有 797（扣掉瀏海），底下少畫 47px；100vh 是 844＝整個螢幕。 */
+if(navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches))document.documentElement.classList.add('standalone');</script>
 <style>
 :root{
   --bg:#0b1330; --gold:#e8c67e; --ink:#f4ecd8; --glass:rgba(14,22,52,.62); --line:rgba(232,198,126,.45); --panel:rgba(16,24,58,.9);
   box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
+  /* 全螢幕（2026-09-29）：整頁畫滿（瀏海、底部橫條後面也畫），按鈕、血條、珠盤待在安全框裡。
+     安全區用變數讀：手機模擬器（lab/sim.html）會設 --sim-safe-*，沒設就是手機給的 env()；電腦上是 0。 */
+  --safe-top:var(--sim-safe-top, env(safe-area-inset-top, 0px));
+  --safe-bottom:var(--sim-safe-bottom, env(safe-area-inset-bottom, 0px));
   color-scheme:dark;
 }
 @media (prefers-color-scheme: dark){
@@ -19,13 +25,23 @@
 }
 :root[data-theme="dark"]{ --bg:#0b1330; --gold:#e8c67e; --ink:#f4ecd8; --glass:rgba(14,22,52,.62); --line:rgba(232,198,126,.45); --panel:rgba(16,24,58,.9); }
 *,*::before,*::after{box-sizing:inherit}
-html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
-body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);
+html{height:100vh;height:100dvh;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+body{height:100vh;height:100dvh;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);
   font-family:"Noto Serif TC","Songti TC","Source Han Serif TC","PMingLiU",serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
   overscroll-behavior:none;touch-action:none}
+html.standalone,html.standalone body{height:100vh}   /* 主畫面模式：100dvh 會少掉瀏海那段，改用 100vh（瀏覽器照舊 100vh；100dvh） */
 #game{position:relative;height:100%;margin:0 auto;overflow:hidden;background:var(--bg)}
 #c{position:absolute;top:0;left:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+/* #frame＝安全框（全螢幕 2026-09-29）：#game 和畫布畫滿整頁，按鈕、血條、珠盤這些都放在 #frame 裡、照安全框排。
+   有安全區時（layout() 加 .safe）才定位、往內縮；安全區是 0 時不定位（static）——定位的話 Chrome 分圖層的方式會變，
+   半透明的血條會跟 v112 差 1 階（眼睛看不出來，但逐像素比對會差），所以電腦上照原本的樣子排。
+   #frame 自己不接點擊（點空白處要點到畫布），裡面的東西照原本的設定（:where 的權重是 0，各自寫的 pointer-events 照樣優先）。 */
+#frame{height:100%;pointer-events:none}
+#frame.safe{position:absolute;left:0;right:0;top:var(--safe-top);bottom:var(--safe-bottom);height:auto}
+/* 量安全區用：看不見、零寬，padding 就是上下安全區（layout() 讀它；安全區晚到時它的高度會變，ResizeObserver 看得到） */
+#safeProbe{position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+:where(#frame>*){pointer-events:auto}
 .hud{position:absolute;left:0;right:0;pointer-events:none}
 button{font:inherit;cursor:pointer}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
@@ -65,7 +81,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   box-shadow:0 0 10px rgba(201,166,255,.45);transition:transform .15s,box-shadow .15s}
 #bossCd.charge{transform:scale(1.25);border-color:#ffb3c8;box-shadow:0 0 22px rgba(255,140,190,.95);color:#fff}
 #bossCd.sealed{transform:scale(1.35);border-color:#8fd0ff;color:#e6f6ff;box-shadow:0 0 0 5px rgba(120,190,255,.3),0 0 26px rgba(110,180,255,.95)}
-#fx2d{position:absolute;top:0;left:0;pointer-events:none}
+#fx2d{position:absolute;top:calc(-1 * var(--safe-top));left:0;pointer-events:none}   /* 全螢幕（第四輪）：大招全版特效從螢幕頂畫起、蓋滿整個螢幕（高度由 layout 設）；還放在 #frame 裡，疊的順序照舊 */
 #bossCd.hidden{opacity:0}
 #teambar{padding:0 16px}
 #teambar .fill{background:linear-gradient(90deg,#f09ab8,#f5cf8a)}
@@ -112,7 +128,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dmg.team{font-size:22px;color:#ff9fb8;text-shadow:0 0 8px rgba(190,90,200,.9),0 2px 3px rgba(0,0,0,.75)}
 .dmg.heal{font-size:17px;color:#ffc4da;text-shadow:0 0 8px rgba(255,120,170,.8),0 2px 3px rgba(0,0,0,.7)}
 
-#overlay{position:absolute;inset:0;padding-top:64px!important;display:none;align-items:center;justify-content:center;background:rgba(6,9,26,.55);
+#overlay{position:absolute;inset:0;top:calc(-1 * var(--safe-top));bottom:calc(-1 * var(--safe-bottom));padding-top:calc(64px + var(--safe-top))!important;padding-bottom:calc(24px + var(--safe-bottom))!important;display:none;align-items:center;justify-content:center;background:rgba(6,9,26,.55);
   backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:24px}
 #overlay.show{display:flex}
 .panel{display:none;width:min(320px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:26px 22px 22px;border-radius:22px;background:var(--panel);border:1px solid var(--line);
@@ -219,7 +235,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   color:#fff3d2;font-size:15px;letter-spacing:.3em;text-indent:.3em;box-shadow:0 0 14px rgba(232,198,126,.2)}
 #lvGo:active{transform:scale(.97)}
 /* 傳送白光、星星收集動畫 */
-#gFlash{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#fffdf4 0%,#fff6dc 55%,#f3e2b8 100%);opacity:0;pointer-events:none;z-index:8}
+#gFlash{position:absolute;inset:0;top:calc(-1 * var(--safe-top));bottom:calc(-1 * var(--safe-bottom));background:radial-gradient(circle at 50% 45%,#fffdf4 0%,#fff6dc 55%,#f3e2b8 100%);opacity:0;pointer-events:none;z-index:8}
 #starRing{position:absolute;left:50%;top:40%;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(255,230,160,.95);
   box-shadow:0 0 18px rgba(255,214,120,.9),inset 0 0 14px rgba(255,214,120,.6);opacity:0;pointer-events:none;z-index:8}
 #starRing.burst{animation:ringOut 1s ease-out}
@@ -227,16 +243,16 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* 進關前的 BOSS 封面頁（雜誌封面）：大標題畫在 3D 場景裡（BOSS 可以蓋過字），這裡是其餘的小字與符印 */
 #teamHud{position:absolute;inset:0;pointer-events:none;--acc:#a8e6c8;--acc2:#e8c67e;--shade:4,14,24;--tb:154px;
   --disp:"Noto Serif HK","Noto Serif CJK TC","Noto Serif TC","Songti TC","PMingLiU",serif}
-#teamHud[data-stage="1"]{--acc:#ff9f8c;--acc2:#f3b86e;--shade:8,12,30}
+#teamHud[data-stage="1"]{--acc:#ff9f8c;--acc2:#f3b86e;--shade:8,12,30;--shEnd:.7}
 #teamHud[data-stage="1"]::before{height:22%;background:linear-gradient(180deg,rgba(var(--shade),0),rgba(var(--shade),.45) 55%,rgba(var(--shade),.7))}
-#teamHud[data-stage="2"]{--acc:#ffb6dc;--acc2:#edc680;--shade:30,9,40}
+#teamHud[data-stage="2"]{--acc:#ffb6dc;--acc2:#edc680;--shade:30,9,40;--shEnd:.74}
 #teamHud[data-stage="2"]::before{height:24%;background:linear-gradient(180deg,rgba(var(--shade),0),rgba(var(--shade),.5) 55%,rgba(var(--shade),.74))}
 /* 第四關桃夭的封面是白天（藍天、白霧）：字改成深紫紅＋白色柔光，下面那層改成淡淡的白粉霧，開始鍵改成實心的桃粉色 */
-#teamHud.uiOff>*,#teamHud.uiOff::before,#game[data-screen="team"].coverUiOff #muteBtn{opacity:0!important;pointer-events:none!important}   /* 封面的介面藏起來（只有場景編輯器會用） */
+#teamHud.uiOff>*,#teamHud.uiOff::before,#teamHud.uiOff::after,#game[data-screen="team"].coverUiOff #muteBtn{opacity:0!important;pointer-events:none!important}   /* 封面的介面藏起來（只有場景編輯器會用） */
 .seNote{color:#9a97b0;font-size:11.5px;margin:4px 0}
 .seCode{width:100%;height:58px;margin:4px 0;background:#12131d;color:#e9e6f2;border:1px solid #444862;border-radius:6px;font:11px/1.3 ui-monospace,monospace;resize:vertical;-webkit-user-select:text;user-select:text}
 #teamHud[data-stage="3"]{--acc:#dc4f86;--acc2:#e0508a;--shade:255,244,249;--dk:#43295c}
-#teamHud[data-stage="3"]::before{display:none}   /* 2026-09-27 使用者：封面最下面那層半透明白霧拿掉（場景裡的霧已經自己擺好了） */
+#teamHud[data-stage="3"]::before,#teamHud[data-stage="3"]::after{display:none}   /* 2026-09-27 使用者：封面最下面那層半透明白霧拿掉（場景裡的霧已經自己擺好了） */
 #teamHud[data-stage="3"] .cvTop{color:rgba(67,41,92,.72);text-shadow:0 0 4px rgba(255,255,255,.9)}
 #teamHud[data-stage="3"] .cvTop #cvIssue{color:#c9477c}
 #teamHud[data-stage="3"] .cvDeck,#teamHud[data-stage="3"] .cvTag{text-shadow:0 0 3px #fff,0 0 8px rgba(255,255,255,.95),0 0 14px rgba(255,255,255,.7)}
@@ -255,6 +271,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* 第五、六關的暫時封面（2026-09-28）：白天的亮背景，字跟第四關一樣改深色＋白色柔光；下面那層改成淡淡的白霧，開始鍵是實心的 */
 #teamHud[data-stage="4"]{--acc:#1a8f72;--acc2:#cf3446;--shade:255,251,246;--dk:#1c3d38;--g0:#62d2b2;--g1:#1f9c7a}
 #teamHud[data-stage="5"]{--acc:#bc5a16;--acc2:#b86c10;--shade:255,245,234;--dk:#3e2814;--g0:#f8b650;--g1:#de781c}
+#teamHud.dayCv{--shEnd:.75}
 #teamHud.dayCv::before{height:22%;background:linear-gradient(180deg,rgba(var(--shade),0),rgba(var(--shade),.5) 60%,rgba(var(--shade),.75))}
 #teamHud.dayCv .cvSide{width:min(44%,172px)}
 #teamHud.dayCv .cvTop{color:rgba(30,36,56,.72);text-shadow:0 0 4px rgba(255,255,255,.9)}
@@ -275,6 +292,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #teamHud[data-stage="5"] .cvTop #cvIssue{color:#ffd88a}
 #teamHud.dayCv .goBtn{border-color:rgba(255,255,255,.75);background:linear-gradient(180deg,var(--g0),var(--g1));color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3);box-shadow:0 2px 14px rgba(0,0,0,.18)}
 #teamHud::before{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(180deg,rgba(var(--shade),0),rgba(var(--shade),.72) 50%,rgba(var(--shade),.9))}
+/* 全螢幕（2026-09-29 第三輪）：上面那層深色從安全框底再往下接到螢幕最底（底部橫條後面），顏色＝漸層最底的那一色（--shEnd 跟著各關的漸層改）。
+   沒有安全區時高度是 0、什麼都不畫；框裡的漸層、字、按鈕都沒動。 */
+#teamHud::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--safe-bottom);background:rgba(var(--shade),var(--shEnd,.9))}
 #teamHud p,#teamHud dl,#teamHud h1{margin:0}
 #backBtn{position:absolute;left:12px;top:9px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--gold);font-size:21px;line-height:1;pointer-events:auto;padding:0 0 3px;z-index:2}
 .cvTop{position:absolute;left:56px;right:58px;top:17px;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.24em;color:rgba(244,236,216,.7);text-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -496,7 +516,7 @@ var CONFIG={
     // 第四關（第二章青丘）：落英——花瓣蓋住珠子，花染上底下珠子淡淡的顏色（2026-09-27 使用者：只是要讓人一瞬間眼花，不是真的要這麼難），照樣能交換、照樣會連成線消掉；旁邊（上下左右）的珠被消掉時花瓣就被吹開
     //   2026-09-27 先做玩法：BOSS 外觀、戰場、關卡島、封面都是暫時的，之後一步一步換掉。名字、封面文字照「九關 BOSS 企劃（草稿）」
     //   petal：每 interval 秒飄下 count 片（狂暴後 enrageInterval 秒 enrageCount 片），盤面上最多 max 片
-    {title:'第四關',name:'桃夭',drop:'peach-pin',chal:{kind:'stat',key:'revealed',min:12,unit:'片',text:'揭開 12 片落英'},style:'peach',attr:'fire',attrName:'火',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    {title:'第四關',name:'桃夭',drop:'peach-pin',chal:{kind:'stat',key:'revealed',min:12,unit:'片',text:'揭開 12 片落英',drop:'peach-wreath'},style:'peach',attr:'fire',attrName:'火',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'水',lore:'青丘桃林裡最愛笑的狐狸。來過桃林的每一隻狐狸她都記得，只有一個名字，她怎麼也想不起來。',
      skill:'落英：每 10 秒飄下 3 片花瓣蓋住珠子，狂暴後每 8 秒 4 片。花瓣會染上底下珠子淡淡的顏色，被蓋住的珠照樣能交換、照樣會連成線消掉；旁邊的珠被消掉時，花瓣就會被吹開。',
      petal:{interval:10,enrageInterval:8,count:3,enrageCount:4,max:10},
@@ -511,7 +531,7 @@ var CONFIG={
     //   Version 107 做的是「只有剋它的屬性打得進去」的結界，使用者試玩覺得要停下來挑顏色、很打斷三消的節奏，Version 108 改成做在盤面上（跟第二關的鎖鏈一樣）：
     //   在兩行珠子之間拉一條紅繩（Board 的 cords），隔著繩不能交換、橫的連線也穿不過去；繩子兩旁或上下兩端有珠被消掉就震落一顆鈴鐺，鈴鐺掉光紅繩就解開
     //   cord：第一條在開場 first 秒，之後每 interval 秒一條（狂暴後 enrageInterval 秒）；長 len 排（狂暴後 enrageLen）、掛 bells 顆鈴鐺，盤面上最多 max 條
-    {title:'第五關',name:'塗山',drop:'red-cord',chal:{kind:'stat',key:'untied',min:4,unit:'條',text:'解開 4 條紅繩'},style:'tushan',attr:'water',attrName:'水',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    {title:'第五關',name:'塗山',drop:'red-cord',chal:{kind:'stat',key:'untied',min:4,unit:'條',text:'解開 4 條紅繩',drop:'longevity-lock'},style:'tushan',attr:'water',attrName:'水',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'木',lore:'替青丘守了千年結界的白狐。誰家的孩子走丟了，她都找得回來。只有一次，沒有找回來。',
      skill:'紅繩結界：每 16 秒在兩行珠子之間拉一條掛鈴鐺的紅繩（狂暴後每 13 秒），最多 2 條。隔著繩的珠不能交換，橫的連線也穿不過去；繩子兩旁或上下兩端有珠被消掉就震落一顆鈴鐺，三顆掉光紅繩就解開。',
      cord:{first:6,interval:16,enrageInterval:13,len:3,enrageLen:3,bells:3,max:2},
@@ -521,7 +541,7 @@ var CONFIG={
     //   hits 下扣完才碎掉（Version 110 起是 2：第一下裂開、第二下碎掉），碎掉時反光打天狐（bonus 點傷害）；
     //   盤面上的鏡片全部打碎，天狐被自己的光照到（反照）：glare 秒內你打出的傷害 ×glareMul。Version 111 起取代原本的「鏡中倒影」（換珠時另一半盤面照著換，太難利用）
     //   shard：開場 first 秒第一次，之後每 interval 秒（狂暴後 enrageInterval 秒）射 count 片（狂暴後 enrageCount），盤面上最多 max 片
-    {title:'第六關',name:'天狐',drop:'sun-disc',chal:{kind:'stat',key:'glares',min:2,unit:'次',text:'反照天狐 2 次'},style:'tianhu',attr:'light',attrName:'光',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    {title:'第六關',name:'天狐',drop:'sun-disc',chal:{kind:'stat',key:'glares',min:2,unit:'次',text:'反照天狐 2 次',drop:'sky-mirror'},style:'tianhu',attr:'light',attrName:'光',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'暗',lore:'修行千年的狐狸才走得到天門。天狐守在門口，替每一隻路過的狐狸照一照鏡子。',
      skill:'天鏡：開場 4 秒射出第一批小圓鏡，之後每 12 秒 2 面（狂暴後每 9 秒 3 面），最多 6 面。鏡子不能交換、不能連線；旁邊有珠被消掉會先裂開，再一次才碎掉、反光打回天狐。盤面上的鏡子全部打碎，天狐就被自己的光照到，接下來 6 秒你的傷害加倍。',
      shard:{first:4,interval:12,enrageInterval:9,count:2,enrageCount:3,max:6,bonus:100,glare:6,glareMul:2,hits:2},
@@ -946,7 +966,7 @@ var MECHS=[LOCK,PETAL,CORD,SHARD,CHARM];
 /* =====================================================================
    render/common.js：共用材質、金邊、貼圖（沿用月下小狐）
    ===================================================================== */
-var gameEl=document.getElementById('game'),canvas=document.getElementById('c');
+var gameEl=document.getElementById('game'),frameEl=document.getElementById('frame'),safeProbeEl=document.getElementById('safeProbe'),canvas=document.getElementById('c');
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,powerPreference:'high-performance'});
 var PR=Math.min(window.devicePixelRatio||1,2);
 renderer.setPixelRatio(PR);renderer.setClearColor(0x0b1330,1);renderer.autoClear=false;renderer.localClippingEnabled=true;
@@ -1119,9 +1139,6 @@ var ITEM_OL$1=outlineMat(0xe9c47c,0.006);
 function itemPart$1(geo,mat,ol){var m=new THREE.Mesh(geo,mat);if(ol!==false)addOutline(m,ol||ITEM_OL$1);return m;}
 // 項圈的繩子：一圈垂直於「頸部方向」的細環，前面經過掛點、往下垂；後半圈藏在頭和身體裡
 function collarCord(col){var m=itemPart$1(new THREE.TorusGeometry(0.165,0.016,8,48),toon(col));m.rotation.x=Math.PI/2+0.64;m.position.set(0,0.085,-0.1);return m;}
-function mapleLeafGeo(){var sh=new THREE.Shape(),N=90;for(var i=0;i<=N;i++){var a=i/N*TAU,r=0.42+0.58*Math.pow(Math.abs(Math.cos(2.5*(a-Math.PI/2))),1.8);
-    var x=Math.cos(a)*r,y=Math.sin(a)*r;i?sh.lineTo(x,y):sh.moveTo(x,y);}
-  var g=new THREE.ExtrudeGeometry(sh,{depth:0.16,bevelEnabled:true,bevelThickness:0.06,bevelSize:0.05,bevelSegments:2,curveSegments:8});g.center();return g;}
 FOX_ITEMS['leaf-clip']={slot:'head',name:'竹葉髮夾',desc:'竹葉摺成的髮夾。這個摺法，好像有人教過你。',
   build:function(){var g=new THREE.Group(),lm=toon(0x6cc98a,{emissive:0x0c2a16}),vm=toon(0x3f9a60);
     [-0.6,0,0.6].forEach(function(a){var p=new THREE.Group();p.rotation.z=a;g.add(p);
@@ -1129,8 +1146,18 @@ FOX_ITEMS['leaf-clip']={slot:'head',name:'竹葉髮夾',desc:'竹葉摺成的髮
       var v=itemPart$1(SPH,vm,false);v.scale.set(0.0055,0.072,0.016);v.position.set(0,0.09,0.002);p.add(v);});
     var c=itemPart$1(SPH,toon(0xe9bb5e,{emissive:0x5a3a0a}));c.scale.set(0.05,0.022,0.022);g.add(c);
     g.position.set(-0.2-HEAD_TOP$1[0],0.15-HEAD_TOP$1[1],0.11-HEAD_TOP$1[2]);g.rotation.set(-0.15,-0.5,0.5);return g;}};   // 刻意偏到左耳旁
+// 楓葉胸針（2026-09-29 繪星改版、CK 定稿，實驗室 Huxian-web b2e6d26＝2616fdf）：第二關封面同一個輪廓（MAPLE_TEX 的五尖角）做成有厚度的葉子、細黃邊，正面再貼一張封面的楓葉貼圖
 FOX_ITEMS['maple-collar']={slot:'neck',name:'楓葉胸針',desc:'背面用金線繡了一個小小的字，已經磨得看不清了。',   // id 沿用舊名，存檔相容；2026-09-26 拿掉項圈，只留胸前一片楓葉
-  build:function(){var g=new THREE.Group(),lf=itemPart$1(mapleLeafGeo(),toon(0xe8622c,{emissive:0x401000}));lf.scale.setScalar(0.085);lf.position.set(0,-0.05,0.03);g.add(lf);return g;}};
+  build:function(){var g=new THREE.Group(),sh=new THREE.Shape(),R=0.105,pts=[];function P(a,r){return [Math.cos(a)*r*R,Math.sin(a)*r*R];}
+    [[-2,0.62,0],[-1,0.9,1],[0,1,1],[1,0.9,1],[2,0.62,0]].forEach(function(l){var a=Math.PI/2+l[0]*0.96,n=l[1];pts.push(P(a-0.48,0.34));   // 輪廓跟 common.js 的 MAPLE_TEX 同一組點
+      if(l[2])pts.push(P(a-0.27,0.6*n),P(a-0.23,0.76*n),P(a-0.1,0.66*n));else pts.push(P(a-0.16,0.62*n));pts.push(P(a,n));
+      if(l[2])pts.push(P(a+0.1,0.66*n),P(a+0.23,0.76*n),P(a+0.27,0.6*n));else pts.push(P(a+0.16,0.62*n));});
+    pts.push(P(-Math.PI/2+0.2,0.16),P(-Math.PI/2-0.2,0.16));pts.forEach(function(p,i){i?sh.lineTo(p[0],p[1]):sh.moveTo(p[0],p[1]);});sh.closePath();
+    g.add(itemPart$1(new THREE.ExtrudeGeometry(sh,{depth:0.016,bevelEnabled:true,bevelThickness:0.002,bevelSize:0.002,bevelSegments:2}),toon(0xd35b25,{emissive:0x4c1b0a}),outlineMat(0xffcf62,0.004)));   // 有厚度的葉子、細黃邊
+    var st=itemPart$1(new THREE.CylinderGeometry(0.004,0.0045,0.07,6),toon(0xb85c29,{emissive:0x371508}),false);st.position.set(0,-0.038,0.012);g.add(st);   // 葉柄
+    var sz=R/0.46,f=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),new THREE.MeshBasicMaterial({map:MAPLE_TEX,color:MAPLE_COL[0],transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+    f.position.set(0,sz*0.08,0.022);g.add(f);   // 正面貼封面的楓葉貼圖（葉脈、漸層）
+    g.position.set(0,-0.065,0.025);return g;}};
 FOX_ITEMS['gold-bell']={slot:'neck',name:'金鈴',desc:'有桂花味的鈴鐺。',   // 拿掉紅繩，胸前一顆鈴，往外拉、稍微懸空
   build:function(){var g=new THREE.Group(),b=new THREE.Group();b.position.set(0,-0.03,0.055);b.scale.setScalar(1.15);g.add(b);
     var bm=toon(0xf2c65a,{emissive:0x6a4a10}),ball=itemPart$1(SPH,bm,outlineMat(0xa8812f,0.0045));ball.scale.setScalar(0.05);b.add(ball);
@@ -1149,16 +1176,23 @@ FOX_ITEMS['star-charm']={slot:'neck',name:'星星墜子',from:'chal',desc:'燈�
     var sg=new THREE.ExtrudeGeometry(sh,{depth:0.14,bevelEnabled:true,bevelThickness:0.06,bevelSize:0.05,bevelSegments:2});sg.center();
     var g=new THREE.Group(),m=toon(0xf2c65a,{emissive:0x6a4a10}),s=itemPart$1(sg,m);s.scale.setScalar(0.1);s.position.set(0,-0.055,0.045);s.rotation.z=0.12;g.add(s);
     var loop=itemPart$1(new THREE.TorusGeometry(0.012,0.004,6,14),m,false);loop.position.set(0,-0.002,0.045);g.add(loop);return g;}};
+// 流蘇尾飾（2026-09-29 繪星改版、CK 定稿，實驗室 Huxian-web b2e6d26）：換成飄在尾巴旁的六角黃燈籠（第三關妲己封面那盞吊燈的縮小版），會上下飄、後面一團呼吸的黃光。
+//   id、名字、介紹先不改（存檔相容；名字和介紹之後跟 CK 一起想）
 FOX_ITEMS['tail-tassel']={slot:'tail',name:'流蘇尾飾',from:'chal',desc:'桂花樹上掛的那串流蘇，不知道什麼時候掉下來的。',
-  build:function(anc){var ud=(anc&&anc.userData)||{},r=ud.tailR||0.12,g=new THREE.Group(),k=new THREE.Group();g.add(k);
+  build:function(anc){var ud=(anc&&anc.userData)||{},r=ud.tailR||0.12,g=new THREE.Group(),fc=new THREE.Group(),bob=new THREE.Group();g.add(fc);fc.add(bob);
     if(!ud.thumb){var d=new THREE.Vector3(BOW_DIR$1[0],BOW_DIR$1[1],BOW_DIR$1[2]).normalize(),dh=new THREE.Vector3(d.x,0,d.z).normalize();
-      k.position.copy(dh).multiplyScalar(r*0.98+0.012);k.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),d);}
-    var gm=toon(0xf2c65a,{emissive:0x6a4a10}),rm=toon(0xd9454f,{emissive:0x3a0a10});
-    var knot=itemPart$1(SPH,gm);knot.scale.setScalar(0.024);k.add(knot);
-    var bead=itemPart$1(SPH,rm);bead.scale.setScalar(0.017);bead.position.y=-0.034;k.add(bead);
-    var cap=itemPart$1(new THREE.CylinderGeometry(0.012,0.016,0.018,12),gm);cap.position.y=-0.058;k.add(cap);
-    var ts=itemPart$1(new THREE.ConeGeometry(0.028,0.085,14),rm);ts.rotation.z=Math.PI;ts.position.y=-0.106;k.add(ts);
-    return g;}};
+      fc.position.copy(dh).multiplyScalar(r*0.98+0.02);fc.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),d);}
+    bob.position.set(ud.thumb?-0.025:-0.1,0.045,0.025);bob.scale.setScalar(1.18);   // 飄在尾巴左邊一點
+    var wood=toon(0x3e171a,{emissive:0x160708}),we=outlineMat(0xd9b46a,0.004),ribs=[];
+    bob.add(new THREE.Mesh(new THREE.CylinderGeometry(0.052,0.052,0.095,6),toon(0xffd186,{emissive:0xe07020})));   // 發光的紙
+    bob.add(itemPart$1(mergeGeos([xf(new THREE.CylinderGeometry(0.032,0.055,0.018,6),0,0.056,0,1),xf(new THREE.CylinderGeometry(0.055,0.032,0.018,6),0,-0.056,0,1)]),wood,we));   // 上下的木蓋
+    for(var q=0;q<6;q++){var a=q/6*TAU;ribs.push(xf(new THREE.BoxGeometry(0.008,0.101,0.008),Math.sin(a)*0.052,0,Math.cos(a)*0.052,1));}
+    bob.add(itemPart$1(mergeGeos(ribs),wood,we));   // 六根木條
+    var lp=itemPart$1(new THREE.TorusGeometry(0.011,0.003,6,12),wood,false);lp.position.y=0.073;bob.add(lp);   // 頂上的小環
+    var gl=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffd450,transparent:true,opacity:0.36,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
+    gl.raycast=noRay;gl.position.z=-0.08;gl.scale.set(0.34,0.34,1);bob.add(gl);   // 後面一團黃光
+    g.userData.bob=bob;g.userData.glow=gl;return g;},
+  upd:function(m,t){var b=m.userData.bob;b.position.y=0.045+0.009*Math.sin(t*1.7);b.rotation.z=0.07*Math.sin(t*1.25);m.userData.glow.material.opacity=0.36+0.18*Math.sin(t*1.9);}};   // 上下飄、輕輕晃、光在呼吸
 var BOW_DIR$1=[-0.87,0.02,0.49],BOW_LEAN$1=0.45;   // BOW_LEAN：蝴蝶結往後仰，下面兩條緞帶翹起來、不會插進尾巴（2026-09-26 使用者：兩個圈的方向維持原樣）   // 蝴蝶結在尾巴掛點裡朝外的方向＝實測坐姿（戰鬥、換裝）時鏡頭看過來的方向
 FOX_ITEMS.bow={slot:'tail',name:'蝴蝶結',from:'start',desc:'醒來時就綁在尾巴上了，結打得很仔細。',
   build:function(anc){var ud=(anc&&anc.userData)||{},r=ud.tailR||0.12,g=new THREE.Group(),m=toon(0xf0648c,{emissive:0x3a0818});
@@ -1169,30 +1203,78 @@ FOX_ITEMS.bow={slot:'tail',name:'蝴蝶結',from:'start',desc:'醒來時就綁�
     [-1,1].forEach(function(sd){var lp=itemPart$1(new THREE.TorusGeometry(0.042,0.017,8,20),m);lp.scale.set(1.25,0.8,0.6);lp.position.set(sd*0.05,0.012,0);lp.rotation.z=sd*0.25;k.add(lp);
       var tl=itemPart$1(new THREE.BoxGeometry(0.026,0.078,0.01),m);tl.position.set(sd*0.022,-0.047,0);tl.rotation.z=sd*0.35;k.add(tl);});
     return g;}};
-// 第二章的通關飾品（2026-09-28 先做基本款，跟挑戰飾品一樣之後可以回頭優化造型）：第四關桃花簪（頭）、第五關紅繩（胸前）、第六關日輪（頭）
+// 第二章的通關飾品（2026-09-28 先做基本款；2026-09-29 繪星在飾品實驗室改版、CK 定稿，草稿見 lab/items/drafts.js 的 Huxian-web c4c0cfc）：
+//   第四關桃花簪（頭，改成桃夭耳前那款）、第五關紅繩（胸前，改成四環中國結）、第六關日輪（頭，加一圈會呼吸的光）。id 不變（存檔記的是 id）
 FOX_ITEMS['peach-pin']={slot:'head',name:'桃花簪',desc:'簪頭的桃花一直沒有謝。',
-  build:function(){var g=new THREE.Group(),gm=toon(0xe9bb5e,{emissive:0x5a3a0a});
-    var f=new THREE.Mesh(peachBlossomGeo(0xe9729f,0xfbd6e3,0xdb5f90,0.12,1.05,0),new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide}));f.scale.setScalar(0.08);g.add(f);
-    var c=new THREE.Mesh(SPH_LO,new THREE.MeshBasicMaterial({color:0xf4cd5a}));c.position.z=0.004;c.scale.set(0.013,0.013,0.005);g.add(c);
-    var pin=itemPart$1(new THREE.CylinderGeometry(0.0065,0.004,0.15,6),gm);pin.rotation.z=0.95;pin.position.set(0.05,-0.035,-0.012);g.add(pin);   // 簪子從花的後面斜斜伸出去
-    var bead=itemPart$1(SPH,gm);bead.scale.setScalar(0.013);bead.position.set(0.108,-0.074,-0.012);g.add(bead);
-    g.position.set(-0.2-HEAD_TOP$1[0],0.15-HEAD_TOP$1[1],0.11-HEAD_TOP$1[2]);g.rotation.set(-0.15,-0.5,0.35);return g;}};   // 戴在左耳旁（跟竹葉髮夾同一邊；桃夭自己的花在右耳）
+  build:function(){var g=new THREE.Group(),gold=toon(0xf2c65a,{emissive:0x6a4a10});
+    var f=new THREE.Mesh(peachBlossomGeo(0xe9729f,0xfbd6e3,0xdb5f90,0.12,1.05,0),new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide}));f.scale.setScalar(0.088);   // 跟桃夭耳前那朵同一種畫法
+    f.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),new THREE.Vector3(-0.5,0.42,0.76).normalize());f.rotateZ(-0.3);f.position.set(-0.01,0.015,0.023);g.add(f);
+    var c=new THREE.Mesh(SPH_LO,new THREE.MeshBasicMaterial({color:0xf4cd5a}));c.position.set(-0.02,0.019,0.072);c.scale.set(0.013,0.013,0.006);g.add(c);
+    var bead=itemPart$1(SPH,gold);bead.scale.setScalar(0.018);bead.position.set(-0.082,-0.045,0.023);g.add(bead);   // 金珠子
+    var ts=new THREE.Group();ts.position.set(-0.082,-0.061,0.023);g.add(ts);
+    var th=new THREE.CylinderGeometry(0.0045,0.0045,0.035,6);th.translate(0,-0.0175,0);
+    var tie=SPH_LO.clone();tie.applyMatrix4(new THREE.Matrix4().makeScale(0.011,0.011,0.009));tie.translate(0,-0.045,0);
+    var fr=new THREE.CylinderGeometry(0.009,0.021,0.087,10);fr.translate(0,-0.098,0);
+    var tip=SPH_LO.clone();tip.applyMatrix4(new THREE.Matrix4().makeScale(0.021,0.006,0.021));tip.translate(0,-0.142,0);
+    ts.add(itemPart$1(mergeGeos([th,tie,fr,tip]),toon(0xd8344a,{emissive:0x5a0c14}),outlineMat(0x8a1a2a,0.003)));   // 紅流蘇（一個網格，描邊用深紅）
+    g.position.set(-0.185-HEAD_TOP$1[0],0.19-HEAD_TOP$1[1],0.1-HEAD_TOP$1[2]);g.userData.tassel=ts;return g;},   // 戴在左耳旁
+  upd:function(m,t){m.userData.tassel.rotation.z=0.12*Math.sin(t*2.1);}};   // 流蘇會晃
 FOX_ITEMS['red-cord']={slot:'neck',name:'紅繩',desc:'兩端都打了結，另一頭不知道繫在誰身上。',
-  build:function(){var g=new THREE.Group(),b=new THREE.Group();b.position.set(0,-0.035,0.05);g.add(b);
-    var rm=toon(0xd8344a,{emissive:0x3a0610}),gm=toon(0xf2c65a,{emissive:0x6a4a10}),sh=new THREE.Shape();
-    roundedPoly(4,0,0.5,0.2).forEach(function(p,i){i?sh.lineTo(p[0],p[1]):sh.moveTo(p[0],p[1]);});   // 一個圓角的菱形結
-    var dg=new THREE.ExtrudeGeometry(sh,{depth:0.14,bevelEnabled:true,bevelThickness:0.07,bevelSize:0.06,bevelSegments:2,curveSegments:6});dg.center();
-    var knot=itemPart$1(dg,rm);knot.scale.set(0.085,0.1,0.085);b.add(knot);
-    var bead=itemPart$1(SPH,gm);bead.scale.setScalar(0.014);bead.position.y=0.074;b.add(bead);
-    [-1,1].forEach(function(sd){var c=itemPart$1(new THREE.CylinderGeometry(0.0055,0.0055,0.06,6),rm,false);c.position.set(sd*0.016,-0.088,0);c.rotation.z=sd*0.28;b.add(c);
-      var e=itemPart$1(SPH,rm);e.scale.setScalar(0.011);e.position.set(sd*0.025,-0.12,0);b.add(e);});   // 下面兩條繩尾，兩端都打了結
-    return g;}};
+  build:function(){var g=new THREE.Group(),red=toon(0xd8344a,{emissive:0x4a0813}),gold=toon(0xf2c65a,{emissive:0x6a4a10}),rl=outlineMat(0x8f1c2e,0.004),loops=[];
+    [[-0.033,0.026],[0.033,0.026],[-0.033,-0.026],[0.033,-0.026]].forEach(function(p){var l=new THREE.TorusGeometry(0.031,0.009,8,20);l.applyMatrix4(new THREE.Matrix4().makeScale(0.95,1.14,0.65));l.translate(p[0],p[1],0);loops.push(l);});
+    g.add(itemPart$1(mergeGeos(loops),red,rl));   // 四個圈的簡易中國結（合成一個網格）
+    var knot=itemPart$1(SPH_LO,red,rl);knot.scale.set(0.028,0.027,0.018);knot.position.z=0.012;g.add(knot);   // 四環交會處的結，描邊跟環同色（CK）
+    var bead=itemPart$1(SPH_LO,gold);bead.scale.set(0.013,0.013,0.008);bead.position.set(0,0.002,0.03);g.add(bead);
+    var ts=new THREE.Group();ts.position.set(0,-0.065,0.006);g.add(ts);
+    var cap=new THREE.CylinderGeometry(0.015,0.016,0.018,10);cap.translate(0,-0.009,0);ts.add(itemPart$1(cap,gold));
+    var st=[];[-0.013,0,0.013].forEach(function(x){var s=new THREE.CylinderGeometry(0.004,0.006,0.085,6);s.translate(x,-0.06,0);st.push(s);});
+    ts.add(itemPart$1(mergeGeos(st),red,outlineMat(0x8f1c2e,0.0025)));   // 下面的流蘇
+    g.position.set(0,-0.035,-0.015);g.userData.tassel=ts;return g;},
+  upd:function(m,t){m.userData.tassel.rotation.z=0.09*Math.sin(t*1.8);}};   // 流蘇微微晃
 FOX_ITEMS['sun-disc']={slot:'head',name:'日輪',desc:'很燙。天狐說，以前也有人拿過它，後來往下走了。',
-  build:function(){var sh=new THREE.Shape(),N=12,i;for(i=0;i<=N*2;i++){var a=Math.PI/2+i/(N*2)*TAU,r=i%2?0.74:1;i?sh.lineTo(Math.cos(a)*r,Math.sin(a)*r):sh.moveTo(Math.cos(a)*r,Math.sin(a)*r);}
-    var sg=new THREE.ExtrudeGeometry(sh,{depth:0.12,bevelEnabled:true,bevelThickness:0.06,bevelSize:0.05,bevelSegments:2});sg.center();
-    var g=new THREE.Group(),s=itemPart$1(sg,toon(0xf2c65a,{emissive:0x6a4a10}));s.scale.setScalar(0.07);g.add(s);
-    var d=itemPart$1(SPH,toon(0xffa83a,{emissive:0x6a2a06}));d.scale.set(0.043,0.043,0.02);d.position.z=0.012;g.add(d);   // 中間一顆橘紅的日
-    g.position.set(0.2-HEAD_TOP$1[0],0.15-HEAD_TOP$1[1],0.1-HEAD_TOP$1[2]);g.rotation.set(-0.15,0.5,-0.3);return g;}};   // 戴在右耳旁
+  build:function(){var g=new THREE.Group(),sh=new THREE.Shape(),N=12,i;
+    var halo=new THREE.Mesh(new THREE.TorusGeometry(0.077,0.006,8,36),new THREE.MeshBasicMaterial({color:0xffd779,transparent:true,opacity:0.24,depthWrite:false,blending:THREE.AdditiveBlending}));halo.position.z=-0.015;g.add(halo);   // 後面一圈淡淡的聖光
+    for(i=0;i<=N*2;i++){var a=Math.PI/2+i/(N*2)*TAU,r=i%2?0.053:0.074;i?sh.lineTo(Math.cos(a)*r,Math.sin(a)*r):sh.moveTo(Math.cos(a)*r,Math.sin(a)*r);}
+    g.add(itemPart$1(new THREE.ExtrudeGeometry(sh,{depth:0.009,bevelEnabled:true,bevelThickness:0.003,bevelSize:0.003,bevelSegments:2}),toon(0xf2c65a,{emissive:0x80520f})));   // 十二道金色日芒
+    var d=itemPart$1(SPH_LO,toon(0xffa83a,{emissive:0x8b3907}));d.scale.set(0.04,0.04,0.012);d.position.z=0.015;g.add(d);   // 中間橘紅的日
+    g.position.set(0.235-HEAD_TOP$1[0],0.205-HEAD_TOP$1[1],0.075-HEAD_TOP$1[2]);g.rotation.set(-0.15,0.5,-0.3);g.userData.halo=halo;return g;},   // 戴在右耳旁
+  upd:function(m,t){m.userData.halo.material.opacity=0.15+0.07*Math.sin(t*1.9);}};   // 聖光慢慢呼吸
+// 第二章的挑戰飾品（2026-09-29 繪星在飾品實驗室做、CK 定稿；草稿見 lab/items/drafts.js 的 Huxian-web b654b7d）：第四關桃花花圈（尾）、第五關長命鎖（胸前）、第六關天鏡碎片（頭）
+FOX_ITEMS['peach-wreath']={slot:'tail',name:'桃花花圈',from:'chal',desc:'折下來的桃枝。桃夭說，折枝的人要記得回來還。',
+  build:function(anc){var ud=(anc&&anc.userData)||{},r=ud.tailR||0.12,g=new THREE.Group(),front=new THREE.Group(),sway=new THREE.Group();g.add(front);front.add(sway);g.userData.sway=sway;
+    if(!ud.thumb){var d=new THREE.Vector3(BOW_DIR$1[0],BOW_DIR$1[1],BOW_DIR$1[2]).normalize(),dh=new THREE.Vector3(d.x,0,d.z).normalize();
+      front.position.copy(dh).multiplyScalar(r*0.98+0.02);front.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),d);front.rotateX(-0.4);}
+    var fg=peachBlossomGeo(0xe9729f,0xfbd6e3,0xa43861,0.14,1.05,0),fm=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide}),dots=[];
+    [[-0.105,-0.012,0.056,-0.25],[0.005,0.055,0.066,0.14],[0.115,-0.03,0.054,0.35]].forEach(function(p){var f=new THREE.Mesh(fg,fm);f.position.set(p[0],p[1],0.018);f.rotation.z=p[3];f.scale.setScalar(p[2]);sway.add(f);   // 三朵錯落的桃花，留空隙圍著尾尖（CK：刻意圍一圈，但不用排很密）
+      var c=SPH_LO.clone();c.applyMatrix4(new THREE.Matrix4().makeScale(0.012,0.012,0.006));c.translate(p[0],p[1],0.029);dots.push(c);});
+    sway.add(new THREE.Mesh(mergeGeos(dots),toon(0xf2d16e,{emissive:0x62420e})));   // 花心的金點合成一個網格
+    var lm=toon(0x2f7650,{emissive:0x0d2718}),lo=outlineMat(0x17442f,0.006);
+    [[-0.045,-0.07,-0.48],[0.072,0.09,0.65]].forEach(function(p){var l=itemPart$1(SPH_LO,lm,lo);l.position.set(p[0],p[1],0.012);l.scale.set(0.018,0.043,0.009);l.rotation.z=p[2];sway.add(l);});   // 兩片綠葉，描邊用深綠
+    return g;},
+  upd:function(m,t){m.userData.sway.rotation.z=0.055*Math.sin(t*1.7);}};
+FOX_ITEMS['longevity-lock']={slot:'neck',name:'長命鎖',from:'chal',desc:'給小孩子戴的長命鎖。塗山說，這是有人拜託她保管的。',
+  build:function(){var g=new THREE.Group(),sh=new THREE.Shape(),silver=toon(0xaebfcc,{emissive:0x213346});
+    sh.moveTo(-0.045,0.055);sh.quadraticCurveTo(-0.11,0.08,-0.094,0.022);sh.quadraticCurveTo(-0.124,-0.014,-0.087,-0.034);sh.quadraticCurveTo(-0.092,-0.069,-0.045,-0.052);   // 雲形的銀鎖
+    sh.quadraticCurveTo(0,-0.095,0.045,-0.052);sh.quadraticCurveTo(0.092,-0.069,0.087,-0.034);sh.quadraticCurveTo(0.124,-0.014,0.094,0.022);sh.quadraticCurveTo(0.11,0.08,0.045,0.055);
+    sh.lineTo(0.045,0.032);sh.quadraticCurveTo(0,0.009,-0.045,0.032);sh.closePath();
+    g.add(itemPart$1(new THREE.ExtrudeGeometry(sh,{depth:0.016,bevelEnabled:true,bevelThickness:0.006,bevelSize:0.006,bevelSegments:2}),silver));
+    var bar=itemPart$1(new THREE.CylinderGeometry(0.008,0.008,0.09,10),silver);bar.rotation.z=Math.PI/2;bar.position.set(0,0.064,0.015);g.add(bar);   // 上面的橫桿
+    var hole=SPH_LO.clone();hole.applyMatrix4(new THREE.Matrix4().makeScale(0.012,0.012,0.003));hole.translate(0,0.01,0.031);
+    var key=new THREE.BoxGeometry(0.009,0.025,0.004);key.translate(0,-0.009,0.031);g.add(new THREE.Mesh(mergeGeos([hole,key]),toon(0x566e7c,{emissive:0x172631})));   // 鎖孔
+    var cg=new THREE.CylinderGeometry(0.003,0.003,0.055,6),chains=[];
+    [-0.053,0,0.053].forEach(function(x){var sw=new THREE.Group();sw.position.set(x,-0.053,0.012);var rod=cg.clone();rod.translate(0,-0.031,0);
+      var b=SPH_LO.clone();b.applyMatrix4(new THREE.Matrix4().makeScale(0.013,0.013,0.012));b.translate(0,-0.067,0);sw.add(new THREE.Mesh(mergeGeos([rod,b]),silver));chains.push(sw);g.add(sw);});   // 下面三條細銀鍊，各串一顆小珠子
+    g.position.set(0,-0.052,-0.015);g.scale.setScalar(0.9);g.userData.chains=chains;return g;},
+  upd:function(m,t){m.userData.chains.forEach(function(c,i){c.rotation.z=0.13*Math.sin(t*2.25+i*0.82);});}};
+FOX_ITEMS['sky-mirror']={slot:'head',name:'天鏡碎片',from:'chal',desc:'天門鏡子的一小片。照出來的不是你的臉，是一扇爬滿紫藤的窗。',
+  build:function(){var g=new THREE.Group(),gold=toon(0xe7bd67,{emissive:0x624011}),mr=new THREE.Group();mr.rotation.x=-0.52;g.add(mr);
+    var rim=itemPart$1(SPH_LO,gold);rim.scale.set(0.079,0.079,0.012);mr.add(rim);
+    var face=itemPart$1(SPH_LO,toon(0xb8deec,{emissive:0x406b82}),false);face.position.z=0.012;face.scale.set(0.064,0.064,0.005);mr.add(face);
+    var gl=new THREE.Mesh(SPH_LO,new THREE.MeshBasicMaterial({color:0xfff7e4,transparent:true,opacity:0.68,depthWrite:false}));gl.scale.set(0.011,0.052,0.003);gl.position.set(-0.04,0,0.019);gl.rotation.z=-0.35;mr.add(gl);   // 慢慢刷過鏡面的反光
+    var pend=[];[-0.042,0,0.042].forEach(function(x,i){var sw=new THREE.Group();sw.position.set(x,-0.074,0.028);var st=new THREE.BoxGeometry(0.004,0.014,0.004);st.translate(0,-0.008,0);
+      var tg=new THREE.BoxGeometry(0.019,0.057+(i===1?0.01:0),0.007);tg.translate(0,-0.044,0);sw.add(itemPart$1(mergeGeos([st,tg]),gold));pend.push(sw);g.add(sw);});   // 下面三片金色長方形小吊墜
+    g.position.set(-HEAD_TOP$1[0],0.16-HEAD_TOP$1[1],0.245-HEAD_TOP$1[2]);g.userData.glint=gl;g.userData.pend=pend;return g;},   // 戴在額頭上
+  upd:function(m,t){var k=(t*0.32)%1,gl=m.userData.glint;gl.position.x=-0.047+0.094*k;gl.material.opacity=0.55*Math.sin(Math.PI*k);m.userData.pend.forEach(function(p,i){p.rotation.z=0.085*Math.sin(t*1.8+i*0.8);});}};
 // 外耳：一個圓錐，耳尖顏色用頂點色漸層（跟尾巴同一種做法，交界在原本耳尖小圓錐的位置、高度約 72%）。
 //   原本是在外耳上多套一個深色小圓錐，小圓錐的底比外耳在那個高度還寬，外輪廓會多一格階梯；圓錐尖端的頂點法線也各朝各的方向，描邊在耳尖閉合不起來，這裡收成同一個方向
 var EAR_GEO={};
@@ -1582,7 +1664,7 @@ var BS=(function(){
     return {group:g,back:back,ground:ground,glow:glow,motes:motes};})();
   var TZ=5;
   function layoutTeam(){if(typeof stageDeco!=='undefined')stageDeco.forEach(function(d){if(d)d.layout();});if(typeof dayBg!=='undefined'&&dayBg&&dayBg.on)dayBg.layout();var dist=bcam.position.z-TZ,hh=dist*Math.tan(bcam.fov*Math.PI/360),hw=hh*bcam.aspect,span=hw*0.9,slot=2*span/6,s=Math.min(0.62,slot*1.18);
-    var feetY=(1-2*(L.teamY+L.teamH*0.6)/L.H)*hh;
+    var feetY=(1-2*(L.teamY+L.teamH*0.6-(L.foxUp||0))/L.H)*hh;   // L.foxUp：矮畫面時狐狸那排往上幾 px（layout.js 的 fitTeam）
     foxes.forEach(function(f,i){var x=-span+slot*(i+0.5);f.group.position.set(x,feetY,TZ);f.look(-x*0.17,-x*0.06);f.group.userData.baseY=feetY;f.setScale(s);f.scale=s;
       f.base.position.set(x,feetY-0.045,TZ-0.02);f.base.scale.setScalar(s*0.95);});}
   var fireP=[],fireAcc=0,tipV=new THREE.Vector3(),tips=boss.tips(),allTips=bossList.map(function(b){return b.tips();});
@@ -1749,9 +1831,9 @@ var BS=(function(){
     // 天空：外面白天的同一個 shader、同一組顏色；畫面最上面到 BOSS 血條下面、最下面到隊伍那一排，各一段 004abb 的深藍漸層（2026-09-27 使用者）
     var sm=K.skyMat.clone(),S0=K.LOOKS.day,sk=S0.sky,u=sm.uniforms;
     //   2026-09-27 清晨版（使用者選的方向）：整片天空改成畫面上方深藍 → 中間藍紫 → 往下到粉色的漸層（用畫面上的高度算），太陽的光暈照舊疊上去
-    sm.fragmentShader=sm.fragmentShader.replace('uniform float g1k','uniform vec3 cTop,cMid,cLow; uniform float uH,sMid,sLow,g1k')
-      .replace('gl_FragColor=vec4(col,1.0);','float fr=(uH-gl_FragCoord.y)/uH; vec3 gc=mix(cTop,cMid,smoothstep(0.0,sMid,fr)); gc=mix(gc,cLow,smoothstep(sMid,sLow,fr)); col=gc*(0.97+0.06*n)+g1*pow(m,e1)*g1k; gl_FragColor=vec4(col,1.0);');
-    u.cTop={value:new THREE.Color(0x004abb)};u.cMid={value:new THREE.Color(0x6c6cd6)};u.cLow={value:new THREE.Color(0xf6a8c8)};u.uH={value:1};u.sMid={value:0.48};u.sLow={value:0.76};   /* 2026-09-27 使用者：粉色往下拉，隊伍那一排的背景還是紫色 */
+    sm.fragmentShader=sm.fragmentShader.replace('uniform float g1k','uniform vec3 cTop,cMid,cLow; uniform float uH,uB,sMid,sLow,g1k')
+      .replace('gl_FragColor=vec4(col,1.0);','float fr=(uH+uB-gl_FragCoord.y)/uH; vec3 gc=mix(cTop,cMid,smoothstep(0.0,sMid,fr)); gc=mix(gc,cLow,smoothstep(sMid,sLow,fr)); col=gc*(0.97+0.06*n)+g1*pow(m,e1)*g1k; gl_FragColor=vec4(col,1.0);');
+    u.cTop={value:new THREE.Color(0x004abb)};u.cMid={value:new THREE.Color(0x6c6cd6)};u.cLow={value:new THREE.Color(0xf6a8c8)};u.uH={value:1};u.uB={value:0};u.sMid={value:0.48};u.sLow={value:0.76};   /* 2026-09-27 使用者：粉色往下拉，隊伍那一排的背景還是紫色 */
     u.top.value.fromArray(sk.top);u.mid.value.fromArray(sk.mid);u.low.value.fromArray(sk.low);u.g1.value.fromArray(sk.g1);u.g2.value.fromArray(sk.g2);
     u.g1k.value=sk.g1k;u.g2k.value=sk.g2k;u.nb.value=sk.nb;u.na.value=sk.na;u.e1.value=sk.e1||30;u.e2.value=sk.e2||5;u.mistK.value=0;   /* 不往下變霧白：白霧只在石台下面 */
     u.moonDir.value.copy(SUNB).add(new THREE.Vector3(0.6,0.5,0)).normalize();   // 天空的亮光在太陽右上一點（跟外面一樣）
@@ -1884,9 +1966,9 @@ var BS=(function(){
     var shadows=!FOX_SHADOW?[]:foxes.map(function(f){var m=new THREE.Mesh(new THREE.PlaneGeometry(1.35,1.35),new THREE.MeshBasicMaterial({map:shTex,transparent:true,depthWrite:false}));m.position.z=-0.004;m.renderOrder=-1;m.visible=false;f.base.add(m);return m;});
     var D={G:G,turf:turf,cloudMat:cloudMat,DAY_OL:K.DAY_OL,on:false,show:function(on){this.on=on;G.visible=on;turf.visible=stemM.visible=leafM.visible=flM.visible=fallG.visible=on;shadows.forEach(function(m){m.visible=on;});if(on)this.layout();},
       update:function(dt,t){anim.forEach(function(f){f(dt,t);});},
-      // 天空漸層用畫布的實際高度算
-      layout:function(){var db=renderer.getDrawingBufferSize(new THREE.Vector2());
-        u.uH.value=db.y;}};
+      // 天空漸層用畫布的實際高度算。全螢幕（畫布比安全框高）時照安全框算：uH＝框高、uB＝框下面那一截，框外就是最上、最下的顏色
+      layout:function(){var db=renderer.getDrawingBufferSize(new THREE.Vector2()),pr=renderer.getPixelRatio();
+        u.uH.value=L.st||L.sb?L.H*pr:db.y;u.uB.value=L.sb*pr;}};
     return D;}
   // 月夜的燈光下，白天的東西會偏藍偏暗：在材質上補回來（顏色乘上 DAYK、再加一點暖色自發光），看起來才接近外面白天
   var DAYK=new THREE.Color(1.25,1.18,1.05),FOX_SHADOW=false;   // FOX_SHADOW：六狐腳下的深藍影子（Version 87 試過，清晨版先拿掉）
@@ -4949,9 +5031,11 @@ var AudioFX=(function(){
 // 2D 特效層（render/fx2d.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/fx2d.js：大招全版特效（半透明、集中在畫面邊緣、不擋操作）
+   全螢幕（2026-09-29 第四輪）：這一層蓋滿整個螢幕（瀏海、底部橫條後面也畫）：W、H 是整個螢幕，邊光貼螢幕的邊；
+   OY＝安全框的上緣在這一層的 y（上面安全區的高度，電腦上是 0）。對準遊戲東西的（媚惑的珠盤、暗狐的爪痕）要加 OY，位置才跟框裡一樣。
    ===================================================================== */
 var FX2D=(function(){
-  var cv=document.getElementById('fx2d'),g=cv.getContext('2d'),W=1,H=1,dpr=1,list=[],drawn=false,buffT=0,buffLeft=0,buffMotes=[];
+  var cv=document.getElementById('fx2d'),g=cv.getContext('2d'),W=1,H=1,OY=0,dpr=1,list=[],drawn=false,buffT=0,buffLeft=0,buffMotes=[];
   var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches,DENS=RM?0.4:1;
   function sprite(size,draw){var c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);return c;}
   function heartPath(x,cx,cy,s){x.beginPath();x.moveTo(cx,cy+0.6*s);x.bezierCurveTo(cx-1.1*s,cy-0.1*s,cx-0.55*s,cy-0.95*s,cx,cy-0.35*s);x.bezierCurveTo(cx+0.55*s,cy-0.95*s,cx+1.1*s,cy-0.1*s,cx,cy+0.6*s);x.closePath();}
@@ -5004,7 +5088,7 @@ var FX2D=(function(){
       es.forEach(function(p){var tt=t-p.d;if(tt<0)return;var y=p.y-p.v*tt,x=p.x+Math.sin(tt*6+p.ph)*8,s=p.s*(1-tt*0.35);if(s<=0)return;
         g.globalAlpha=Math.max(0,0.75*fade*(0.6+0.4*Math.sin(tt*20+p.ph)));g.drawImage(EMBER,x-s/2,y-s/2,s,s);});g.globalAlpha=1;}};}
   // 暗狐：三道紫色爪痕瞬間劃過戰場，白光一閃、畫面短暫變暗
-  function claws(){var cx=W*0.5,cy=L.battleY+L.battleH*0.55,ms=[0,1,2].map(function(k){var off=(k-1)*W*0.1;
+  function claws(){var cx=W*0.5,cy=OY+L.battleY+L.battleH*0.55,ms=[0,1,2].map(function(k){var off=(k-1)*W*0.1;
       return {x0:cx-W*0.36+off,y0:cy-L.battleH*0.36,x1:cx+W*0.26+off,y1:cy+L.battleH*0.32,cx:cx-W*0.02+off+W*0.1,cy:cy-L.battleH*0.08,d:k*0.045};});
     function pt(m,s){var u=1-s;return [u*u*m.x0+2*u*s*m.cx+s*s*m.x1,u*u*m.y0+2*u*s*m.cy+s*s*m.y1];}
     return {t:0,dur:0.8,draw:function(t){var fade=fadeOf(t,0.02,0.38,0.8);g.fillStyle='rgba(16,8,36,'+0.28*fade+')';g.fillRect(0,0,W,H);edgeGlow('150,90,255',0.24*fade,90);
@@ -5030,7 +5114,7 @@ var FX2D=(function(){
   for(var wi=0;wi<6;wi++)wisps.push({x:(wi+0.5)/6+rand(-0.04,0.04),ph:rand(0,TAU),sp:rand(0.18,0.3),w:rand(10,16),amp:rand(0.035,0.06)});
   var LILAC=dot('235,190,255');
   function drawCharm(dt){charmK+=((charmOn?1:0)-charmK)*Math.min(1,dt*(charmOn?2.2:1.6));if(charmK<0.004){charmK=0;return false;}charmT+=dt;var k=charmK,t=charmT;
-    var bx=L.bx-8,by=L.by-8,bw=L.cs*COLS+16,bh=L.cs*ROWS+16,cx=bx+bw/2,cy=by+bh/2,i;
+    var bx=L.bx-8,by=OY+L.by-8,bw=L.cs*COLS+16,bh=L.cs*ROWS+16,cx=bx+bw/2,cy=by+bh/2,i;
     g.save();g.beginPath();g.rect(bx,by,bw,bh);g.clip();
     // 四周一圈淡紫
     var gr=g.createRadialGradient(cx,cy,Math.min(bw,bh)*0.3,cx,cy,Math.max(bw,bh)*0.72);gr.addColorStop(0,'rgba(200,120,255,0)');gr.addColorStop(1,'rgba(200,120,255,'+(0.3*k)+')');g.fillStyle=gr;g.fillRect(bx,by,bw,bh);
@@ -5048,7 +5132,7 @@ var FX2D=(function(){
     g.globalAlpha=1;g.restore();return true;}
   var MAKE={vines:vines,hearts:hearts,wave:wave,embers:embers,claws:claws,gold:goldFlash};
   return {
-    resize:function(w,h){dpr=Math.min(window.devicePixelRatio||1,2);W=w;H=h;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.width=w+'px';cv.style.height=h+'px';drawn=true;},
+    resize:function(w,h,oy){dpr=Math.min(window.devicePixelRatio||1,2);W=w;H=h;OY=oy||0;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.width=w+'px';cv.style.height=h+'px';drawn=true;},
     play:function(kind){var e=MAKE[kind]();list.push(e);},
     setBuff:function(left){if(left>0&&buffLeft<=0)buffT=0;buffLeft=left;},
     setCharm:function(on){charmOn=!!on;},
@@ -5106,28 +5190,81 @@ function cellXY(row,col){return {x:L.bx+(col+0.5)*L.cs,y:L.by+(row+0.5)*L.cs};} 
 var L={W:1,H:1,cs:40,bx:0,by:0,K:17},DEV_ASPECT=0;/* 別的 module 要整個換掉 DEV_ASPECT 用這個（import 進去的變數不能直接賦值） */function setDevAspect(v){DEV_ASPECT=v;}   // DEV_ASPECT：場景編輯器（另一個 artifact）用 TEAM.dev().setAspect 把遊戲畫面固定成設計畫面的長寬比；遊戲裡永遠是 0
 var comboEl=document.getElementById('combo'),toastEl=document.getElementById('toast'),bannerEl=document.getElementById('banner'),topEl=document.getElementById('topbar'),
     bossBarEl=document.getElementById('bossbar'),teamBarEl=document.getElementById('teambar'),cdEl=document.getElementById('bossCd'),timerEl=document.getElementById('timer');
+// 安全框：st、sb 是上下安全區（#safeProbe 的 padding＝CSS 的 --safe-top／--safe-bottom），H 是框的高度；整頁（#game、畫布）高＝st＋H＋sb。電腦上 st、sb 都是 0。
+function safeFrame(){var cs=getComputedStyle(safeProbeEl),st=parseFloat(cs.paddingTop)||0,sb=parseFloat(cs.paddingBottom)||0,H=gameEl.clientHeight-st-sb;
+  return {H:H,st:st,sb:sb,W:Math.min(window.innerWidth,Math.round(H*(DEV_ASPECT||0.5625)))};}
+var TEAM_GAP=14;   // 隊伍血條和珠盤框之間的縫（px）：390×844 時原本就是 14
+// 全螢幕第五輪（CK 實機：手機上「隊伍血量」字和血量數字壓進狐狸腳下的能量環 10～12px）：
+// 隊伍血量那一列（字、數字、狀態小標籤）的上緣要在能量環下緣再往下 RING_CLEAR：隊伍血條往下移，差多少照順序補（fitTeam）：
+//   ① 血條和珠盤中間的縫縮小（血條往下靠近珠盤、珠盤不動），最小 GAP_MIN（血條不碰珠盤的金框）；
+//   ② 還不夠、有底部安全區（iPhone 下面的橫條）：珠盤跟著往下，但珠盤最下面一排離螢幕底至少 BOTTOM_KEEP；
+//   ③ 還不夠（沒有底部安全區的矮畫面，例如 375×667）：狐狸那排往上（L.foxUp）。
+//   390×844 沒安全區時本來就沒壓到 → 什麼都不動（跟 v112 一樣）。
+// 第六輪（CK 實機看第五輪：珠盤整組往下 16px、底排離螢幕底 42px，刻意往下滑會滑出畫面）：①② 對調（先縮縫、珠盤能不動就不動），
+// 縫最小 6→4、BOTTOM_KEEP 24→48。血條停的位置跟第五輪一樣。
+var GAP_MIN=4,RING_CLEAR=1.5,BOTTOM_KEEP=48;
+// 能量環（狐狸腳下的圓環）下緣在框裡的 y：拿每隻狐狸底座的 3D 位置，照戰鬥相機靜止時的樣子投影（flow.js 的 CAM：在 (0,0,14) 看原點，
+// 所以看出去的座標＝世界座標 z 減 14）。大招特寫、震動時相機會動，這裡不管那些，版面只照靜止時排。
+var _rv=new THREE.Vector3();
+function ringBottom(){var y=-1e9;
+  BS.foxes.forEach(function(f){var r=Math.max(f.ring.geometry.parameters.outerRadius,f.arc.geometry.parameters.outerRadius);f.base.updateMatrixWorld(true);
+    for(var a=0;a<48;a++){_rv.set(r*Math.cos(a/48*TAU),r*Math.sin(a/48*TAU),0).applyMatrix4(f.base.matrixWorld);_rv.z-=14;_rv.applyMatrix4(bcam.projectionMatrix);y=Math.max(y,(1-_rv.y)/2*L.H);}});
+  return y;}
+// 隊伍血條最高的時候有多高：字那一列有狀態小標籤（護盾、清心……）時會被撐高幾 px，所以放一個假的小標籤量完再拿掉。
+// 戰鬥畫面以外它是 display:none，量的時候暫時打開（同一段程式裡就還原，不會畫出來）。手機的字型比較高，所以用量的、不寫死。
+// 已經有小標籤＝戰鬥中：照上次量的，不要戰鬥打到一半重排。
+function teamBarMaxH(){var ch=document.getElementById('chips');if(ch.firstChild&&L.tbH)return L.tbH;
+  var hid=!teamBarEl.offsetHeight,p=document.createElement('span');if(hid)teamBarEl.style.setProperty('display','block','important');
+  p.className='chip shield';p.textContent='護盾';ch.appendChild(p);var h=teamBarEl.getBoundingClientRect().height;ch.removeChild(p);
+  if(hid)teamBarEl.style.removeProperty('display');return h;}
+function fitTeam(F){var need=ringBottom()+RING_CLEAR-(L.by-11-TEAM_GAP-L.tbH),down=0,cut=0;   // 珠盤框的外緣＝L.by−11
+  if(need>0){cut=Math.min(Math.ceil(need),TEAM_GAP-GAP_MIN);need-=cut;}   // ①
+  if(need>0&&F.sb>0){down=Math.min(Math.ceil(need),Math.max(0,Math.floor(L.H+F.sb-BOTTOM_KEEP-(L.by+L.cs*ROWS))));L.by+=down;need-=down;}   // ②
+  L.teamGap=TEAM_GAP-cut;L.teamDown=down;
+  for(var k=0;k<3&&need>0;k++){L.foxUp+=Math.ceil(need);BS.layoutTeam();need=ringBottom()+RING_CLEAR-(L.by-11-L.teamGap-L.tbH);}}   // ③ 透視下移的量跟 px 差一點點，再量一次
 function layout(){
-  var bodyH=document.body.clientHeight,W=Math.min(window.innerWidth,Math.round(bodyH*(DEV_ASPECT||0.5625))),H=bodyH,Y=CONFIG.layout;
-  gameEl.style.width=W+'px';renderer.setSize(W,H,false);
-  L.W=W;L.H=H;L.topH=H*Y.top;L.battleY=L.topH;L.battleH=H*Y.battle;L.teamY=L.battleY+L.battleH;L.teamH=H*Y.team;L.boardY=L.teamY+L.teamH;L.boardH=H-L.boardY;
+  var F=safeFrame(),W=F.W,H=F.H,Y=CONFIG.layout;frameEl.classList.toggle('safe',F.st>0||F.sb>0);   // 有安全區才讓 #frame 往內縮（見 index.html 的 #frame）
+  gameEl.style.width=W+'px';renderer.setSize(W,H+F.st+F.sb,false);   // 畫布畫滿整頁（上下延伸到安全區後面）
+  L.W=W;L.H=H;L.st=F.st;L.sb=F.sb;L.topH=H*Y.top;L.battleY=L.topH;L.battleH=H*Y.battle;L.teamY=L.battleY+L.battleH;L.teamH=H*Y.team;L.boardY=L.teamY+L.teamH;L.boardH=H-L.boardY;
   L.cs=Math.floor(Math.min((W-26)/COLS,(L.boardH-34)/ROWS));L.K=L.cs*0.43;
   L.bx=Math.round((W-L.cs*COLS)/2);L.by=Math.round(L.boardY+(L.boardH-L.cs*ROWS)/2-6);
   ortho.left=0;ortho.right=W;ortho.top=0;ortho.bottom=-H;ortho.updateProjectionMatrix();
   bcam.aspect=W/H;bcam.updateProjectionMatrix();
+  L.foxUp=0;BS.layoutTeam();L.tbH=teamBarMaxH();fitTeam(F);   // 先擺好狐狸、量能量環，決定珠盤和隊伍血條要不要往下（會改 L.by）
   clip.constant=-(L.by-0.1*L.cs);
-  rebuildBase();BS.layoutTeam();GARDEN.resize();TEAM.resize();WARD.resize();FX2D.resize(W,H);
+  rebuildBase();GARDEN.resize();TEAM.resize();WARD.resize();FX2D.resize(W,H+F.st+F.sb,F.st);   // 大招的全版特效蓋滿整個螢幕（#fx2d 往上移到螢幕頂，見 index.html）
   document.getElementById('muteBtn').style.top=Math.max(6,(L.topH-36)/2)+'px';
   topEl.style.height=L.topH+'px';
   bossBarEl.style.top=(L.topH+2)+'px';
-  teamBarEl.style.top=(L.teamY+L.teamH*0.74)+'px';
-  var vy=L.teamY-70;veil.position.set(W/2,-(vy+(H-vy)/2),99);veil.scale.set(W,H-vy,1);ultBannerEl.style.top=(L.teamY-L.teamH*0.1)+'px';
+  // 隊伍血條黏在珠盤框上緣、固定留縫（全螢幕階段 B）：底邊對齊珠盤框往上 L.teamGap（平常＝TEAM_GAP；字要避開能量環時縮小，見 fitTeam），字撐高只會往上長，不會再蓋到珠盤
+  // （CK 的 iPhone 12 上原本會往下蓋約 5px；375×667 本來就蓋 4px）。珠盤框的外緣＝L.by−11（render/orbs.js 的 rebuildBase）。
+  teamBarEl.style.top='auto';teamBarEl.style.bottom=(H-(L.by-11)+L.teamGap)+'px';
+  var vy=L.teamY-70;veil.position.set(W/2,-(vy+(H+F.sb-vy)/2),99);veil.scale.set(W,H+F.sb-vy,1);ultBannerEl.style.top=(L.teamY-L.teamH*0.1)+'px';
   comboEl.style.top=(L.teamY-46)+'px';toastEl.style.top=(L.boardY+L.boardH*0.45)+'px';bannerEl.style.top=(L.battleY+L.battleH*0.5)+'px';
 }
 window.addEventListener('resize',layout);
+// 畫面延伸：相機（戰鬥、庭院、封面、換裝頁的透視相機，盤面的正交相機）都照安全框算構圖，畫的時候分三塊：
+//   安全框用原本的相機、視窗剛好是框；上下安全區各用 setViewOffset 只畫框外那一條（瀏海後面、底部橫條後面的延長）。
+//   不整張一起延伸：那樣投影矩陣變了，細的幾何（封面的竹葉、線條）邊緣會有一些點翻到另一邊，框裡的畫面跟以前差得比較多。
+//   畫完相機還原，所以遊戲裡的投影、點擊換算（toScreen、射線）都照安全框，不用改。安全區是 0 時就是原本的一次 render。
+function viewOffset(cam,y,h){var v=cam.view&&cam.view.enabled?cam.view:null,fw=v?v.fullWidth:L.W,fh=v?v.fullHeight:L.H,x=v?v.offsetX:0,y0=v?v.offsetY:0,w=v?v.width:L.W,k=(v?v.height:L.H)/L.H;
+  cam.setViewOffset(fw,fh,x,y0+y*k,w,h*k);}   // 原本就有裁切（封面、換裝頁）：在它的裁切上再往框外多裁
+function renderExt(scene,cam){
+  if(!(L.st||L.sb)){renderer.render(scene,cam);return;}
+  var W=L.W,H=L.H,st=L.st,sb=L.sb,v=cam.view&&cam.view.enabled?{fw:cam.view.fullWidth,fh:cam.view.fullHeight,x:cam.view.offsetX,y:cam.view.offsetY,w:cam.view.width,h:cam.view.height}:null;
+  function back(){if(v)cam.setViewOffset(v.fw,v.fh,v.x,v.y,v.w,v.h);else cam.clearViewOffset();}
+  renderer.setScissorTest(true);
+  renderer.setViewport(0,sb,W,H);renderer.setScissor(0,sb,W,H);renderer.render(scene,cam);   // 安全框（WebGL 的 y 從下面算）
+  if(st){viewOffset(cam,-st,st);renderer.setViewport(0,sb+H,W,st);renderer.setScissor(0,sb+H,W,st);renderer.render(scene,cam);back();}   // 瀏海後面
+  if(sb){viewOffset(cam,H,sb);renderer.setViewport(0,0,W,sb);renderer.setScissor(0,0,W,sb);renderer.render(scene,cam);back();}   // 底部橫條後面
+  renderer.setScissorTest(false);renderer.setViewport(0,0,W,H+st+sb);}
 /* 加到主畫面（全螢幕）時，手機上下的安全區內距常在第一次排版之後才生效，而且不會觸發 resize：
    畫面變矮了卻沒重新排版，觸控對不準格子、隊伍血條壓到盤面（2026-09-28 使用者回報）。
-   所以改成看畫面實際的大小，變了就重新排版；大小沒變就不動。 */
-if(window.ResizeObserver)new ResizeObserver(function(){var bh=document.body.clientHeight,bw=Math.min(window.innerWidth,Math.round(bh*(DEV_ASPECT||0.5625)));if(bh!==L.H||bw!==L.W)layout();}).observe(document.body);
+   所以改成看畫面實際的大小，變了就重新排版；大小沒變就不動。
+   全螢幕之後整頁高度不變、變的是安全區，所以也看 #safeProbe（它的高度就是上下安全區）。
+   隊伍血條也看：字型晚到（手機上的中文字型比較高）會讓它變高，要重排珠盤（見 fitTeam）。 */
+if(window.ResizeObserver){var ro=new ResizeObserver(function(){var F=safeFrame();if(F.H!==L.H||F.W!==L.W||F.st!==L.st||F.sb!==L.sb||teamBarMaxH()!==L.tbH)layout();});
+  ro.observe(document.body);ro.observe(safeProbeEl,{box:'border-box'});ro.observe(teamBarEl);}
 
 // 動畫小工具（anim.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
@@ -5711,7 +5848,7 @@ function closeBox(instant){if(boxK<0)return;boxOpen=false;lvBoxEl.classList.remo
 function positionBox(){if(boxK<0)return;var q=GARDEN.lampTop(boxK),w=lvBoxEl.offsetWidth,h=lvBoxEl.offsetHeight;
   var left=Math.max(12,Math.min(L.W-w-12,q.x-w/2));
   lvBoxEl.style.left=left+'px';lvBoxEl.style.top=(q.y-14-h)+'px';lvBoxEl.style.setProperty('--ax',Math.max(18,Math.min(w-18,q.x-left))+'px');
-  var r=lvBoxEl.getBoundingClientRect(),gr=gameEl.getBoundingClientRect();GARDEN.setLift(boxK,r.top-gr.top-34);}
+  var r=lvBoxEl.getBoundingClientRect(),gr=frameEl.getBoundingClientRect();GARDEN.setLift(boxK,r.top-gr.top-34);}
 document.getElementById('lvGo').addEventListener('click',function(){if(boxK<0||!boxOpen||GARDEN.isBusy())return;var k=boxK;AudioFX.init();AudioFX.select();closeBox(true);
   setTimeout(function(){if(APP.screen==='garden')goTeam(k);},180);});
 document.addEventListener('pointerdown',function(e){if(APP.screen!=='garden')return;
@@ -5726,7 +5863,7 @@ GARDEN.setHandlers({first:function(){AudioFX.init();},flash:flashTo,
   empty:function(){if(boxOpen)closeBox();}});
 
 // 第一次通關：星星飛到畫面中央轉一圈、收進左上角 → 燈點亮 → 這座島上浮現通往下一關的傳送陣
-function starTarget(){var gr=gameEl.getBoundingClientRect(),ic=gStarsEl.querySelector('svg').getBoundingClientRect();
+function starTarget(){var gr=frameEl.getBoundingClientRect(),ic=gStarsEl.querySelector('svg').getBoundingClientRect();
   return {x:ic.left-gr.left+ic.width/2,y:ic.top-gr.top+ic.height/2,s:ic.width*1.25};}
 function starRing(cx,cy){AudioFX.starSpin();starRingEl.style.left=cx+'px';starRingEl.style.top=cy+'px';starRingEl.classList.remove('burst');void starRingEl.offsetWidth;starRingEl.classList.add('burst');}
 function celebrate(k){GARDEN.setBusy(true);hideHint();closeBox(true);
@@ -5915,7 +6052,8 @@ document.getElementById('restartBtn').addEventListener('click',function(){startL
    觸控：滑動交換＋點選交換
    ===================================================================== */
 var drag=null;
-function localXY(e){var r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+function localXY(e){var r=frameEl.getBoundingClientRect();   // 安全框的座標（畫布上下延伸出去了，量框不量畫布）
+  return {x:e.clientX-r.left,y:e.clientY-r.top};}
 function cellAt(x,y){var c=Math.floor((x-L.bx)/L.cs),r=Math.floor((y-L.by)/L.cs);if(c<0||r<0||c>=COLS||r>=ROWS)return null;return [r,c];}
 canvas.addEventListener('pointerdown',function(e){e.preventDefault();if(G.mode!=='playing')return;var p=localXY(e);
   if(p.y>L.teamY-L.teamH*0.35&&p.y<L.boardY-4){var fi=foxAt(p.x);if(fi>=0)tryUlt(fi);return;}
@@ -5984,11 +6122,20 @@ function syncOrbs(t){
    主迴圈（暫停或切到背景時停止渲染）
    ===================================================================== */
 var last=performance.now(),raf=0,running=false;
+// ?fps（開發用，跟 ?test 一樣是網址參數）：左下角小窗顯示每秒幾格、這一秒最慢的一格隔了幾毫秒、每格幾個 draw call
+// （一格裡所有 render 加起來，庭院的水面倒影也算）。給實機看全螢幕版的效能（2026-09-29）；沒帶 ?fps 時什麼都不做。
+var FPS=/[?&]fps/.test(location.search)?(function(){var el=document.createElement('div'),n=0,t0=performance.now(),t1=t0,worst=0;
+  el.id='fpsBox';el.style.cssText='position:fixed;left:4px;bottom:calc(4px + var(--safe-bottom));z-index:99;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.6);color:#9f9;font:11px/1.35 monospace;white-space:pre;pointer-events:none';
+  el.textContent='fps …';document.body.appendChild(el);renderer.info.autoReset=false;
+  return {begin:function(){renderer.info.reset();},
+    end:function(){var now=performance.now(),r=renderer.info.render;n++;worst=Math.max(worst,now-t1);t1=now;
+      if(now-t0>=1000){el.textContent=Math.round(n*1000/(now-t0))+' fps　最慢一格 '+Math.round(worst)+' ms\n'+r.calls+' draw call／格　'+Math.round(r.triangles/1000)+'k 三角形';n=0;t0=now;worst=0;}}};})():null;
 function frame(now){
   if(!running)return;
+  if(FPS)FPS.begin();
   var rdt=Math.max(0,Math.min(0.05,(now-last)/1000))*(window.__speed||1);last=now;VT+=rdt;   /* 第一格的時間戳可能比 startLoop 還早，負的就當 0 */
   if(APP.screen!=='battle'){var gsn=APP.screen==='garden'?GARDEN:APP.screen==='fox'?WARD:TEAM;gsn.update(rdt,VT);if(APP.screen==='garden'){GARDEN.preRender(renderer);updateGardenHud();}
-    renderer.clear();renderer.render(gsn.scene,gsn.camera);raf=requestAnimationFrame(frame);return;}
+    renderer.clear();renderExt(gsn.scene,gsn.camera);if(FPS)FPS.end();raf=requestAnimationFrame(frame);return;}
   var frozen=G.mode==='ult',dt=frozen?0:rdt;S.time+=dt;var t=S.time;
   updateTweens(dt);
   if(frozen)updateUlt(rdt);
@@ -6008,7 +6155,7 @@ function frame(now){
   FX2D.setBuff(fighting()?battle.buff:0);FX2D.update(rdt);
   var sx=0,sy=0;if(shake>0.05){sx=(Math.random()*2-1)*shake;sy=(Math.random()*2-1)*shake;setShake(shake*Math.pow(0.0005,rdt));}else setShake(0);
   ortho.position.set(-sx,sy,0);bcam.position.set(CAM.pos.x+sx*0.01,CAM.pos.y-sy*0.01,CAM.pos.z);bcam.lookAt(CAM.look);
-  renderer.clear();renderer.render(battleScene,bcam);renderer.clearDepth();renderer.render(boardScene,ortho);
+  renderer.clear();renderExt(battleScene,bcam);renderer.clearDepth();renderExt(boardScene,ortho);if(FPS)FPS.end();
   raf=requestAnimationFrame(frame);}
 function startLoop(){if(running)return;running=true;last=performance.now();raf=requestAnimationFrame(frame);}
 function stopLoop(){running=false;cancelAnimationFrame(raf);}
@@ -6101,8 +6248,10 @@ if (!Q.get('shot')) {
 // 草稿本身在 drafts.js（一般的 <script>，不用組建，改完重新整理就好）。</script>
 </head>
 <body>
+<div id="safeProbe" aria-hidden="true"></div>
 <div id="game">
   <canvas id="c" aria-label="狐仙三消"></canvas>
+  <div id="frame">
   <canvas id="fx2d" class="bhud" aria-hidden="true"></canvas>
   <div id="topbar" class="hud bhud">
     <button id="pauseBtn" type="button" aria-label="暫停"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="1" width="3.6" height="12" rx="1.2"/><rect x="8.4" y="1" width="3.6" height="12" rx="1.2"/></svg></button>
@@ -6190,6 +6339,7 @@ if (!Q.get('shot')) {
     <div class="panel" id="pResult"><h2 id="rTitle">勝利</h2><p id="rSub">三尾狐被打倒了</p><p class="rDrop" id="rDrop"></p>
       <dl><dt>總傷害</dt><dd id="rDmg">0</dd><dt>最高連擊</dt><dd id="rCombo">0</dd><dt>剩餘時間</dt><dd id="rTime">0 秒</dd></dl>
       <button class="btn" id="againBtn" type="button">再來一場</button><button class="btn ghost" id="homeBtn2" type="button">回到庭院</button></div>
+  </div>
   </div>
 </div>
 
