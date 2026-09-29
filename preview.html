@@ -2418,6 +2418,7 @@ var BS=(function(){
       starMat.uniforms.time.value=t;
       sparks.forEach(function(s){var u=s.userData,k=Math.pow(Math.max(0,Math.sin(t*u.sp+u.ph)),3);s.scale.set(u.s*(0.35+0.65*k),u.s*(0.35+0.65*k),1);s.material.opacity=k*0.95;});
       halos.forEach(function(h,k){h.material.opacity=h.userData.o*moonK*(0.9+0.1*Math.sin(t*0.7+k));});
+      if(veil)veil.forEach(function(v){if(v.s.visible)v.s.position.x=v.f[0]+Math.sin(t*0.12+v.ph)*1.2;});   // 最終戰的霧慢慢左右飄
       clouds.forEach(function(c){c.position.x=c.userData.x+Math.sin(t*0.05+c.userData.ph)*c.userData.amp;});
       plat.position.y=1.9+Math.sin(t*0.6)*0.05;updateClouds(t);boss.update(dt,t);updateFoxFire(dt,t);updateMist(dt);
       foxes.forEach(function(f){f.update(dt,t);});updateCharm(dt,t);sky.update(t);stageDeco.forEach(function(d){if(d)d.update(dt,t);});if(dayBg&&dayBg.on)dayBg.update(dt,t);},
@@ -2438,6 +2439,18 @@ var BS=(function(){
     halos.forEach(function(h,q){j=q?1:0;h.material.color.setHex(mixHex(A.halo[j],B.halo[j],k));});
     paintPlat(mixHex(A.plat[0],B.plat[0],k),mixHex(A.plat[1],B.plat[1],k),mixHex(A.plat[2],B.plat[2],k));};
   api.ribbons=function(on){sky.show(on);};   // 第三關的紅飄帶（最終戰只在第三段「月」）
+  // 最終戰第三段遮住月亮的冥界的霧（03：沒有信時月下被冥界的霧遮住、暗暗的；有信時每次鈴彈開，霧就散一點，第四句時完全是月下）。
+  //   天空和月亮前面、石台後面幾片很大的灰青色霧（z −18），慢慢左右飄；貼圖一點一點算（DataTexture），第一次要用才建。segFog(k)：1＝整片遮住、0＝散光
+  var veil=null,VEIL=[[-6,12,24,10,0.55],[5,13,26,11,0.6],[0,8.5,30,10,0.5],[-9,6,20,8,0.45],[8,7,22,9,0.5],[2,15,28,9,0.45]];   // [x, y, 寬, 高, 最濃的不透明度]
+  function veilTex(){var w=128,h=64,D=new Uint8Array(w*h*4),s=23,N=8,grid=[],x,y;function R(){s=(s*16807)%2147483647;return s/2147483647;}
+    for(y=0;y<=N+1;y++){grid.push([]);for(x=0;x<=N*2+1;x++)grid[y].push(R());}
+    function vn(u,v){var i=Math.floor(u),j=Math.floor(v),fu=u-i,fv=v-j;fu=fu*fu*(3-2*fu);fv=fv*fv*(3-2*fv);var a=grid[j][i],b=grid[j][i+1],c=grid[j+1][i],d=grid[j+1][i+1];return (a+(b-a)*fu)*(1-fv)+(c+(d-c)*fu)*fv;}
+    for(y=0;y<h;y++)for(x=0;x<w;x++){var u=x/(w-1),v=y/(h-1),dx=(u-0.5)*2,dy=(v-0.5)*2,r=Math.sqrt(dx*dx+dy*dy),n=0.6*vn(u*N*2,v*N)+0.4*vn(u*N*2*1.9%(N*2),v*N*1.7%N),k=(y*w+x)*4;
+      D[k]=D[k+1]=D[k+2]=255;D[k+3]=Math.round(255*Math.max(0,Math.min(1,smoothstep(1,0.25,r)*(0.35+0.85*n))));}
+    var t=new THREE.DataTexture(D,w,h,THREE.RGBAFormat);t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.generateMipmaps=true;t.needsUpdate=true;return t;}
+  api.segFog=function(k){if(!veil){if(k<=0.001)return;var tex=veilTex();
+      veil=VEIL.map(function(f,i){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:0x8aa6a2,transparent:true,opacity:0,depthWrite:false}));sp.position.set(f[0],f[1],-18);sp.scale.set(f[2],f[3],1);sc.add(sp);return {s:sp,f:f,ph:i*1.7};});}
+    veil.forEach(function(v){v.s.material.opacity=v.f[4]*k;v.s.visible=k>0.001;});};
   // 最終戰第三段（src/final.js）：月亮被冥界的霧遮住、暗暗的；有信時鈴每彈開一次就亮一點。k＝0（最暗）～1（平常）
   api.moonLight=function(k){moonK=0.3+0.7*Math.max(0,Math.min(1,k));moon.material.color.copy(moonBase).multiplyScalar(moonK);};
   api.deco=function(k){return stageDeco[k];};
@@ -2452,7 +2465,7 @@ var BS=(function(){
     nightSky.visible=moon.visible=!day;halos.forEach(function(h){h.visible=!day;});clouds.forEach(function(c){c.visible=!day;});if(dayBg)dayBg.show(day);
     stars.renderOrder=day?-7:0;sparks.forEach(function(sp){sp.renderOrder=day?-7:0;});   // 白天先畫星星，太陽和紗幔才蓋得住（跟外面一樣）
     cm.material=day?dayBg.cloudMat:nightCloudMat;co.material.uniforms.color.value.setHex(day?dayBg.DAY_OL:0xcaa972);islOl.uniforms.color.value.setHex(day?dayBg.DAY_OL:0xc9a660);rimLine.visible=!day;
-    moonBase.setHex(dj?0xff6a5c:0xffffff);moonK=1;moon.material.color.copy(moonBase);skyMat.uniforms.tintK.value=0;halos.forEach(function(h,j){h.material.color.setHex(dj?(j?0xff7a68:0xc86a86):(j?0xffe6b0:0x9fb0e0));});   // 第三關：偏紅的血月（場景打光不變）
+    moonBase.setHex(dj?0xff6a5c:0xffffff);moonK=1;moon.material.color.copy(moonBase);skyMat.uniforms.tintK.value=0;if(veil)veil.forEach(function(v){v.s.visible=false;});halos.forEach(function(h,j){h.material.color.setHex(dj?(j?0xff7a68:0xc86a86):(j?0xffe6b0:0x9fb0e0));});   // 第三關：偏紅的血月（場景打光不變）
     var fc=FIRECOL[k]||FIRECOL[0];fireP.forEach(function(q,i){q.s.material.color.setHex(i%3?fc[0]:fc[1]);q.life=0;});tipGlow.forEach(function(g){g.material.color.setHex(fc[2]);});};
   return api;
 })();
@@ -7117,7 +7130,7 @@ el.addEventListener('click',function(){if(cred&&cred.t>1.5)cred.skip=true;});
 //   第三段一開始，月亮被冥界的霧遮住、暗暗的（沒有信就一直暗著）。有信時戴鈴的狐狸把媚惑彈開（bellBounce）：粉紅光打過去、鈴大聲響、
 //   一圈金光，她講下一句（CONFIG.talk['final-bell']，浮在她旁邊、遊戲不暫停），月亮亮一點，第四句時完全亮。戴鈴但還沒有信：照常被迷住，鈴很輕地叮一聲。
 //   手速太快（血停在最後一小截）：鈴每幾秒自己響一次（bellAuto），講完剩下的、月亮完全亮起來，之後血條鬆開（bellFree）。
-//   背景「霧散開、完全是月下的窗邊」先只做月亮亮起來（場景借第三關的紫藤血月）。
+//   背景：第三段一開始冥界的霧把月亮遮住（BS.segFog），有信時霧跟著月亮變亮一點一點散開，第四句時完全是月下（場景借第三關的紫藤血月）。
 var barEl=document.getElementById('bossbar'),gemsEl=barEl.querySelector('.gems');
 var GEM=new THREE.Color(0xe9d8ff),WHITE=new THREE.Color(0xffffff);
 var BELL='gold-bell',FOXES=['fire','water','wood','light','dark','heart'],SLOTS=['head','neck','tail'];   // 金鈴（第三關妲己的掉落）；隊伍＝六隻狐狸
@@ -7130,8 +7143,8 @@ function breakGem(){var list=gemsEl.querySelectorAll('i:not(.gone)'),g=list[list
   var q=gemXY(g);g.classList.add('gone');AudioFX.unlock();ringFx(q.x,q.y,L.cs*0.1,L.cs*0.9,WHITE,0.4);
   for(var k=0;k<10;k++){var a=k/10*Math.PI*2,sp=L.cs*(1.2+0.4*(k%3));emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp,0.5,L.cs*0.08,GEM,L.cs*4);}}
 // 換段：這一場（SES）中途換了（重新開始、回庭院）就不演下去
-// 月亮慢慢亮到 k（0～1）
-function moonTo(k){var from=moonNow,id=++moonTw;return tween(1.2,function(v){if(id!==moonTw)return;moonNow=from+(k-from)*v;BS.moonLight(moonNow);});}
+// 月亮慢慢亮到 k（0～1），冥界的霧跟著散開（1−k）：第三段一開始 k＝0（月亮暗、霧整片遮住），有信時每講一句往上，第四句完全是月下
+function moonTo(k){var from=moonNow,id=++moonTw;return tween(1.2,function(v){if(id!==moonTw)return;moonNow=from+(k-from)*v;BS.moonLight(moonNow);BS.segFog(1-moonNow);});}
 function hasBell(){var bl=battle.bell;return !!(bl&&bl.fox.some(Boolean));}
 // 鈴響：那幾隻狐狸身上一圈金光、金色光點往上飄（loud＝彈開媚惑那種大聲；不然是很輕的叮）
 function ring(foxes,loud){AudioFX.goldBell(loud?1:0.18);foxes.forEach(function(j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.3,L.cs*(loud?1.8:0.9),GOLD,loud?0.6:0.35);
