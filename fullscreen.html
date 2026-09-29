@@ -83,7 +83,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   box-shadow:0 0 10px rgba(201,166,255,.45);transition:transform .15s,box-shadow .15s}
 #bossCd.charge{transform:scale(1.25);border-color:#ffb3c8;box-shadow:0 0 22px rgba(255,140,190,.95);color:#fff}
 #bossCd.sealed{transform:scale(1.35);border-color:#8fd0ff;color:#e6f6ff;box-shadow:0 0 0 5px rgba(120,190,255,.3),0 0 26px rgba(110,180,255,.95)}
-#fx2d{position:absolute;top:0;left:0;pointer-events:none}
+#fx2d{position:absolute;top:calc(-1 * var(--safe-top));left:0;pointer-events:none}   /* 全螢幕（第四輪）：大招全版特效從螢幕頂畫起、蓋滿整個螢幕（高度由 layout 設）；還放在 #frame 裡，疊的順序照舊 */
 #bossCd.hidden{opacity:0}
 #teambar{padding:0 16px}
 #teambar .fill{background:linear-gradient(90deg,#f09ab8,#f5cf8a)}
@@ -4962,9 +4962,11 @@ var AudioFX=(function(){
 // 2D 特效層（render/fx2d.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/fx2d.js：大招全版特效（半透明、集中在畫面邊緣、不擋操作）
+   全螢幕（2026-09-29 第四輪）：這一層蓋滿整個螢幕（瀏海、底部橫條後面也畫）：W、H 是整個螢幕，邊光貼螢幕的邊；
+   OY＝安全框的上緣在這一層的 y（上面安全區的高度，電腦上是 0）。對準遊戲東西的（媚惑的珠盤、暗狐的爪痕）要加 OY，位置才跟框裡一樣。
    ===================================================================== */
 var FX2D=(function(){
-  var cv=document.getElementById('fx2d'),g=cv.getContext('2d'),W=1,H=1,dpr=1,list=[],drawn=false,buffT=0,buffLeft=0,buffMotes=[];
+  var cv=document.getElementById('fx2d'),g=cv.getContext('2d'),W=1,H=1,OY=0,dpr=1,list=[],drawn=false,buffT=0,buffLeft=0,buffMotes=[];
   var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches,DENS=RM?0.4:1;
   function sprite(size,draw){var c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);return c;}
   function heartPath(x,cx,cy,s){x.beginPath();x.moveTo(cx,cy+0.6*s);x.bezierCurveTo(cx-1.1*s,cy-0.1*s,cx-0.55*s,cy-0.95*s,cx,cy-0.35*s);x.bezierCurveTo(cx+0.55*s,cy-0.95*s,cx+1.1*s,cy-0.1*s,cx,cy+0.6*s);x.closePath();}
@@ -5017,7 +5019,7 @@ var FX2D=(function(){
       es.forEach(function(p){var tt=t-p.d;if(tt<0)return;var y=p.y-p.v*tt,x=p.x+Math.sin(tt*6+p.ph)*8,s=p.s*(1-tt*0.35);if(s<=0)return;
         g.globalAlpha=Math.max(0,0.75*fade*(0.6+0.4*Math.sin(tt*20+p.ph)));g.drawImage(EMBER,x-s/2,y-s/2,s,s);});g.globalAlpha=1;}};}
   // 暗狐：三道紫色爪痕瞬間劃過戰場，白光一閃、畫面短暫變暗
-  function claws(){var cx=W*0.5,cy=L.battleY+L.battleH*0.55,ms=[0,1,2].map(function(k){var off=(k-1)*W*0.1;
+  function claws(){var cx=W*0.5,cy=OY+L.battleY+L.battleH*0.55,ms=[0,1,2].map(function(k){var off=(k-1)*W*0.1;
       return {x0:cx-W*0.36+off,y0:cy-L.battleH*0.36,x1:cx+W*0.26+off,y1:cy+L.battleH*0.32,cx:cx-W*0.02+off+W*0.1,cy:cy-L.battleH*0.08,d:k*0.045};});
     function pt(m,s){var u=1-s;return [u*u*m.x0+2*u*s*m.cx+s*s*m.x1,u*u*m.y0+2*u*s*m.cy+s*s*m.y1];}
     return {t:0,dur:0.8,draw:function(t){var fade=fadeOf(t,0.02,0.38,0.8);g.fillStyle='rgba(16,8,36,'+0.28*fade+')';g.fillRect(0,0,W,H);edgeGlow('150,90,255',0.24*fade,90);
@@ -5043,7 +5045,7 @@ var FX2D=(function(){
   for(var wi=0;wi<6;wi++)wisps.push({x:(wi+0.5)/6+rand(-0.04,0.04),ph:rand(0,TAU),sp:rand(0.18,0.3),w:rand(10,16),amp:rand(0.035,0.06)});
   var LILAC=dot('235,190,255');
   function drawCharm(dt){charmK+=((charmOn?1:0)-charmK)*Math.min(1,dt*(charmOn?2.2:1.6));if(charmK<0.004){charmK=0;return false;}charmT+=dt;var k=charmK,t=charmT;
-    var bx=L.bx-8,by=L.by-8,bw=L.cs*COLS+16,bh=L.cs*ROWS+16,cx=bx+bw/2,cy=by+bh/2,i;
+    var bx=L.bx-8,by=OY+L.by-8,bw=L.cs*COLS+16,bh=L.cs*ROWS+16,cx=bx+bw/2,cy=by+bh/2,i;
     g.save();g.beginPath();g.rect(bx,by,bw,bh);g.clip();
     // 四周一圈淡紫
     var gr=g.createRadialGradient(cx,cy,Math.min(bw,bh)*0.3,cx,cy,Math.max(bw,bh)*0.72);gr.addColorStop(0,'rgba(200,120,255,0)');gr.addColorStop(1,'rgba(200,120,255,'+(0.3*k)+')');g.fillStyle=gr;g.fillRect(bx,by,bw,bh);
@@ -5061,7 +5063,7 @@ var FX2D=(function(){
     g.globalAlpha=1;g.restore();return true;}
   var MAKE={vines:vines,hearts:hearts,wave:wave,embers:embers,claws:claws,gold:goldFlash};
   return {
-    resize:function(w,h){dpr=Math.min(window.devicePixelRatio||1,2);W=w;H=h;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.width=w+'px';cv.style.height=h+'px';drawn=true;},
+    resize:function(w,h,oy){dpr=Math.min(window.devicePixelRatio||1,2);W=w;H=h;OY=oy||0;cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.width=w+'px';cv.style.height=h+'px';drawn=true;},
     play:function(kind){var e=MAKE[kind]();list.push(e);},
     setBuff:function(left){if(left>0&&buffLeft<=0)buffT=0;buffLeft=left;},
     setCharm:function(on){charmOn=!!on;},
@@ -5132,7 +5134,7 @@ function layout(){
   ortho.left=0;ortho.right=W;ortho.top=0;ortho.bottom=-H;ortho.updateProjectionMatrix();
   bcam.aspect=W/H;bcam.updateProjectionMatrix();
   clip.constant=-(L.by-0.1*L.cs);
-  rebuildBase();BS.layoutTeam();GARDEN.resize();TEAM.resize();WARD.resize();FX2D.resize(W,H);
+  rebuildBase();BS.layoutTeam();GARDEN.resize();TEAM.resize();WARD.resize();FX2D.resize(W,H+F.st+F.sb,F.st);   // 大招的全版特效蓋滿整個螢幕（#fx2d 往上移到螢幕頂，見 index.html）
   document.getElementById('muteBtn').style.top=Math.max(6,(L.topH-36)/2)+'px';
   topEl.style.height=L.topH+'px';
   bossBarEl.style.top=(L.topH+2)+'px';
