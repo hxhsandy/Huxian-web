@@ -6032,6 +6032,7 @@ var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else i
 //   沖之前 warn 秒先預告（丟 letheWarn，這時候選好要沖哪幾排：彩色珠最多的；平手隨機）。
 // 搬進 src/mechanics/ 時要改的：選排要看盤面，這裡是從 state.js 直接拿 board（接口的 onEvent 拿不到 board）；
 //   可以讓 place 時才選排、預告改成畫法自己算，或讓 onEvent 多給 board。隨機要換成 prng。
+function grayOnBoard(s) { var n = 0; for (var r = 0; r < board.R; r++) for (var c = 0; c < board.C; c++) { var o = board.g[r][c]; if (o && s.gray.has(o.id)) n++; } return n; }
 function colored(s, c) { var n = 0; for (var r = 0; r < board.R; r++) { var o = board.g[r][c]; if (o && o.type >= 0 && !o.special && !s.gray.has(o.id)) n++; } return n; }
 function pick(s, n) {
   var best = -1, list = [], c, k;
@@ -6041,24 +6042,24 @@ function pick(s, n) {
   return cols;
 }
 var LETHE = {
-  key: 'lethe',   // CONFIG.stages[k].lethe：{first, interval, enrageInterval, cols, enrageCols, warn}
+  key: 'lethe',   // CONFIG.stages[k].lethe：{first, interval, enrageInterval, cols, enrageCols, warn, max}（max：盤面上最多幾顆灰珠，滿了這一次就不沖；不給＝不限）
   battle: {
     init: function (b, cfg) { b.letheT = cfg ? cfg.first : Infinity; b.letheWarned = false; },   // letheT：下一次沖還剩幾秒
     tick: function (b, dt, cfg, ev) {
       b.letheT -= dt;
-      if (!b.letheWarned && b.letheT <= cfg.warn) { b.letheWarned = true; ev.push({ type: 'letheWarn', n: b.enraged ? cfg.enrageCols : cfg.cols }); }
+      if (!b.letheWarned && b.letheT <= cfg.warn) { b.letheWarned = true; ev.push({ type: 'letheWarn', n: b.enraged ? cfg.enrageCols : cfg.cols, max: cfg.max || Infinity }); }
       if (b.letheT <= 0) { ev.push({ type: 'lethe' }); b.letheWarned = false; b.letheT += b.enraged ? cfg.enrageInterval : cfg.interval; }
     } },
   // cols：預告選好、還沒沖的排；pending：該沖了、等盤面停下來；gray：被沖過的珠子 id（選排時不算彩色）
   session: function () { return { cols: null, pending: false, gray: new Set() }; },
   onEvent: function (e, s) {
-    if (e.type === 'letheWarn') { s.cols = pick(s, e.n); e.cols = s.cols; }   // e.cols 給畫法的預告用（邏輯的 onEvent 先跑）
+    if (e.type === 'letheWarn') { s.cols = grayOnBoard(s) >= e.max ? null : pick(s, e.n); e.cols = s.cols; }   // e.cols 給畫法的預告用（邏輯的 onEvent 先跑）；灰珠滿了就不預告、不沖
     if (e.type === 'lethe' && s.cols) s.pending = true;
   },
-  place: function (bd, s) {
+  place: function (bd, s, cfg) {
     if (!s.pending) return null;
-    s.pending = false; var cols = s.cols, cells = []; s.cols = null;
-    cols.forEach(function (c) { for (var r = 0; r < bd.R; r++) { var o = bd.g[r][c]; if (o && o.type >= 0 && !o.special) { cells.push({ r: r, c: c, id: o.id }); s.gray.add(o.id); } } });
+    s.pending = false; var cols = s.cols, cells = [], room = (cfg && cfg.max || Infinity) - grayOnBoard(s); s.cols = null;
+    cols.forEach(function (c) { for (var r = 0; r < bd.R; r++) { var o = bd.g[r][c]; if (o && o.type >= 0 && !o.special && !s.gray.has(o.id) && room > 0) { room--; cells.push({ r: r, c: c, id: o.id }); s.gray.add(o.id); } } });
     return { cols: cols, cells: cells };   // 空的排也照樣沖（畫面上看得到水）
   }
 };
@@ -6069,10 +6070,11 @@ var LETHE = {
 //   ⚠️ 搬進 src 時要改：drawCover 換掉的珠，syncOrbs 後面的 drawOrb（鎖）、劍氣／爆符的記號都不會畫。
 //   試玩場只開忘川一招、而且特殊珠不會被沖灰，所以沒事；最終戰要跟別的招一起出現，正式版要改成在 syncOrbs 裡換材質。
 
-var GRAY = 0xc8cdd2, GRAY_PLATE = 0x8e8a82, WATER = 0xd4f6ff, DRIP = new THREE.Color(0xc8f4ff), POUR = 0.42;
+var GRAY = 0x8f969d, GRAY_PLATE = 0x5f5d5a,   // 2026-09-29 CK：原本 c8cdd2 太亮眼，壓暗
+    WATER = 0xd4f6ff, DRIP = new THREE.Color(0xc8f4ff), POUR = 0.42;
 function inst(geo, mat) { var m = new THREE.InstancedMesh(geo, mat, CAP); m.frustumCulled = false; m.count = 0; boardScene.add(m); return m; }
 // 灰珠：跟原本的珠同一個形狀，材質換成灰白、不太反光（褪色的感覺）；底盤從金色褪成灰
-var grayMat = new THREE.MeshPhongMaterial({ color: GRAY, shininess: 12, specular: 0x151515, emissive: 0x1c1f23, clippingPlanes: [clip] });
+var grayMat = new THREE.MeshPhongMaterial({ color: GRAY, shininess: 12, specular: 0x151515, emissive: 0x111316, clippingPlanes: [clip] });
 var plateMat = new THREE.MeshBasicMaterial({ color: GRAY_PLATE, clippingPlanes: [clip] });
 var GM = ORB.map(function (o) { var m = inst(o.geo, grayMat); m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CAP * 3), 3); return { m: m, p: inst(o.pg, plateMat), n: 0 }; });
 // 水：直條貼圖（幾道亮一點的直紋），往下捲動
@@ -6136,13 +6138,13 @@ var LETHE_VIEW = {
 // 機制試玩場（3／3）：遊戲載入好之後，把新機制放進機制清單、換到指定的關卡開戰，加一個小面板（換數字、換場景）。
 // 網址參數（都可以不給）：
 //   ?stage=1～6   用哪一關的場景、BOSS 模型、血量、時限（預設 1）；那一關原本的招會關掉（&keep=1 留著，看兩招一起）
-//   &every=7 &enrage=5   多久沖一次（秒）／狂暴後多久一次　&cols=1 &ecols=2   一次沖幾排／狂暴後幾排
-//   &warn=1   預告幾秒　&first=4   開場第幾秒第一次　&allgray=1   開場整盤都是灰的（只看灰珠長相、分不分得出來）
+//   &every=12 &enrage=9   多久沖一次（秒）／狂暴後多久一次　&cols=1 &ecols=2   一次沖幾排／狂暴後幾排
+//   &max=12   盤面上最多幾顆灰珠（滿了這一次就不沖；0＝不限）　&warn=1   預告幾秒　&first=4   開場第幾秒第一次　&allgray=1   開場整盤都是灰的（只看灰珠長相、分不分得出來）
 //   &shot=1   不顯示面板（截圖用）
 
 var Q = new URLSearchParams(location.search), g = window.__game;
 function num(k, d, lo, hi) { var v = parseFloat(Q.get(k)); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; }
-var P = { every: num('every', 7, 2, 30), enrage: num('enrage', 5, 2, 30), cols: num('cols', 1, 1, 3) | 0, ecols: num('ecols', 2, 1, 4) | 0,
+var P = { every: num('every', 12, 2, 30), enrage: num('enrage', 9, 2, 30), max: num('max', 0, 0, 42) | 0, cols: num('cols', 1, 1, 3) | 0, ecols: num('ecols', 2, 1, 4) | 0,
   warn: num('warn', 1, 0.3, 3), first: num('first', 4, 1, 20), stage: num('stage', 1, 1, 6) | 0, allgray: Q.get('allgray') === '1', keep: Q.get('keep') === '1' };
 
 // 1. 放進機制清單（邏輯、畫法各一份；清單是同一個陣列，遊戲的主迴圈、Battle 會照著跑）
@@ -6150,7 +6152,7 @@ MECHS.push(LETHE); MECH_VIEW_LIST.push(LETHE_VIEW); MECH_VIEWS.lethe = LETHE_VIE
 // 2. 那一關換成夢婆的試玩：原本的招關掉（除非 keep）、掛上忘川
 var st = CONFIG.stages[P.stage - 1];
 if (!P.keep) ['lock', 'petal', 'cord', 'shard', 'charm'].forEach(function (k) { st[k] = null; });
-st.lethe = { first: P.first, interval: P.every, enrageInterval: P.enrage, cols: P.cols, enrageCols: P.ecols, warn: Math.min(P.warn, P.every - 0.5) };
+st.lethe = { first: P.first, interval: P.every, enrageInterval: P.enrage, cols: P.cols, enrageCols: P.ecols, warn: Math.min(P.warn, P.every - 0.5), max: P.max || Infinity };
 st.name = '夢婆（試玩）';
 // 3. 開戰（試玩場的存檔是分開的，隨便打）
 g.APP.stage = P.stage - 1; g.startTrial();
@@ -6166,16 +6168,17 @@ if (!Q.get('shot')) {
     '#labBox a{display:inline-block;margin:4px 6px 0 0;padding:3px 10px;border:1px solid rgba(159,227,240,.5);border-radius:999px;color:#f1ead6;text-decoration:none}#labBox a.on{background:rgba(159,227,240,.25)}';
   document.head.appendChild(css);
   var btn = document.createElement('button'), box = document.createElement('div'); btn.id = 'labBtn'; btn.type = 'button'; btn.textContent = '💧'; btn.setAttribute('aria-label', '機制試玩場'); box.id = 'labBox';
-  var cur = { every: P.every, enrage: P.enrage, cols: P.cols, ecols: P.ecols, warn: P.warn, stage: P.stage };
+  var cur = { every: P.every, enrage: P.enrage, cols: P.cols, ecols: P.ecols, warn: P.warn, max: P.max, stage: P.stage };
   function link(over, txt) {
     var o = Object.assign({}, cur, { allgray: '' }, over), p = new URLSearchParams();
     Object.keys(o).forEach(function (k) { if (o[k] !== '' && o[k] !== undefined) p.set(k, o[k]); });
     var on = Object.keys(over).every(function (k) { return String(over[k]) === String(k === 'allgray' ? (P.allgray ? '1' : '') : cur[k]); });
     return '<a' + (on ? ' class="on"' : '') + ' href="?' + p + '">' + txt + '</a>';
   }
-  var h = '<h4>💧 夢婆・忘川（素版）</h4><small>現在：每 ' + P.every + ' 秒沖 ' + P.cols + ' 排，狂暴後每 ' + P.enrage + ' 秒沖 ' + P.ecols + ' 排；預告 ' + P.warn + ' 秒。灰珠照樣能消、照樣集能量。</small>' +
-    '<h4>多常沖</h4>' + link({ every: 7, enrage: 5 }, '預設 7 秒／狂暴 5 秒') + link({ every: 5, enrage: 4 }, '更勤 5／4') + link({ every: 10, enrage: 8 }, '跟前面的關卡一樣 10／8') +
-    '<h4>一次幾排</h4>' + link({ cols: 1, ecols: 2 }, '一排／狂暴兩排') + link({ cols: 2, ecols: 3 }, '兩排／狂暴三排') +
+  var h = '<h4>💧 夢婆・忘川（素版）</h4><small>現在：每 ' + P.every + ' 秒沖 ' + P.cols + ' 排，狂暴後每 ' + P.enrage + ' 秒沖 ' + P.ecols + ' 排；預告 ' + P.warn + ' 秒；灰珠' + (P.max ? '最多 ' + P.max + ' 顆' : '不限') + '。灰珠照樣能消、照樣集能量。</small>' +
+    '<h4>多常沖</h4>' + link({ every: 12, enrage: 9 }, '預設 12 秒／狂暴 9 秒') + link({ every: 15, enrage: 12 }, '更慢 15／12') + link({ every: 10, enrage: 8 }, '10／8') + link({ every: 7, enrage: 5 }, '第一版 7／5') +
+    '<h4>一次幾排</h4>' + link({ cols: 1, ecols: 2 }, '一排／狂暴兩排') + link({ cols: 1, ecols: 1 }, '狂暴也一排') + link({ cols: 2, ecols: 3 }, '兩排／狂暴三排') +
+    '<h4>灰珠上限（滿了就不沖）</h4>' + link({ max: 0 }, '不限') + link({ max: 12 }, '最多 12 顆') + link({ max: 18 }, '最多 18 顆') +
     '<h4>預告</h4>' + link({ warn: 1 }, '1 秒') + link({ warn: 1.5 }, '1.5 秒') + link({ warn: 0.6 }, '0.6 秒') +
     '<h4>灰珠長相</h4>' + link({ allgray: 1 }, '開場整盤都灰') + link({ allgray: '' }, '正常') +
     '<h4>場景（BOSS 模型、血量、時限跟著那一關）</h4>' + [1, 2, 3, 4, 5, 6].map(function (k) { return link({ stage: k }, '第 ' + k + ' 關'); }).join('');
