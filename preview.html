@@ -5396,7 +5396,7 @@ function updateCharmTags(){for(var i=0;i<6;i++){var el=charmTags[i],left=battle.
 // 浮愛心（2026-09-29 CK 定）：被迷住的狐狸，盤面上跟牠同顏色的珠子浮出淡淡的愛心，一眼就知道「現在消這個顏色，這隻打不到 BOSS」。
 // 只是提示：能量照樣累積，規則一行都沒改。迷住結束（時間到醒來、被清心解除）愛心淡掉。
 // 看的是 battle.charmed（第 i 隻狐狸＝第 i 種顏色的珠子），所以最終戰第三段「月」的媚惑也一樣會浮。
-// 每顆愛心從珠子中間往上飄、飄到上緣縮掉，一直循環（每顆珠子錯開，v.ph）。
+// 愛心停在珠子正中間，像心臟跳動一樣一縮一放（2026-09-29 CK 改：原本往上飄，會跟心狐的技能搞混）。
 // 網格在這裡建（這個 module 載入時，排在既有的網格後面，不影響它們的編號和畫的順序）；沒有愛心時整個藏起來，不多一個 draw call。
 var HEART_TEX=canvasTex(128,128,function(g,n){var c=n/2,s=n*0.36;
   function heart(){g.beginPath();g.moveTo(c,c+0.62*s);g.bezierCurveTo(c-1.15*s,c-0.1*s,c-0.55*s,c-0.98*s,c,c-0.36*s);g.bezierCurveTo(c+0.55*s,c-0.98*s,c+1.15*s,c-0.1*s,c,c+0.62*s);g.closePath();}
@@ -5406,6 +5406,9 @@ var HEART_TEX=canvasTex(128,128,function(g,n){var c=n/2,s=n*0.36;
   g.fillStyle='rgba(255,255,255,.85)';g.beginPath();g.ellipse(c-0.42*s,c-0.42*s,0.17*s,0.09*s,-0.6,0,TAU);g.fill();});
 var heartMesh=new THREE.InstancedMesh(PLANE,new THREE.MeshBasicMaterial({map:HEART_TEX,transparent:true,opacity:0.75,depthWrite:false,clippingPlanes:[clip]}),42);
 heartMesh.frustumCulled=false;heartMesh.count=0;heartMesh.visible=false;boardScene.add(heartMesh);
+// 心跳：1.1 秒一拍，「撲、通」兩下再停一下（放大 22%、14%）
+function beat(p,c,w){var d=(p-c)/w;return d>0&&d<1?Math.sin(d*Math.PI):0;}
+function heartbeat(t){var p=(t%1.1)/1.1;return 1+0.22*beat(p,0,0.12)+0.14*beat(p,0.22,0.12);}
 var hk=[0,0,0,0,0,0],hn=0,hT=-1;   // hk[i]：第 i 種顏色的愛心現在顯示到幾成（淡入淡出）；hn：這一格畫了幾顆；hT：上一格的時間
 var CHARM_VIEW={
   key:'charm',
@@ -5416,8 +5419,8 @@ var CHARM_VIEW={
   reset:function(){hk=[0,0,0,0,0,0];hn=0;hT=-1;heartMesh.count=0;heartMesh.visible=false;},   // 開新的一場：愛心直接收掉
   drawBegin:function(){hn=0;},
   drawOrb:function(v,x,y,z,K,s,t){var k=v.type>=0?hk[v.type]:0;if(!(k>0)||hn>=42)return;
-    var p=((t*0.5+v.ph*0.159)%1+1)%1,sc=K*s*1.8*k*Math.min(1,p/0.15)*(p>0.75?(1-p)/0.25:1);   // 一開始很快長出來、最後四分之一縮掉
-    setM(heartMesh,hn++,x+Math.sin(t*2.6+v.ph)*K*0.1,y+K*s*(0.05+0.7*p),z+K*1.1*s,Math.sin(t*2+v.ph)*0.18,sc,sc,1);},
+    var sc=K*s*1.3*k*heartbeat(t);   // 2026-09-29 CK：往上飄會跟心狐的技能搞混 → 改成停在珠子上、像心臟跳動（所有愛心同一個節奏）
+    setM(heartMesh,hn++,x,y,z+K*1.1*s,0,sc,sc,1);},
   drawEnd:function(t){heartMesh.count=hn;heartMesh.visible=hn>0;heartMesh.instanceMatrix.needsUpdate=true;
     var dt=hT<0?0:Math.min(0.1,Math.max(0,t-hT));hT=t;   // 淡入淡出（下一格起生效）
     for(var i=0;i<6;i++){var on=battle.charmed&&battle.charmed[i]>0&&G.mode!=='result'?1:0;hk[i]+=(on-hk[i])*Math.min(1,dt*(on?5:4));if(!on&&hk[i]<0.01)hk[i]=0;}},
