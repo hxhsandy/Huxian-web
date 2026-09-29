@@ -3,6 +3,21 @@
 <head>
 <meta charset="utf-8">
 <script>/* 全螢幕新版預覽頁：預設打開 ?fps 效能小窗（只有這個預覽頁這樣，正式版不會） */if(!/[?&]fps/.test(location.search))history.replaceState(null,"",location.pathname+(location.search?location.search+"&fps":"?fps")+location.hash);</script>
+<script>/* 預覽頁試修（2026-09-29 遊星）：CK 的 iPhone 12 加到主畫面時，底下少畫 47px。推測是 100dvh 在主畫面模式等於「螢幕扣掉瀏海」(797)，
+   所以主畫面模式改用 100vh；另外在效能小窗下面印出各種高度，截圖就能確認。只在這個預覽頁，原始碼還沒改。 */
+(function(){var sa=navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  if(sa)document.documentElement.classList.add('standalone');
+  var st=document.createElement('style');st.textContent='html.standalone,html.standalone body{height:100vh}#diagBox{position:fixed;left:4px;bottom:calc(46px + var(--safe-bottom,0px));z-index:99;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.6);color:#ff9;font:11px/1.35 monospace;white-space:pre;pointer-events:none}';
+  document.head.appendChild(st);
+  document.addEventListener('DOMContentLoaded',function(){
+    var d=document.createElement('div');d.id='diagBox';document.body.appendChild(d);
+    var m=document.createElement('div');m.style.cssText='position:absolute;left:-9px;top:0;width:1px;visibility:hidden;pointer-events:none';document.body.appendChild(m);
+    function u(x){m.style.height=x;return Math.round(m.getBoundingClientRect().height);}
+    function tick(){var g=document.getElementById('game'),p=document.getElementById('safeProbe'),cs=p?getComputedStyle(p):null;
+      d.textContent='主畫面 '+(sa?'是':'否')+'  螢幕 '+screen.height+'  inner '+innerHeight+'\nbody '+document.body.clientHeight+'  game '+(g?g.clientHeight:'-')+'  vh '+u('100vh')+'  dvh '+u('100dvh')+'  lvh '+u('100lvh')+
+        '\n安全區 上 '+(cs?parseFloat(cs.paddingTop):'-')+' 下 '+(cs?parseFloat(cs.paddingBottom):'-');}
+    tick();setInterval(tick,1000);});})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
 <meta name="apple-mobile-web-app-capable" content="yes">
