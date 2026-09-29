@@ -438,105 +438,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .cvChal.done{border-color:rgba(232,198,126,.5)}
 .cvChal.done em{display:inline}
 </style>
-</head>
-<body>
-<div id="game">
-  <canvas id="c" aria-label="狐仙三消"></canvas>
-  <canvas id="fx2d" class="bhud" aria-hidden="true"></canvas>
-  <div id="topbar" class="hud bhud">
-    <button id="pauseBtn" type="button" aria-label="暫停"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="1" width="3.6" height="12" rx="1.2"/><rect x="8.4" y="1" width="3.6" height="12" rx="1.2"/></svg></button>
-    <div id="timer"><b>60</b><small>秒</small></div><span></span>
-  </div>
-  <button id="muteBtn" type="button" aria-label="關閉音效"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3.5v11L6 12H3z" fill="currentColor" style="fill:var(--gold);stroke:none"/><path class="on" d="M13 7.2a4 4 0 0 1 0 5.6M15.2 5a7 7 0 0 1 0 10"/><path class="off" d="M13.5 7.5l5 5M18.5 7.5l-5 5"/></svg></button>
-  <div id="bossbar" class="hud bhud"><div class="brow"><span class="name">三尾狐</span><span class="attr">木</span><span class="rage">狂暴中</span><span class="num">12000</span></div><div class="bar"><i class="lag"></i><i class="fill"></i></div></div>
-  <div id="bossCd" class="hud bhud hidden">8</div>
-  <div id="teambar" class="hud bhud"><div class="trow"><span>隊伍血量<span id="chips"></span></span><span class="num">1000 / 1000</span></div><div class="bar"><i class="lag"></i><i class="fill"></i></div></div>
-  <div id="combo" class="hud bhud"><b>0</b><span>Combo</span><i class="cring" aria-hidden="true"></i></div>
-  <div id="toast" class="hud bhud toast"><span>沒有可以消的步了，重新洗牌</span></div>
-  <div id="banner" class="hud bhud toast"><span>三尾狐狂暴了，攻擊變快</span></div>
-  <div id="ultBanner" class="hud bhud"><small>火狐</small><b>狐火連彈</b></div>
-  <div id="fx" class="hud bhud"></div>
-  <div id="charmTags" class="hud bhud" aria-hidden="true"></div>
-  <div id="gStars" class="ghud"><svg viewBox="-50 -50 100 100" aria-hidden="true"><path d="M0.0 -46.0 L12.1 -16.6 L43.7 -14.2 L19.5 6.3 L27.0 37.2 L0.0 20.5 L-27.0 37.2 L-19.5 6.3 L-43.7 -14.2 L-12.1 -16.6 Z"/></svg><span>星星</span><b id="gStarNum">0/2</b></div>
-  <div id="gReset" class="ghud" role="dialog" aria-label="清除全部進度"><p>清除全部進度，從頭開始？<small>星星、飾品、穿搭、大招變奏、挑戰都會清掉，而且沒辦法復原。</small></p><div><button type="button" id="gResetNo">取消</button><button type="button" id="gResetYes">全部清除</button></div></div>
-  <button id="gWard" class="ghud gBtn" type="button" aria-label="換裝"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 10c-2.2-2.6-5.6-4.2-6.6-2.8-.9 1.3.2 4.8 1.6 5.4 1.4.6 3.4-1 5-2.6zM10 10c2.2-2.6 5.6-4.2 6.6-2.8.9 1.3-.2 4.8-1.6 5.4-1.4.6-3.4-1-5-2.6z"/><path d="M9 11l-2.2 5.2M11 11l2.2 5.2"/><circle cx="10" cy="10" r="1.3"/></svg></button>
-  <button id="gSaveBtn" class="ghud gBtn" type="button" aria-label="存檔備份"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4h9.5a1.8 1.8 0 0 1 0 3.6H14V15a1.8 1.8 0 0 1-1.8 1.8H4.6A1.8 1.8 0 0 1 2.8 15v-.6H11"/><path d="M5 4a1.8 1.8 0 0 0-1.8 1.8V14.4M7 8.5h4.5M7 11.2h4.5"/></svg></button>
-  <button id="gMap" class="ghud gBtn" type="button" aria-label="地圖" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.8 5.4l4.6-1.9 5.2 1.9 4.6-1.9v11.6l-4.6 1.9-5.2-1.9-4.6 1.9z"/><path d="M7.4 3.5v11.6M12.6 5.4V17"/></svg></button>
-  <div id="gMapBox" class="ghud" role="dialog" aria-label="地圖"><b>地圖</b><p>傳送到各章的主島</p><div id="gMapList"></div></div>
-  <div id="gSave" class="ghud" role="dialog" aria-label="存檔備份">
-    <b>存檔備份</b>
-    <p>把這串備份碼存起來（例如貼到備忘錄）。換手機或資料被清掉時，貼回來就能還原星星、飾品和穿搭。</p>
-    <textarea id="gSaveOut" rows="3" readonly aria-label="備份碼"></textarea>
-    <div class="row"><button type="button" id="gSaveCopy">複製備份碼</button></div>
-    <hr>
-    <p>還原：貼上之前存的備份碼，目前的進度會被取代。</p>
-    <textarea id="gSaveIn" rows="3" placeholder="貼在這裡" aria-label="貼上備份碼"></textarea>
-    <div class="row"><button type="button" id="gSaveClose">關閉</button><button type="button" id="gSaveLoad">還原</button></div>
-    <p id="gSaveMsg" aria-live="polite"></p>
-  </div>
-  <div id="gTitle" class="ghud"><b>月下小院</b></div>
-  <div id="gHint" class="ghud hide"><span></span></div>
-  <div id="gToast" class="ghud toast"><span></span></div>
-  <div id="gChal" class="ghud" role="dialog" aria-labelledby="gChalT"><small>新的試煉</small><b id="gChalT">挑戰任務已解鎖</b><p>每一關都多了一個挑戰，<br>完成可以拿到新的飾品。</p><button type="button" id="gChalOk">好</button></div>
-  <div id="lvBox" class="ghud" role="dialog" aria-label="關卡資訊">
-    <div class="lvHead"><small id="lvTitle">第一關</small><span class="lvDone"><svg viewBox="-50 -50 100 100" aria-hidden="true"><path d="M0.0 -46.0 L12.1 -16.6 L43.7 -14.2 L19.5 6.3 L27.0 37.2 L0.0 20.5 L-27.0 37.2 L-19.5 6.3 L-43.7 -14.2 L-12.1 -16.6 Z"/></svg>已通關</span></div>
-    <b id="lvName">三尾狐</b>
-    <div class="lvRow"><i id="lvAttr">木</i><span id="lvWeakRow">被<em id="lvWeak">火</em>剋制</span></div>
-    <p id="lvSkill"></p>
-    <p id="lvChal" class="lvChal"><span>挑戰</span><b id="lvChalText"></b><em>已達成</em></p>
-    <button id="lvGo" type="button">進入關卡</button>
-  </div>
-  <div id="gFlash" class="ghud" aria-hidden="true"></div>
-  <div id="starRing" class="ghud" aria-hidden="true"></div>
-  <div id="teamHud" class="thud" data-stage="0">
-    <button id="backBtn" type="button" aria-label="回到庭院">‹</button>
-    <div class="cvTop"><span id="cvSeries">狐仙三消　月下試煉</span><span id="cvIssue">第一關</span></div>
-    <h1 class="cvName" id="cvName">三尾狐</h1>
-    <p class="cvDeck" id="cvDeck">竹林月夜</p>
-    <div class="cvSide">
-      <p class="cvHead" id="cvHead"></p>
-      <p class="cvLore" id="cvLore"></p>
-      <dl class="cvStats"><dt>屬性</dt><dd><i id="cvAttr">木</i></dd><dt>弱點</dt><dd id="cvWeak">火</dd><dt>血量</dt><dd id="cvHp">12,000</dd><dt>時限</dt><dd id="cvTime">60 秒</dd><dt>攻擊</dt><dd id="cvAtk">每 8 秒</dd></dl>
-      <div class="cvSkill"><b id="cvSkillName">狂暴</b><span id="cvSkillText"></span></div>
-    </div>
-    <p class="cvTag" id="cvTag"></p>
-    <div class="cvFoot">
-      <div class="cvPills"><button id="cvUlt" type="button" class="cvUlt" hidden><span>大招</span><b id="cvUltList"></b><i aria-hidden="true"></i></button><div id="cvChal" class="cvChal" hidden><span>挑戰</span><b id="cvChalText"></b><em>已達成</em></div></div>
-      <div class="sigilLabel">選一個隊伍符印</div>
-      <div class="cvRow"><div class="sigils" id="sigils"></div><button id="goBtn" type="button" class="goBtn">開始試煉</button></div>
-      <p id="sigilDesc"></p>
-    </div>
-  </div>
-  <div id="wardHud" class="whud">
-    <button id="wBack" type="button" aria-label="回到庭院">‹</button>
-    <div class="wTitle">換裝</div>
-    <div id="wNew" aria-live="polite"></div>
-    <div class="wName"><b id="wName">小狐狸</b><small id="wSub"></small></div>
-    <div class="wPanel">
-      <div class="wFoxes" id="wFoxes" role="tablist" aria-label="選狐狸"></div>
-      <div class="wTabs" role="tablist" aria-label="部位"><button type="button" class="wTab" data-slot="head">頭飾</button><button type="button" class="wTab" data-slot="neck">頸飾</button><button type="button" class="wTab" data-slot="tail">尾飾</button><button type="button" class="wTab" data-slot="ult">大招</button></div>
-      <div class="wGrid" id="wGrid"></div>
-      <p class="wHint" id="wHint" aria-live="polite"></p>
-    </div>
-  </div>
-  <div id="overlay">
-    <div class="panel" id="pStart"><h2>狐仙三消</h2><p>在 60 秒內用三消打倒三尾狐。<br>每消一組珠，同屬性的狐狸就會出手。</p>
-      <button class="btn" id="startBtn" type="button">開始</button><p class="tip">滑動相鄰的兩顆珠交換，連成三顆以上就消除。<br>能量集滿的狐狸會跳起來，點牠放大招。<br>火屬性剋三尾狐，水屬性打牠只有一半傷害。</p></div>
-    <div class="panel" id="pPause"><h2>暫停</h2><p id="pauseSub">計時和三尾狐的攻擊都停下來了。</p>
-      <button class="btn" id="resumeBtn" type="button">繼續</button><button class="btn ghost" id="restartBtn" type="button">重新開始</button><button class="btn ghost" id="homeBtn" type="button">回到庭院</button>
-      <button class="infoToggle" id="infoToggle" type="button" aria-expanded="false" aria-controls="infoBody"><span>關卡與技能介紹</span><i class="chev" aria-hidden="true"></i></button>
-      <div class="infoBody" id="infoBody"><div class="infoInner" id="infoInner"></div></div></div>
-    <div class="panel" id="pResult"><h2 id="rTitle">勝利</h2><p id="rSub">三尾狐被打倒了</p><p class="rDrop" id="rDrop"></p>
-      <dl><dt>總傷害</dt><dd id="rDmg">0</dd><dt>最高連擊</dt><dd id="rCombo">0</dd><dt>剩餘時間</dt><dd id="rTime">0 秒</dd></dl>
-      <button class="btn" id="againBtn" type="button">再來一場</button><button class="btn ghost" id="homeBtn2" type="button">回到庭院</button></div>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-(function(){
-'use strict';
-if(!window.THREE){var t=document.getElementById('toast');t.classList.add('show');t.querySelector('span').textContent='3D 引擎沒有載入成功，請重新整理頁面';return;}
+  <script type="module" crossorigin>// 3D 引擎（three.js 從 cdnjs 載入）沒載到就跳提示、停下整個遊戲程式。
+// 原本寫在整支程式最前面的 return；拆成 module 之後頂層不能 return，改成丟錯誤讓後面的 module 都不執行。
+if(!window.THREE){const t=document.getElementById('toast');t.classList.add('show');t.querySelector('span').textContent='3D 引擎沒有載入成功，請重新整理頁面';throw new Error('THREE 沒有載入');}
 
 /* =====================================================================
    config.js：所有可調數值（改完重新整理就生效）
@@ -650,6 +554,7 @@ var COLS=CONFIG.board.cols,ROWS=CONFIG.board.rows,NT=CONFIG.orbs.length,A=CONFIG
 var TAU=Math.PI*2;
 function rand(a,b){return a+Math.random()*(b-a);}
 
+// 三消邏輯（board.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    board.js：三消邏輯（完全不碰畫面）
    盤面 g[r][c]，r=0 是最上排；每顆珠 {id,type,special,dir}
@@ -749,19 +654,19 @@ Board.prototype.buildWave=function(ctx){
         bl.kind='taiji_'+x.special;convert={kind:'convert',from:[bl.r,bl.c],items:[]};
         for(ci=0;ci<N;ci++){var o=self.at(ci);if(o&&o!==x&&o.type===t&&!o.special&&!o.locked){o.special=x.special;o.dir=x.special==='sword'?(Math.random()<0.5?'h':'v'):null;convert.items.push({id:o.id,special:o.special,dir:o.dir});}}
         for(ci=0;ci<N;ci++){var o2=self.at(ci);if(o2&&o2.type===t&&(o2.special==='sword'||o2.special==='bomb')&&mark(ci,1,'b0'))bl.cells.push(ci);}
-      }else{
+      }else {
         bl.kind='taiji_color';
         for(ci=0;ci<N;ci++){var o3=self.at(ci);if(o3&&o3.type===t&&mark(ci,1,'b0'))bl.cells.push(ci);}
       }
-    }else{
+    }else {
       used[a.id]=used[b.id]=1;mark(atCi,0,'c');mark(otCi,0,'c');
       var ks=[a.special,b.special].sort().join('+'),r0=ctx.at[0],c0=ctx.at[1],list=[];
       if(ks==='sword+sword'){bl.kind='cross';for(i=0;i<C;i++)list.push(r0*C+i);for(i=0;i<R;i++)list.push(i*C+c0);}
       else if(ks==='bomb+sword'){bl.kind='swordbomb';for(j=-1;j<=1;j++){var rr=r0+j,cc=c0+j;if(rr>=0&&rr<R)for(i=0;i<C;i++)list.push(rr*C+i);if(cc>=0&&cc<C)for(i=0;i<R;i++)list.push(i*C+cc);}}
-      else{bl.kind='bigbomb';for(i=r0-2;i<=r0+2;i++)for(j=c0-2;j<=c0+2;j++)if(i>=0&&j>=0&&i<R&&j<C)list.push(i*C+j);}
+      else {bl.kind='bigbomb';for(i=r0-2;i<=r0+2;i++)for(j=c0-2;j<=c0+2;j++)if(i>=0&&j>=0&&i<R&&j<C)list.push(i*C+j);}
       list.forEach(function(q){if(mark(q,1,'b0'))bl.cells.push(q);});
     }
-  }else{
+  }else {
     var fg=this.findGroups();if(!fg.length)return null;
     var moved=ctx&&ctx.moved,sps=fg.map(function(gp){var sp=self.decideSpawn(gp,moved);if(sp)prot[sp.ci]=1;return sp;});
     fg.forEach(function(gp,gi){var sp=sps[gi],got=0;
@@ -806,7 +711,7 @@ Board.prototype.applyClear=function(cl){var self=this;
   cl.items.forEach(function(it){self.g[it.r][it.c]=null;});
   (cl.unlocks||[]).forEach(function(u){var o=self.g[u.r][u.c];if(o)o.locked=false;});
   (cl.reveals||[]).forEach(function(u){var o=self.g[u.r][u.c];if(o)o.petal=false;});
-  (cl.shards||[]).forEach(function(u){if(u.left<=0)self.g[u.r][u.c]=null;else{var o=self.g[u.r][u.c];if(o)o.hp=u.left;}});
+  (cl.shards||[]).forEach(function(u){if(u.left<=0)self.g[u.r][u.c]=null;else {var o=self.g[u.r][u.c];if(o)o.hp=u.left;}});
   (cl.cords||[]).forEach(function(h){for(var i=0;i<self.cords.length;i++)if(self.cords[i].id===h.id){self.cords[i].bells=h.bells;if(h.bells<=0)self.cords.splice(i,1);break;}});
   cl.spawns.forEach(function(s){var o=self.g[s.r][s.c];if(o){o.special=s.special;o.dir=s.dir;if(s.special==='taiji')o.type=-1;}});};
 Board.prototype.collapse=function(){var C=this.C,R=this.R,moves=[],spawns=[],c,r;
@@ -879,6 +784,7 @@ Board.prototype.trySwap=function(r1,c1,r2,c2){
   if(!this.lineAt(r1,c1)&&!this.lineAt(r2,c2)){this.swapCells(r1,c1,r2,c2);return {valid:false,a:a.id,b:b.id};}
   return {valid:true,a:a.id,b:b.id,steps:this.resolve({moved:[[r2,c2],[r1,c1]]})};};
 
+// 戰鬥邏輯（battle.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    battle.js：傷害、連擊、BOSS 攻擊與勝負（完全不碰畫面）
    ===================================================================== */
@@ -888,23 +794,13 @@ Battle.prototype.reset=function(stage,sigil){var b=this.cfg.battle;stage=stage||
   this.time=stage.time||b.time;this.bossMax=this.bossHp=stage.hp;this.teamMax=this.teamHp=b.teamHp+(sigil.hp||0);
   this.atk=stage.interval;this.charging=false;this.enraged=false;this.combo=0;this.maxCombo=0;this.total=0;this.shield=false;
   var e0=sigil.energy||0;this.energy=[e0,e0,e0,e0,e0,e0];this.buff=0;this.dmgMul=1+(sigil.dmg||0);
-  this.lockT=stage.lock?stage.lock.interval:Infinity;
-  this.charmed=[0,0,0,0,0,0];this.charmT=stage.charm?stage.charm.interval:Infinity;this.charmGuard=0;
-  this.petalT=stage.petal?stage.petal.interval:Infinity;this.revealed=0;
-  this.cordT=stage.cord?stage.cord.first:Infinity;this.untied=0;          // 紅繩（第五關）：cordT 下一條還剩幾秒；untied：這場解開幾條（挑戰用）
-  this.shardT=stage.shard?stage.shard.first:Infinity;this.shattered=0;this.glare=0;this.glares=0;};   // 鏡片（第六關）：shattered 打碎幾片；glare 反照還剩幾秒；glares 這場反照幾次   // petalT：下一次落英還剩幾秒；revealed：這場吹開幾片花瓣（第四關挑戰用）   // charmGuard：清心的保護剩幾秒   // charmed：每隻狐狸剩下幾秒被媚惑
-Battle.prototype.isCharmed=function(i){return this.charmed[i]>0;};
-// 清心：解除所有媚惑，guard 秒內媚惑會被擋下；回傳被解除的狐狸
-Battle.prototype.clearCharm=function(guard){var out=[];for(var i=0;i<6;i++)if(this.charmed[i]>0){this.charmed[i]=0;out.push(i);}this.charmGuard=Math.max(this.charmGuard,guard||0);return out;};
+  var self=this;MECHS.forEach(function(m){m.battle.init(self,stage[m.key]||null);});};   // BOSS 機制（mechanics/）各自設好計時器和計數：鎖鏈、落英、紅繩、天鏡、媚惑
 Battle.prototype.advMul=function(type){var b=this.cfg.battle,key=this.cfg.orbs[type].key,boss=this.boss.attr;
   if(BEATS[key]===boss)return b.advUp;if(BEATS[boss]===key)return b.advDown;return 1;};
 // 單發傷害 D = B × (1 + 0.25 × (n − 3)) × (1 + 0.1 × c) × A × S
 Battle.prototype.shot=function(type,n,S){var b=this.cfg.battle,A=this.advMul(type);
   var d=b.baseAtk*Math.max(0.25,1+b.nBonus*(n-3))*(1+b.comboBonus*this.combo)*A*(S||1)*this.buffMul()*this.glareMul()*this.dmgMul;
   return {dmg:Math.max(1,Math.round(d)),adv:A>1?'up':A<1?'down':null,A:A};};
-// 反照：盤面上的鏡片全部打碎時由畫面端呼叫（鏡片的碎法在 Board）；glare 秒內傷害 ×glareMul，再打碎一輪就重新算秒
-Battle.prototype.startGlare=function(){if(!this.boss.shard)return;this.glare=this.boss.shard.glare;this.glares++;};
-Battle.prototype.glareMul=function(){return this.glare>0&&this.boss.shard?this.boss.shard.glareMul:1;};
 Battle.prototype.addCombo=function(){this.combo++;if(this.combo>this.maxCombo)this.maxCombo=this.combo;return this.combo;};
 Battle.prototype.hitBoss=function(d){if(this.bossHp<=0)return {killed:false,enraged:false,dealt:0};
   var bb=this.boss,dealt=Math.min(d,this.bossHp),en=false;this.bossHp-=dealt;this.total+=dealt;
@@ -918,27 +814,126 @@ Battle.prototype.healPct=function(p){var before=this.teamHp;this.teamHp=Math.min
 Battle.prototype.ultDamage=function(type){var b=this.cfg.battle,u=this.cfg.ult,A=this.advMul(type),key=this.cfg.orbs[type].key,d;
   if(key==='dark')d=b.baseAtk*u.dark.mult*Math.max(1,this.combo)*A;else d=b.baseAtk*u.fire.mult*A*(1+b.comboBonus*this.combo);
   return {dmg:Math.max(1,Math.round(d*this.buffMul()*this.glareMul()*this.dmgMul)),adv:A>1?'up':A<1?'down':null,A:A};};
-Battle.prototype.tick=function(dt){var ev=[],bb=this.boss;
+Battle.prototype.tick=function(dt){var ev=[],bb=this.boss,self=this;
   this.time=Math.max(0,this.time-dt);this.atk-=dt;this.buff=Math.max(0,this.buff-dt);
   if(!this.charging&&this.atk<=bb.charge){this.charging=true;ev.push({type:'charge'});}
   if(this.atk<=0){this.charging=false;var raw=Math.round(this.teamMax*bb.hitPct),dmg=this.shield?Math.round(raw*(1-this.cfg.ult.heart.shield)):raw;
     this.shield=false;this.teamHp=Math.max(0,this.teamHp-dmg);ev.push({type:'attack',dmg:dmg,blocked:raw-dmg});
     this.atk+=this.enraged?bb.enrageInterval:bb.interval;}
-  if(bb.lock){this.lockT-=dt;if(this.lockT<=0){ev.push({type:'lock',count:this.enraged?bb.lock.enrageCount:bb.lock.count});this.lockT+=this.enraged?bb.lock.enrageInterval:bb.lock.interval;}}
-  if(bb.petal){this.petalT-=dt;if(this.petalT<=0){ev.push({type:'petal',count:this.enraged?bb.petal.enrageCount:bb.petal.count});this.petalT+=this.enraged?bb.petal.enrageInterval:bb.petal.interval;}}
-  if(bb.cord){var cd=bb.cord;this.cordT-=dt;if(this.cordT<=0){ev.push({type:'cord',len:this.enraged?cd.enrageLen:cd.len,bells:cd.bells});this.cordT+=this.enraged?cd.enrageInterval:cd.interval;}}
-  if(bb.shard){var sd=bb.shard;this.shardT-=dt;if(this.shardT<=0){ev.push({type:'shard',count:this.enraged?sd.enrageCount:sd.count});this.shardT+=this.enraged?sd.enrageInterval:sd.interval;}}
-  if(this.glare>0){this.glare=Math.max(0,this.glare-dt);if(this.glare===0)ev.push({type:'glareEnd'});}
-  if(bb.charm){var cm=bb.charm,i;
-    for(i=0;i<6;i++)if(this.charmed[i]>0){this.charmed[i]=Math.max(0,this.charmed[i]-dt);if(this.charmed[i]===0)ev.push({type:'uncharm',fox:i});}
-    this.charmGuard=Math.max(0,this.charmGuard-dt);this.charmT-=dt;
-    if(this.charmT<=0&&this.charmGuard>0){ev.push({type:'charmBlocked'});this.charmT+=this.enraged?cm.enrageInterval:cm.interval;}   // 清心保護中：這次媚惑被擋下
-    else if(this.charmT<=0){var pool=[],got=[];for(i=0;i<6;i++)if(this.charmed[i]<=0)pool.push(i);
-      for(var n=0;n<cm.count&&pool.length;n++)got.push(pool.splice((Math.random()*pool.length)|0,1)[0]);
-      for(i=0;i<got.length;i++)this.charmed[got[i]]=cm.dur;if(got.length)ev.push({type:'charm',foxes:got});
-      this.charmT+=this.enraged?cm.enrageInterval:cm.interval;}}
+  MECHS.forEach(function(m){var c=bb[m.key];if(c)m.battle.tick(self,dt,c,ev);});   // BOSS 機制（mechanics/），照清單順序：鎖鏈、落英、紅繩、天鏡（含反照倒數）、媚惑，跟拆包前一樣
   if(this.time<=0)ev.push({type:'timeup'});
   return ev;};
+
+// 鎖鏈（第二關 黑三尾狐）的邏輯：BOSS 定時丟出「鎖」、盤面停下來時把珠子鎖上。不碰畫面（畫法在 lock_view.js）。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 盤面規則（被鎖的珠不能換、旁邊消掉就解開、洗牌時保留…）還在 Board 裡，有邏輯測試保護；這一包只呼叫 Board 的 lockRandom。
+//
+// 每一包機制的接口（邏輯這一半；新的機制照這個樣子寫，放進 index.js 的清單）：
+//   key                       對應 CONFIG.stages[k][key] 的設定；這一關沒有這個機制就是 null
+//   battle.init(b,cfg)        Battle.reset 時呼叫，設好這包自己的計時器（cfg 為 null＝這一場沒有這招）
+//   battle.tick(b,dt,cfg,ev)  Battle.tick 時呼叫（只在 cfg 有值時），要讓畫面知道的事推進 ev
+//   session()                 這一場卡著的狀態，放在 SES.mech[key]（beginBattle 開場整個換新）
+//   onEvent(e,s)              主迴圈收到 Battle 的事件；s＝SES.mech[key]
+//   place(board,s,cfg)        盤面停下來時呼叫：把卡著的東西放上盤面（盤面操作），回傳要給畫法播的資料；null＝這次不動盤面
+//   onClear(b,st,s)           消珠的每一步（Board 算好的 st），當下要記的數字（選填；紅繩：解開幾條；天鏡：打碎幾片）
+//   afterMove(b,board,s,cfg,fighting)  走完一步、整串連鎖停下來時檢查；回傳 true＝觸發了，流程接著叫畫法的 afterMove()（選填；天鏡：反照）
+// 選填：session／onEvent／place 只有會在盤面上卡東西的機制才要（媚惑作用在狐狸身上，沒有）。
+// cfg 一律由呼叫的一方給（現在是這一關的設定），之後最終戰分段換招時，換的是 cfg，這一包不用改。
+var MAX=8;   // 盤面上最多幾顆被鎖（原本寫在主迴圈裡）
+function lockedCount(board){var n=0;board.g.forEach(function(row){row.forEach(function(o){if(o&&o.locked)n++;});});return n;}
+var LOCK={
+  key:'lock',   // CONFIG.stages[k].lock：{interval, enrageInterval, count, enrageCount}
+  battle:{
+    init:function(b,cfg){b.lockT=cfg?cfg.interval:Infinity;},
+    tick:function(b,dt,cfg,ev){b.lockT-=dt;if(b.lockT<=0){ev.push({type:'lock',count:b.enraged?cfg.enrageCount:cfg.count});b.lockT+=b.enraged?cfg.enrageInterval:cfg.interval;}}},
+  session:function(){return {pending:0};},   // pending：盤面忙的時候 BOSS 丟過來、還沒鎖上的顆數
+  onEvent:function(e,s){if(e.type==='lock')s.pending+=e.count;},
+  place:function(board,s){if(s.pending<=0)return null;var n=Math.min(s.pending,Math.max(0,MAX-lockedCount(board)));s.pending=0;
+    return n>0?board.lockRandom(n):null;}   // 回傳被鎖上的格子（可能是空的：盤面上找不到能鎖的珠）
+};
+
+// 落英（第四關 桃夭）的邏輯：BOSS 定時丟出「落英」、盤面停下來時花瓣蓋住珠子；花瓣被吹開的片數算挑戰。不碰畫面（畫法在 petal_view.js）。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock.js 開頭。
+// 盤面規則（花瓣蓋住的珠、旁邊消掉就吹開…）還在 Board 裡，有邏輯測試保護；這一包只呼叫 Board 的 petalRandom、petalCount。
+var PETAL={
+  key:'petal',   // CONFIG.stages[k].petal：{interval, enrageInterval, count, enrageCount, max}
+  battle:{
+    init:function(b,cfg){b.petalT=cfg?cfg.interval:Infinity;b.revealed=0;},   // petalT：下一次落英還剩幾秒；revealed：這場吹開幾片（第四關挑戰用）
+    tick:function(b,dt,cfg,ev){b.petalT-=dt;if(b.petalT<=0){ev.push({type:'petal',count:b.enraged?cfg.enrageCount:cfg.count});b.petalT+=b.enraged?cfg.enrageInterval:cfg.interval;}}},
+  session:function(){return {pending:0};},   // pending：盤面忙的時候飄過來、還沒蓋上的片數
+  onEvent:function(e,s){if(e.type==='petal')s.pending+=e.count;},
+  place:function(board,s,cfg){if(s.pending<=0)return null;var n=Math.min(s.pending,Math.max(0,(cfg?cfg.max:10)-board.petalCount()));s.pending=0;
+    return n>0?board.petalRandom(n):null;},
+  revealed:function(b){b.revealed++;}   // 一片花瓣被吹開：畫法播到那一刻呼叫（時機跟拆包前一樣，打到一半結束時沒播到的不算）
+};
+
+// 媚惑（第三關 妲己）的邏輯：BOSS 定時迷住幾隻狐狸（被迷住的不出手、大招按不下去），時間到自己醒來；清心保護中會被擋下。不碰畫面（畫法在 charm_view.js）。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock.js 開頭。
+// 作用在狐狸身上、不在盤面上，所以沒有 session／place；被迷住時「能量照算但不攻擊」的判斷在流程裡（battle.isCharmed）。
+// 之後媚惑如果改做法（例如「被迷住的狐狸，牠的珠子掛小愛心，消掉就醒」），改這一包和 charm_view.js 就好。
+var CHARM={
+  key:'charm',   // CONFIG.stages[k].charm：{interval, enrageInterval, dur, count}
+  battle:{
+    // charmed[i]：第 i 隻還要被迷住幾秒；charmT：下一次媚惑還剩幾秒；charmGuard：清心（心狐大招變奏）保護還剩幾秒。
+    // 這一場沒有媚惑也要把 charmed 設成 0：大招、HUD 每一關都會讀它。
+    init:function(b,cfg){b.charmed=[0,0,0,0,0,0];b.charmT=cfg?cfg.interval:Infinity;b.charmGuard=0;},
+    tick:function(b,dt,cfg,ev){var cm=cfg,i;
+    for(i=0;i<6;i++)if(b.charmed[i]>0){b.charmed[i]=Math.max(0,b.charmed[i]-dt);if(b.charmed[i]===0)ev.push({type:'uncharm',fox:i});}
+    b.charmGuard=Math.max(0,b.charmGuard-dt);b.charmT-=dt;
+    if(b.charmT<=0&&b.charmGuard>0){ev.push({type:'charmBlocked'});b.charmT+=b.enraged?cm.enrageInterval:cm.interval;}   // 清心保護中：這次媚惑被擋下
+    else if(b.charmT<=0){var pool=[],got=[];for(i=0;i<6;i++)if(b.charmed[i]<=0)pool.push(i);
+      for(var n=0;n<cm.count&&pool.length;n++)got.push(pool.splice((Math.random()*pool.length)|0,1)[0]);
+      for(i=0;i<got.length;i++)b.charmed[got[i]]=cm.dur;if(got.length)ev.push({type:'charm',foxes:got});
+      b.charmT+=b.enraged?cm.enrageInterval:cm.interval;}}}
+};
+// Battle 上跟媚惑有關的兩個方法：流程（出手、大招、能量）、清心大招、勝率模擬（tests/balance.js）都會叫，所以掛在 Battle 上、由這一包負責。
+Battle.prototype.isCharmed=function(i){return this.charmed[i]>0;};
+// 清心：解除所有媚惑，guard 秒內媚惑會被擋下；回傳被解除的狐狸
+Battle.prototype.clearCharm=function(guard){var out=[];for(var i=0;i<6;i++)if(this.charmed[i]>0){this.charmed[i]=0;out.push(i);}this.charmGuard=Math.max(this.charmGuard,guard||0);return out;};
+
+// 紅繩（第五關 塗山）的邏輯：BOSS 定時在兩行珠子之間拉一條掛鈴鐺的紅繩，盤面停下來時拉上去；鈴鐺震光就解開（解開幾條算挑戰）。不碰畫面（畫法在 cord_view.js）。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock.js 開頭。
+// 盤面規則（隔著繩不能交換、橫的連線穿不過去 wallH、旁邊消掉就震落鈴鐺…）照交接信留在 Board；這一包只呼叫 Board 的 cordRandom、看 board.cords。
+var CORD={
+  key:'cord',   // CONFIG.stages[k].cord：{first, interval, enrageInterval, len, enrageLen, bells, max}
+  battle:{
+    init:function(b,cfg){b.cordT=cfg?cfg.first:Infinity;b.untied=0;},   // 紅繩（第五關）：cordT 下一條還剩幾秒；untied：這場解開幾條（挑戰用）
+    tick:function(b,dt,cfg,ev){var cd=cfg;b.cordT-=dt;if(b.cordT<=0){ev.push({type:'cord',len:b.enraged?cd.enrageLen:cd.len,bells:cd.bells});b.cordT+=b.enraged?cd.enrageInterval:cd.interval;}}},
+  session:function(){return {pending:null};},   // pending：盤面忙的時候 BOSS 要拉的那一條（len、bells），停下來才拉；只記最新的一條
+  onEvent:function(e,s){if(e.type==='cord')s.pending=e;},
+  place:function(board,s,cfg){var p=s.pending;if(!p)return null;s.pending=null;
+    if(cfg&&board.cords.length<cfg.max){var cw=board.cordRandom(p.len,p.bells);if(cw)return cw;}return null;},   // 回傳拉好的那一條；盤面上已經滿了、或找不到位置就不拉
+  onClear:function(b,st){(st.cords||[]).forEach(function(h){if(h.bells<=0)b.untied++;});}   // 消珠的這一步：鈴鐺掉光的繩子算解開一條（當下就算，跟拆包前一樣）
+};
+
+// 天鏡（第六關 天狐）的邏輯：BOSS 定時射出小圓鏡蓋在珠子上，旁邊消掉珠會裂、再打就碎；盤面上的鏡片全部打碎時「反照」——
+// glare 秒內傷害 ×glareMul。不碰畫面（畫法在 shard_view.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock.js 開頭。
+// 盤面規則（鏡片不能換、旁邊消掉扣一下、碎掉…）照交接信留在 Board；這一包只呼叫 Board 的 shardRandom、shardCount。
+var SHARD={
+  key:'shard',   // CONFIG.stages[k].shard：{first, interval, enrageInterval, count, enrageCount, max, hits, bonus, glare, glareMul}
+  battle:{
+    init:function(b,cfg){b.shardT=cfg?cfg.first:Infinity;b.shattered=0;b.glare=0;b.glares=0;},   // 鏡片（第六關）：shattered 打碎幾片；glare 反照還剩幾秒；glares 這場反照幾次
+    tick:function(b,dt,cfg,ev){var sd=cfg;b.shardT-=dt;if(b.shardT<=0){ev.push({type:'shard',count:b.enraged?sd.enrageCount:sd.count});b.shardT+=b.enraged?sd.enrageInterval:sd.interval;}
+      if(b.glare>0){b.glare=Math.max(0,b.glare-dt);if(b.glare===0)ev.push({type:'glareEnd'});}}},   // 反照倒數：glare 只會在有天鏡的關卡大於 0（startGlare 會先檢查），所以放在這一包
+  session:function(){return {pending:0,broke:false};},   // pending：還沒射上盤面的鏡片數；broke：這一步打碎了鏡片（原本的 S.shardBroke）
+  onEvent:function(e,s){if(e.type==='shard')s.pending+=e.count;},
+  place:function(board,s,cfg){if(s.pending<=0)return null;var n=Math.min(s.pending,Math.max(0,(cfg?cfg.max:8)-board.shardCount()));s.pending=0;
+    return n>0?board.shardRandom(n,cfg&&cfg.hits):null;},
+  onClear:function(b,st,s){if(st.shards&&st.shards.length){var brk=st.shards.filter(function(u){return u.left<=0;}).length;if(brk){s.broke=true;b.shattered+=brk;}}},
+  // 走完一步、整串連鎖都停下來：這一步打碎了鏡片、而且盤面上一片都不剩 → 反照（回傳 true，流程再叫畫法）
+  afterMove:function(b,board,s,cfg,fighting){if(!s.broke)return false;s.broke=false;if(board.shardCount()===0&&cfg&&fighting){b.startGlare();return true;}return false;}
+};
+// Battle 上跟反照有關的兩個方法：傷害公式（Battle.shot／ultDamage）和勝率模擬會叫，所以掛在 Battle 上、由這一包負責。
+// 反照：盤面上的鏡片全部打碎時由畫面端呼叫（鏡片的碎法在 Board）；glare 秒內傷害 ×glareMul，再打碎一輪就重新算秒
+Battle.prototype.startGlare=function(){if(!this.boss.shard)return;this.glare=this.boss.shard.glare;this.glares++;};
+Battle.prototype.glareMul=function(){return this.glare>0&&this.boss.shard?this.boss.shard.glareMul:1;};
+
+// BOSS 機制的邏輯清單（交接信第 4 步：一種機制一包）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 清單的順序＝每一格處理的順序（Battle.tick 丟事件、主迴圈把卡著的東西放上盤面）：鎖鏈 → 落英 → 紅繩 → 天鏡 → 媚惑，跟拆包前一樣。
+// 畫法的清單在 views.js（同一個順序）。
+var MECHS=[LOCK,PETAL,CORD,SHARD,CHARM];
+
+// 共用材質（render/common.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/common.js：共用材質、金邊、貼圖（沿用月下小狐）
    ===================================================================== */
@@ -961,12 +956,13 @@ function mergeGeos(geos){var vc=0,ic=0,i;
   geos.forEach(function(g){vc+=g.attributes.position.count;ic+=g.index?g.index.count:g.attributes.position.count;});
   var pos=new Float32Array(vc*3),nor=new Float32Array(vc*3),idx=new Uint32Array(ic),vo=0,io=0;
   geos.forEach(function(g){var n=g.attributes.position.count;pos.set(g.attributes.position.array,vo*3);nor.set(g.attributes.normal.array,vo*3);
-    if(g.index){var a=g.index.array;for(i=0;i<a.length;i++)idx[io+i]=a[i]+vo;io+=a.length;}else{for(i=0;i<n;i++)idx[io+i]=vo+i;io+=n;}vo+=n;});
+    if(g.index){var a=g.index.array;for(i=0;i<a.length;i++)idx[io+i]=a[i]+vo;io+=a.length;}else {for(i=0;i<n;i++)idx[io+i]=vo+i;io+=n;}vo+=n;});
   var m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.BufferAttribute(pos,3));m.setAttribute('normal',new THREE.BufferAttribute(nor,3));
   m.setIndex(new THREE.BufferAttribute(idx,1));m.computeBoundingSphere();return m;}
 function smoothstep(a,b,x){var t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);}
 var SPH=new THREE.SphereGeometry(1,22,16),SPH_LO=new THREE.SphereGeometry(1,16,12),PLANE=new THREE.PlaneGeometry(1,1);
 var _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_p=new THREE.Vector3(),_s=new THREE.Vector3(),_c=new THREE.Color();
+function setM(mesh,i,x,y,z,rz,sx,sy,sz){_e.set(0,0,rz);_q.setFromEuler(_e);_p.set(x,y,z);_s.set(sx,sy,sz);_m.compose(_p,_q,_s);mesh.setMatrixAt(i,_m);}   // 設定 instanced mesh 第 i 個的位置、z 軸旋轉、縮放（第 4 步從 flow.js 搬來，給各機制的畫法共用）
 
 var glowTex=canvasTex(128,128,function(g,w){var c=w/2,gr=g.createRadialGradient(c,c,0,c,c,c);
   gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.22,'rgba(255,255,255,.5)');gr.addColorStop(.55,'rgba(255,255,255,.12)');gr.addColorStop(1,'rgba(255,255,255,0)');
@@ -1012,7 +1008,7 @@ var runeTex=canvasTex(256,256,function(g,w){var c=w/2,i;
   for(i=0;i<8;i++){var a=i/8*TAU;g.save();g.translate(c+Math.cos(a)*c*0.78,c+Math.sin(a)*c*0.78);g.rotate(a+Math.PI/2);
     g.lineWidth=5.5;g.beginPath();
     if(i%2){g.moveTo(-8,-6);g.lineTo(8,-6);g.moveTo(0,-9);g.lineTo(0,9);g.moveTo(-7,5);g.lineTo(7,5);}
-    else{g.moveTo(-8,0);g.lineTo(8,0);g.moveTo(-4,-8);g.lineTo(-4,8);g.moveTo(4,-8);g.lineTo(4,8);}
+    else {g.moveTo(-8,0);g.lineTo(8,0);g.moveTo(-4,-8);g.lineTo(-4,8);g.moveTo(4,-8);g.lineTo(4,8);}
     g.stroke();g.restore();}
   g.fillStyle='#f08a6c';for(i=0;i<8;i++){var b=(i+0.5)/8*TAU;g.beginPath();g.arc(c+Math.cos(b)*c*0.78,c+Math.sin(b)*c*0.78,6,0,TAU);g.fill();}});
 // 太極珠
@@ -1041,6 +1037,7 @@ var MAPLE_TEX=(function(){var t=canvasTex(128,128,function(g,w){var c=w/2,cy=w*0
 var MAPLE_COL=[0xf07a2a,0xea6a28,0xf4892f,0xf07a2a,0xee7428,0xf38430,0xe9702a,0xf6c33a,0xf2b030,0xf8cc48];
 var MAPLE_MAT=new THREE.MeshBasicMaterial({map:MAPLE_TEX,alphaTest:0.45,side:THREE.DoubleSide});
 
+// 角色工廠（render/characters.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/characters.js：角色工廠
    每個角色對外只提供 idle(update) / jump / attack / ult / hit 這幾個動作，
@@ -1056,7 +1053,7 @@ function mergeGeosC(geos){var vc=0,ic=0,i;
   var pos=new Float32Array(vc*3),nor=new Float32Array(vc*3),col=new Float32Array(vc*3),idx=new Uint32Array(ic),vo=0,io=0;
   geos.forEach(function(g){var n=g.attributes.position.count;pos.set(g.attributes.position.array,vo*3);nor.set(g.attributes.normal.array,vo*3);
     if(g.attributes.color)col.set(g.attributes.color.array,vo*3);
-    if(g.index){var a=g.index.array;for(i=0;i<a.length;i++)idx[io+i]=a[i]+vo;io+=a.length;}else{for(i=0;i<n;i++)idx[io+i]=vo+i;io+=n;}vo+=n;});
+    if(g.index){var a=g.index.array;for(i=0;i<a.length;i++)idx[io+i]=a[i]+vo;io+=a.length;}else {for(i=0;i<n;i++)idx[io+i]=vo+i;io+=n;}vo+=n;});
   var m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.BufferAttribute(pos,3));m.setAttribute('normal',new THREE.BufferAttribute(nor,3));
   m.setAttribute('color',new THREE.BufferAttribute(col,3));m.setIndex(new THREE.BufferAttribute(idx,1));m.computeBoundingSphere();return m;}
 function bake(root,skip,mat){root.updateMatrixWorld(true);
@@ -1315,7 +1312,7 @@ function createFox(o){
     addOutline(bake(head,[],mat),ol);
     addOutline(bake(pivot,[head].concat(tails),mat),ol);
     addOutline(bake(body,[pivot],mat),ol);
-  }else{
+  }else {
     // walker（庭院小狐狸）：零件不合併，四隻腳才能各自擺動；每個零件換成同色的卡通材質並各自描邊，標了 nool 的不描
     var TM={};body.traverse(function(m){if(!m.isMesh||!m.material||!m.material.isMeshBasicMaterial)return;var hex=m.material.color.getHex();
       if(m.userData.blush&&o.blushAlpha){m.material=new THREE.MeshBasicMaterial({color:hex,transparent:true,opacity:o.blushAlpha});return;}
@@ -1329,7 +1326,7 @@ function createFox(o){
         eg.push(colorize(xf(SPH,0.135*sd,-0.017,0.218,0.034,0.0052,0.01,0,0.42*sd,0.28*sd),LN.red));                         // 下眼尾一道紅
         eg.push(colorize(xf(SPH,0.176*sd,0.006,0.194,0.024,0.0048,0.01,0,0.62*sd,0.5*sd),LN.red));}
       eg.push(colorize(xf(SPH,0.106*sd+0.012,0.012,0.2445,0.011,0.011,0.009),0xffffff));}
-    else{var eb=xf(SPH,0.105*sd,0,0.222,0.036,0.047,0.03);eg.push(o.eyeGrad?colorY(eb,o.eyeGrad[0],o.eyeGrad[1],-0.026,0.03):colorize(eb,C.eye));eg.push(colorize(xf(SPH,0.105*sd+0.0115,0.018,0.2445,0.0122,0.0122,0.009),0xffffff));}});
+    else {var eb=xf(SPH,0.105*sd,0,0.222,0.036,0.047,0.03);eg.push(o.eyeGrad?colorY(eb,o.eyeGrad[0],o.eyeGrad[1],-0.026,0.03):colorize(eb,C.eye));eg.push(colorize(xf(SPH,0.105*sd+0.0115,0.018,0.2445,0.0122,0.0122,0.009),0xffffff));}});
   var eyes=new THREE.Mesh(mergeGeosC(eg),new THREE.MeshBasicMaterial({vertexColors:true}));eyes.position.y=0.03;head.add(eyes);
   var EO=o.eyeOpen||1;if(o.eyeOpen){eyes.geometry.translate(0,0.047,0);eyes.position.y=0.03-0.047;}
   // 耳邊的大金鈴＋紅飄帶（妲己）
@@ -1413,7 +1410,7 @@ function createFox(o){
       if(o.walker){updItems(t);return;}   // walker：姿勢由外面（庭院的 updateFox）直接驅動零件，這裡只跑飾品的小動畫
       st.blinkT-=dt;if(st.blinkT<0){st.blink=0.14;st.blinkT=rand(2,5);}st.blink=Math.max(0,st.blink-dt);eyes.scale.y=st.blink>0?0.12:EO;
       var y=0,tilt=0,sq=1;
-      if(st.hopT>=0){st.hopT+=dt;var k=st.hopT/st.hopDur;if(k>=1)st.hopT=-1;else{y+=Math.sin(Math.PI*k)*st.hopH*S0;sq=1+0.08*Math.sin(Math.PI*k);}}
+      if(st.hopT>=0){st.hopT+=dt;var k=st.hopT/st.hopDur;if(k>=1)st.hopT=-1;else {y+=Math.sin(Math.PI*k)*st.hopH*S0;sq=1+0.08*Math.sin(Math.PI*k);}}
       if(st.jump)y+=Math.abs(Math.sin(t*6+st.ph))*0.14*S0;
       if(st.hitT>=0){st.hitT+=dt;if(st.hitT>0.45)st.hitT=-1;else tilt=-0.38*Math.sin(st.hitT/0.45*Math.PI);}
       if(o.hover)y+=Math.sin(t*1.3+st.ph)*o.hover;
@@ -1432,6 +1429,8 @@ function createFox(o){
         else g.rotation.set(-p*0.6,1.05+Math.sin(t*0.8+ph)*0.12,0);});
       if(st.dead>0){st.dead+=dt;var kd=Math.min(1,st.dead/1.1);root.scale.setScalar(Math.max(0.001,1-kd*kd));root.rotation.y=(root.userData.yaw||0)+kd*kd*8;}}};
   return api;}
+
+// 戰場（render/battle.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/battle.js：上方戰場（夜空、滿月、浮空雲台、三尾狐）與隊伍列的六隻狐狸
    ===================================================================== */
@@ -1700,7 +1699,7 @@ var BS=(function(){
         if(st.brk>=0){st.brk+=dt;var kb=Math.min(1,st.brk/0.35);st.k=1-kb;var sb=1+0.25*easeOut(kb);dome.scale.set(DS[0]*sb,DS[1]*sb,DS[2]*sb);dome.visible=kb<1;
           var kf=Math.min(1,st.brk/0.9);shards.forEach(function(h){if(!h.s.visible)return;h.s.position.addScaledVector(h.v,dt);h.v.multiplyScalar(Math.pow(0.2,dt));h.v.y-=dt*0.6;
             var ss=h.sz*(1-kf*0.6);h.s.scale.set(ss,ss,1);h.s.material.opacity=1-kf;if(kf>=1)h.s.visible=false;});if(kf>=1)st.brk=-1;}
-        else{st.k+=((st.on?1:0)-st.k)*Math.min(1,dt*(st.on?6:2.5));st.pop=Math.min(1,st.pop+dt*2.6);var sp2=0.8+0.2*easeOutBack(st.pop);
+        else {st.k+=((st.on?1:0)-st.k)*Math.min(1,dt*(st.on?6:2.5));st.pop=Math.min(1,st.pop+dt*2.6);var sp2=0.8+0.2*easeOutBack(st.pop);
           dome.scale.set(DS[0]*sp2,DS[1]*sp2*(1+0.015*Math.sin(t*2.2)),DS[2]*sp2);dome.visible=st.k>0.01;}
         dm.uniforms.k.value=st.k;
         ringM.opacity=0.26+0.2*st.k;ring.rotation.z-=dt*0.12;}};})();
@@ -1915,6 +1914,7 @@ var BS=(function(){
   return api;
 })();
 
+// 庭院（render/garden.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/garden.js：月下庭院（主畫面與選關）
    沿用「月下小狐」的主島與小動物；每一關一座浮空的關卡島（石台同主島造型＋石燈＋星星＋造景＋傳送陣），小狐狸走過傳送陣一座一座過去
@@ -2186,7 +2186,7 @@ function updatePetals(dt,t){
       if(p.y<=0.012&&p.y>-0.2&&onTop(p.x,p.z)){p.state=1;p.y=0.012;p.life=rand(3,6);}
       else if(p.y<-4.5)spawnPetal(p,false);
       dummy.rotation.set(p.rx,p.ry,p.rz);
-    }else{
+    }else {
       p.life-=dt;if(p.life<0.6)k=Math.max(0,p.life/0.6);if(p.life<=0){spawnPetal(p,false);}
       dummy.rotation.set(-Math.PI/2,0,p.rz);}
     dummy.position.set(p.x,p.y,p.z);dummy.scale.setScalar(p.sc*k);dummy.updateMatrix();petalMesh.setMatrixAt(i,dummy.matrix);}
@@ -2240,8 +2240,8 @@ function updateFox(dt,t){
     var dx=F.tx-F.x,dz=F.tz-F.z,dist=Math.hypot(dx,dz);
     if(dist<0.06||F.timer<0){
       if(F.after==='travel'){F.state='hold';F.run=false;F.after=null;var cb=F.onArrive;F.onArrive=null;if(cb)cb();}
-      else{if(F.after==='gaze'||Math.random()<0.6){F.state='gaze';F.timer=rand(5,8);}else{F.state='idle';F.timer=rand(1.5,3.5);}F.after=null;}
-    }else{
+      else {if(F.after==='gaze'||Math.random()<0.6){F.state='gaze';F.timer=rand(5,8);}else {F.state='idle';F.timer=rand(1.5,3.5);}F.after=null;}
+    }else {
       var d=angDiff(F.yaw,Math.atan2(dx,dz));F.yaw+=Math.sign(d)*Math.min(Math.abs(d),4.2*dt);
       var al=Math.max(0,Math.cos(d)),sp=0.55*(F.run?2.4:1)*al*al*Math.min(1,dist/0.3+0.35);
       var c=clampWalk(F.x+Math.sin(F.yaw)*sp*dt,F.z+Math.cos(F.yaw)*sp*dt);F.x=c[0];F.z=c[1];moving=sp>0.05;}
@@ -2279,7 +2279,7 @@ ripple.rotation.x=-Math.PI/2;ripple.raycast=noRay;stage.add(ripple);var rippleT=
 var bursts=[];for(var bi=0;bi<8;bi++){var bs=new THREE.Sprite(new THREE.SpriteMaterial({map:sparkTex,color:0xffe3a0,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));bs.visible=false;stage.add(bs);bursts.push({sp:bs,life:0,v:new THREE.Vector3()});}
 function burst(x,y,z){bursts.forEach(function(b){b.sp.visible=true;b.life=rand(.7,1.1);b.sp.position.set(x+rand(-.1,.1),y,z+rand(-.1,.1));b.v.set(rand(-.5,.5),rand(.6,1.2),rand(-.5,.5));});}
 function updateFx(dt){
-  if(rippleT>=0){rippleT+=dt;var k=rippleT/0.75;if(k>=1){rippleT=-1;ripple.material.opacity=0;}else{ripple.scale.setScalar(1+k*2.6);ripple.material.opacity=0.9*(1-k);}}
+  if(rippleT>=0){rippleT+=dt;var k=rippleT/0.75;if(k>=1){rippleT=-1;ripple.material.opacity=0;}else {ripple.scale.setScalar(1+k*2.6);ripple.material.opacity=0.9*(1-k);}}
   bursts.forEach(function(b){if(b.life<=0)return;b.life-=dt;b.sp.position.addScaledVector(b.v,dt);b.v.y-=0.6*dt;
     var o=Math.max(0,Math.min(1,b.life*1.6));b.sp.material.opacity=o;var s=0.12+0.14*o;b.sp.scale.set(s,s,1);if(b.life<=0)b.sp.visible=false;});}
 
@@ -2385,7 +2385,7 @@ function makePortal(parent,x,z,o){
       if(core){core.scale.set(0.62,Math.max(0.001,ph*(1+fl*0.9)),0.62);core.material.opacity=(day?1:0.3)*fk*(1+fl);}
       var hh=H*ph*(1+fl*0.9);
       motes.forEach(function(m){var f=(t*m.v+m.ph)%1,a=m.a+t*0.7;m.sp.position.set(Math.cos(a)*m.r,f*hh,Math.sin(a)*m.r);var s=m.s*(1-f*0.5);m.sp.scale.set(s,s,1);m.sp.material.opacity=Math.sin(f*Math.PI)*0.9*ph;});
-      if(this.burstT>=0){this.burstT+=dt;var k=this.burstT/0.9;if(k>=1){this.burstT=-1;ringB.material.opacity=0;}else{var rs=R*(1.5+6*easeOut(k));ringB.scale.set(rs,1,rs);ringB.material.opacity=1-k;}}}};
+      if(this.burstT>=0){this.burstT+=dt;var k=this.burstT/0.9;if(k>=1){this.burstT=-1;ringB.material.opacity=0;}else {var rs=R*(1.5+6*easeOut(k));ringB.scale.set(rs,1,rs);ringB.material.opacity=1-k;}}}};
 }
 
 // 關卡島上那顆會飄的星星
@@ -2466,7 +2466,7 @@ function makeLeafFall(top,I,o){var N=o.n,mesh=new THREE.InstancedMesh(o.geo,o.ma
       var land=o.landY?o.landY(q.x,q.z):0.014;
       if(q.y<=land&&q.y>land-0.3&&Math.hypot(q.x,q.z)<R0*rimNoise(Math.atan2(q.z,q.x))){q.state=1;q.y=land;q.life=rand(3,6);}else if(q.y<-4)spawn(q,false);
       dm.rotation.set(q.rx,q.ry,q.rz);}
-    else{q.life-=dt;if(q.life<0.6)k=Math.max(0,q.life/0.6);if(q.life<=0)spawn(q,false);dm.rotation.set(-Math.PI/2,0,q.rz);}
+    else {q.life-=dt;if(q.life<0.6)k=Math.max(0,q.life/0.6);if(q.life<=0)spawn(q,false);dm.rotation.set(-Math.PI/2,0,q.rz);}
     dm.position.set(q.x,q.y,q.z);dm.scale.setScalar(q.sc*k);dm.updateMatrix();mesh.setMatrixAt(i,dm.matrix);}
     mesh.instanceMatrix.needsUpdate=true;});}
 var bambooLeafGeo=(function(){var sh=new THREE.Shape();sh.moveTo(0,-0.055);sh.quadraticCurveTo(0.018,-0.01,0.004,0.06);sh.quadraticCurveTo(-0.014,0.0,0,-0.055);return new THREE.ShapeGeometry(sh);})();
@@ -2644,7 +2644,7 @@ function buildIsle(def,k){
   if(day){   // 白天的章：整座複製白天主島的島身——石台＋圓弧草皮＋蜜桃粉描邊、嵌在島邊的石頭、兩道瀑布、島底的霧（整座縮成 S）；主島的花樹不複製（2026-09-28 使用者：每一關會不一樣）
     var dg=new THREE.Group();dg.scale.setScalar(S);root.add(dg);var dOl=outlineMat(DAY_OL,0.032),dSm=toon(0xffffff,{vertexColors:true}),dTm=toon(0xffffff,{vertexColors:true});
     I.land=dayLand(dg,DAY_FALLS,dOl,dSm,dTm);I.land.userData.isle=k;dayLedges(dg,dOl,dSm,dTm);dayFallsMist(dg,DAY_FALLS,I.anim,prng(k*17+3));}
-  else{
+  else {
   var land=new THREE.Mesh(islandGeo,isleLandMat);land.scale.setScalar(S);land.userData.isle=k;addOutline(land,isleLandOl);root.add(land);I.land=land;
   var det=new THREE.Group();det.scale.setScalar(S);root.add(det);
   var ln=new THREE.Mesh(landDetail.lines,landDetail.lineMat);ln.raycast=noRay;det.add(ln);
@@ -2665,7 +2665,7 @@ function buildIsle(def,k){
   var FL=[[2.2*f,-0.25*f,-0.8*f,.2*f],[-2.1*f,0.3*f,0.75*f,.16*f],[-1.75*f,-1.45*f,-1.3*f,.27*f],[1.65*f,-1.7*f,1.1*f,.18*f]];
   if(day){if(!dayCloudMat){dayCloudMat=toon(0x8d600f,{emissive:0x4f7deb});dayCloudOl=outlineMat(DAY_OL,0.026);}
     I.clouds=makeCloudRing(root,S,5,dayCloudMat,dayCloudOl);I.floaters=dayFloaters(root,FL.map(function(q,i){return q.concat([i%2,i===1]);}));}   // 白天：雲亮面白、暗面藍；浮石是圓弧小石台＋草皮
-  else{I.clouds=makeCloudRing(root,S,5);I.floaters=makeFloaters(root,FL);}
+  else {I.clouds=makeCloudRing(root,S,5);I.floaters=makeFloaters(root,FL);}
   I.ctx={g:root,S:S,obst:I.obst};
   return I;
 }
@@ -2810,7 +2810,7 @@ function dayLand(g,FALLS,OLB,stoneMat,turfMat){var i,k;
     if(Math.hypot(x,z)>1e-6){x*=d[0];z*=d[0];}pa.setXYZ(i,x,d[1],z);
     var hh=Math.sin(x*12.9898+d[1]*78.233+z*37.719)*43758.5453;hh=0.94+0.08*(hh-Math.floor(hh));
     if(y>-0.025){tmp.copy(cTop);hh=1;}
-    else{tmp.copy(cSide).lerp(cBot,Math.min(1,(-y-0.1)/2.6));tmp.multiplyScalar((0.94+0.08*Math.sin(y*9+th*2))*(y>-0.42?0.88+0.12*smoothstep(-0.26,-0.42,y):1));}   // 草皮下緣那一圈石頭暗一點，草皮才像蓋在上面
+    else {tmp.copy(cSide).lerp(cBot,Math.min(1,(-y-0.1)/2.6));tmp.multiplyScalar((0.94+0.08*Math.sin(y*9+th*2))*(y>-0.42?0.88+0.12*smoothstep(-0.26,-0.42,y):1));}   // 草皮下緣那一圈石頭暗一點，草皮才像蓋在上面
     cols[i*3]=tmp.r*hh;cols[i*3+1]=tmp.g*hh;cols[i*3+2]=tmp.b*hh;}
   lg.setAttribute('color',new THREE.BufferAttribute(cols,3));lg.computeVertexNormals();fixSeam(lg,D.length,SEGD);
   var land=new THREE.Mesh(lg,stoneMat);addOutline(land,OLB);g.add(land);
@@ -2941,7 +2941,7 @@ function decorateDayHub(H,c){var W=H.W,g=H.g,T=dayTextures(),ch=CONFIG.chapters[
       orn.push({pv:pv,hd:hd,tsl:tsl,ry:hd.rotation.y,ph:q*1.7});});
     H.anim.push(function(dt,t){orn.forEach(function(o){o.pv.rotation.z=Math.sin(t*0.9+o.ph)*0.06;o.pv.rotation.x=Math.sin(t*0.7+o.ph*1.3)*0.045;   /* 繩子從樹冠裡垂下來比較長，角度小一點 */
       o.hd.rotation.y=o.ry+Math.sin(t*0.5+o.ph)*0.35;o.tsl.rotation.z=Math.sin(t*1.3+o.ph*0.7)*0.18;});});
-  }else{
+  }else {
   // 掛在枝下的金色星星、月亮、流蘇（跟月下庭院、參考圖二同一種小掛飾）
   var ornM=toon(0xf0c25e,{emissive:0x8a5a18}),ornP=TR.orn?toon(TR.orn[0],{emissive:TR.orn[1]}):ornM,lineM=new THREE.LineBasicMaterial({color:0xd9b46a,transparent:true,opacity:0.85});
   [[[0.78,1.62,0.52],'star',0.34,0.9],[[-0.66,1.6,0.5],'moon',0.3,0.85],[[0.95,1.6,-0.2],'tassel',0.2,1],[[-0.12,1.66,0.8],'star',0.26,0.7]].forEach(function(o,q){
@@ -3170,7 +3170,7 @@ function buildHub(c){var W=new THREE.Group();W.visible=false;scene.add(W);worlds
   var g=new THREE.Group();W.add(g);
   var H={ch:c,W:W,g:g,portals:[],props:[],obst:[],anim:[]};H.ctx={g:g,S:1,obst:H.obst};
   if(CONFIG.chapters[c].look==='day')decorateDayHub(H,c);
-  else{var land=new THREE.Mesh(islandGeo,isleLandMat);addOutline(land,isleLandOl);g.add(land);H.land=land;
+  else {var land=new THREE.Mesh(islandGeo,isleLandMat);addOutline(land,isleLandOl);g.add(land);H.land=land;
     var ln=new THREE.Mesh(landDetail.lines,landDetail.lineMat);ln.raycast=noRay;g.add(ln);
     var pb=new THREE.Mesh(landDetail.peb,landDetail.pebMat);pb.raycast=noRay;addOutline(pb,landDetail.pebOl);g.add(pb);}
   var st=CONFIG.chapters[c].stages,pc=CONFIG.chapters[c-1],pk=pc?pc.stages[pc.stages.length-1]:undefined;
@@ -3235,8 +3235,8 @@ var bird=(function(){var home=new THREE.Vector3(0.9,2.15,0.2),g=new THREE.Group(
   return {hit:hit,poke:function(){if(st.fly<0)st.fly=0;},
     update:function(dt,t){var flap=0;
       if(st.fly>=0){st.fly+=dt;var k=st.fly/1.8;if(k>=1){st.fly=-1;g.position.copy(home);g.rotation.y=0.35;}
-        else{var a=k*TAU;g.position.set(home.x+Math.sin(a)*0.7,home.y+Math.sin(Math.PI*k)*0.55,home.z+(1-Math.cos(a))*0.35);g.rotation.y=0.35+a;flap=Math.sin(t*40)*0.9;}}
-      else{st.next-=dt;if(st.next<0){st.hop=0;st.next=rand(2,5);}var y=0;if(st.hop>=0){st.hop+=dt;if(st.hop>0.25)st.hop=-1;else y=Math.sin(st.hop/0.25*Math.PI)*0.04;}
+        else {var a=k*TAU;g.position.set(home.x+Math.sin(a)*0.7,home.y+Math.sin(Math.PI*k)*0.55,home.z+(1-Math.cos(a))*0.35);g.rotation.y=0.35+a;flap=Math.sin(t*40)*0.9;}}
+      else {st.next-=dt;if(st.next<0){st.hop=0;st.next=rand(2,5);}var y=0;if(st.hop>=0){st.hop+=dt;if(st.hop>0.25)st.hop=-1;else y=Math.sin(st.hop/0.25*Math.PI)*0.04;}
         g.position.y=home.y+y;hd.rotation.z=Math.sin(t*1.7)*0.25;hd.rotation.x=Math.sin(t*2.3)*0.1;}
       wings[0].rotation.z=-flap;wings[1].rotation.z=flap;}};})();
 
@@ -3347,7 +3347,7 @@ function warpTo(dest){if(busy||dest===loc||dest>=0)return Promise.resolve(false)
 var gp=new Map(),gtap=null,gpinch=0,ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),HND={};
 canvas.addEventListener('pointerdown',function(e){if(APP.screen!=='garden')return;e.preventDefault();if(HND.first)HND.first();
   try{canvas.setPointerCapture(e.pointerId);}catch(_){}var p=localXY(e);gp.set(e.pointerId,p);
-  if(gp.size===1){gtap={x:p.x,y:p.y,t:performance.now()};ctrl.vt=ctrl.vp=0;}else{gtap=null;var a=Array.from(gp.values());gpinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);}});
+  if(gp.size===1){gtap={x:p.x,y:p.y,t:performance.now()};ctrl.vt=ctrl.vp=0;}else {gtap=null;var a=Array.from(gp.values());gpinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);}});
 canvas.addEventListener('pointermove',function(e){if(APP.screen!=='garden')return;var prev=gp.get(e.pointerId);if(!prev)return;var p=localXY(e),dx=p.x-prev.x,dy=p.y-prev.y;gp.set(e.pointerId,p);
   if(gtap&&Math.hypot(p.x-gtap.x,p.y-gtap.y)>8)gtap=null;
   if(busy)return;
@@ -3457,6 +3457,7 @@ return {scene:scene,camera:camera,update:update,resize:resize,preRender:preRende
     dayFloaters:dayFloaters,miniStoneGeo:miniStoneGeo,miniTurfGeo:miniTurfGeo,latheC:latheC,turfCol:turfCol,TURF:TURF,TURF_PK:TURF_PK,PINK_BUSH:PINK_BUSH,DAY_OL:DAY_OL,DAYFALL_FS:DAYFALL_FS,TOTEM:TOTEM,totemTex:totemTex};}};
 })();
 
+// BOSS 封面頁（render/team.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/team.js：進關前的 BOSS 封面頁（雜誌封面：上方大字 BOSS 名、中間 BOSS 擺姿勢、左側小字介紹、下方選符印）
    相機固定在原點往 -z 看，場景物件都用「離相機多遠、落在畫面哪裡」來擺，方便對齊 HTML 排版
@@ -3994,7 +3995,7 @@ var TEAM=(function(){
       return Math.sqrt(Math.min(px*px+(py-1)*(py-1),(px-m)*(px-m)+(py-m)*(py-m)))*(px>py?1:-1);}
     for(y=0;y<N;y++)for(x=0;x<N;x++){var d=sd(((x+0.5)/N-0.5)*2*S,((y+0.5)/N-0.5)*2*S+CY),rim=Math.exp(-(d/0.05)*(d/0.05)),cut=1-smoothstep(0.24,0.38,d),em,occ,mk;
       if(d<0){em=0.62+0.25*smoothstep(0,0.3,-d);occ=0.2;mk=0.35*smoothstep(0.05,0.35,-d);}
-      else{em=0.7*Math.exp(-(d/0.06)*(d/0.06))+0.45*Math.exp(-d/0.13);occ=0.2*rim;mk=0;}
+      else {em=0.7*Math.exp(-(d/0.06)*(d/0.06))+0.45*Math.exp(-d/0.13);occ=0.2*rim;mk=0;}
       em=(em+0.25*rim)*cut;occ*=cut;mk=Math.min(1,mk+0.3*rim);
       var i=(y*N+x)*4;data[i]=Math.round(Math.min(1,em)*255);data[i+1]=Math.round(Math.min(1,em*(38+82*mk)/255)*255);data[i+2]=Math.round(Math.min(1,em*(128+52*mk)/255)*255);data[i+3]=Math.round(Math.min(1,occ)*255);}
     var t=new THREE.DataTexture(data,N,N,THREE.RGBAFormat);t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.generateMipmaps=true;t.needsUpdate=true;return t;})();
@@ -4440,7 +4441,7 @@ var TEAM=(function(){
         for(var j=0;j<r[2];j++){var a=j/r[2]*TAU,dt2=new THREE.Mesh(new THREE.CircleGeometry(0.026,12),dm);dt2.position.set(Math.cos(a)*r[0],Math.sin(a)*r[0],0.001);g.add(dt2);}
         B.anim.push(function(dt){g.rotation.z+=dt*r[3];});});
       B.pillar=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:PILLAR_TEX,color:0xfffbf0,transparent:true,opacity:0.75,depthWrite:false,fog:false}));G.add(B.pillar);}
-    else{   // 大圓鏡：銀白鏡面帶一點夕陽的橘、一道慢慢掃過的反光，金色鏡框、一圈往外的短光芒
+    else {   // 大圓鏡：銀白鏡面帶一點夕陽的橘、一道慢慢掃過的反光，金色鏡框、一圈往外的短光芒
       var mm=new THREE.ShaderMaterial({uniforms:{time:{value:0}},transparent:true,depthWrite:false,fog:false,
         vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
         fragmentShader:['uniform float time; varying vec2 vUv;','void main(){ vec2 p=vUv*2.0-1.0; float r=length(p);',
@@ -4487,7 +4488,7 @@ var TEAM=(function(){
      裁的時候上面少裁、下面多裁（上 3 成、下 7 成），但桃夭的腳下至少留設計畫面高的 8%；太窄長的螢幕左右平均裁。鏡頭用 setViewOffset 只畫螢幕那一塊 */
   function viewFor(W,H,dw,dh,fy){var FW=Math.max(W,H*dw/dh),FH=FW*dh/dw,ex=FH-H;return {FW:FW,FH:FH,ox:(FW-W)*0.5,oy:Math.min(ex,Math.max(ex*0.3,(fy+0.08)*FH-H))};}
   function fitView(k){var S=STAGES[k],W=L.W,H=L.H,ow=VW,oh=VH;
-    if(S.design){var v=viewFor(W,H,S.design[0],S.design[1],S.fox.y);VW=v.FW;VH=v.FH;VIEW.ox=v.ox;VIEW.oy=v.oy;}else{VW=W;VH=H;VIEW.ox=VIEW.oy=0;}
+    if(S.design){var v=viewFor(W,H,S.design[0],S.design[1],S.fox.y);VW=v.FW;VH=v.FH;VIEW.ox=v.ox;VIEW.oy=v.oy;}else {VW=W;VH=H;VIEW.ox=VIEW.oy=0;}
     cam.aspect=VW/VH;cam.fov=FOV;
     if(VW===W&&VH===H)cam.clearViewOffset();else cam.setViewOffset(VW,VH,VIEW.ox,VIEW.oy,W,H);
     cam.updateProjectionMatrix();return VW!==ow||VH!==oh;}
@@ -4518,12 +4519,13 @@ var TEAM=(function(){
      編輯器改的是 PEACH.cur，再呼叫這裡的重建函式；setAspect 讓遊戲畫面固定成設計畫面的比例，hideUi 在編輯時把封面的字和按鈕藏起來 */
   var DEV={PEACH:PEACH,peachFix:peachFix,peachToStage:peachToStage,autoDecor:autoDecor,FOX4_TAILS:FOX4_TAILS,LEG0:LEG0,viewFor:viewFor,VIEW:VIEW,
     B:function(){return built[3];},stage:function(){return cur;},VW:function(){return VW;},VH:function(){return VH;},placeStage:placeStage,applyLook:applyLook,
-    cam:cam,atPx:atPx,hh:hh,hw:hw,brV:brV,BR_W:BR_W,BR_H:BR_H,hideUi:function(on){uiOff=!!on;syncUi();},setAspect:function(a){if(DEV_ASPECT===a)return;DEV_ASPECT=a;layout();}};
+    cam:cam,atPx:atPx,hh:hh,hw:hw,brV:brV,BR_W:BR_W,BR_H:BR_H,hideUi:function(on){uiOff=!!on;syncUi();},setAspect:function(a){if(DEV_ASPECT===a)return;setDevAspect(a);layout();}};
   return {scene:sc,camera:cam,update:update,resize:resize,setStage:setStage,cheer:function(){glowT=1;var B=built[cur];if(B)B.boss.f.attack();},
     dev:function(){return DEV;},
     _dbg:function(){return {built:built,STAGES:STAGES,cam:cam};}};
 })();
 
+// 換裝頁（render/wardrobe.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/wardrobe.js：換裝頁。七隻狐狸（庭院小狐狸＋六彩狐狸）輪流坐上月光小台，換頭、脖子、尾巴的飾品；
    燈光跟戰鬥畫面同一套月光。飾品與狐狸頭像的小圖用同一個 renderer 拍（snap），沒拿到的飾品畫成剪影
@@ -4587,7 +4589,7 @@ var WARD=(function(){
     wear:function(k,slot,id){if(built&&foxes[k])foxes[k].wear(slot,id);},cheer:function(){if(built)foxes[cur].attack();},keys:KEYS,fox:function(k){return foxes[k];}};
 })();
 
-
+// 珠子（render/orbs.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/orbs.js：3D 珠子（形狀＋顏色雙重區分）與特殊珠外觀
    ===================================================================== */
@@ -4653,7 +4655,7 @@ var lockTex=canvasTex(256,256,function(g,w){var c=w/2;g.lineCap='round';
   function chain(ang){g.save();g.translate(c,c);g.rotate(ang);
     for(var k=-5;k<=5;k++){g.save();g.translate(k*22,0);
       if(k%2===0){g.lineWidth=8;g.strokeStyle='#241f33';g.beginPath();g.ellipse(0,0,14,8,0,0,TAU);g.stroke();g.lineWidth=3.6;g.strokeStyle='#bdb3e6';g.beginPath();g.ellipse(0,0,14,8,0,0,TAU);g.stroke();}
-      else{g.lineWidth=9;g.strokeStyle='#241f33';g.beginPath();g.moveTo(-13,0);g.lineTo(13,0);g.stroke();g.lineWidth=3.6;g.strokeStyle='#a197d4';g.beginPath();g.moveTo(-12,0);g.lineTo(12,0);g.stroke();}
+      else {g.lineWidth=9;g.strokeStyle='#241f33';g.beginPath();g.moveTo(-13,0);g.lineTo(13,0);g.stroke();g.lineWidth=3.6;g.strokeStyle='#a197d4';g.beginPath();g.moveTo(-12,0);g.lineTo(12,0);g.stroke();}
       g.restore();}
     g.restore();}
   g.shadowColor='rgba(176,110,255,.95)';g.shadowBlur=14;chain(Math.PI/4);chain(-Math.PI/4);
@@ -4797,6 +4799,7 @@ function rebuildBase(){
 var ring=new THREE.Mesh(new THREE.RingGeometry(0.47,0.53,48),new THREE.MeshBasicMaterial({color:0xffe09a,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending}));
 ring.visible=false;boardScene.add(ring);
 
+// 粒子特效（render/effects.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/effects.js：粒子、光束、光環、震動（物件池）
    ===================================================================== */
@@ -4830,7 +4833,7 @@ function ringFx(x,y,r0,r1,color,life){var f=takeFx(rings);f.m.visible=true;f.m.p
 function updateFx(dt){[beams,rings].forEach(function(pool){pool.forEach(function(f){if(f.life<=0)return;f.life-=dt;
   if(f.life<=0){f.m.visible=false;return;}var k=1-f.life/f.max,e=1-Math.pow(1-k,3);
   f.m.scale.set(f.l0+(f.l1-f.l0)*e,f.w0+(f.w1-f.w0)*e,1);f.m.material.opacity=Math.min(1,(1-k)*1.6);});});}
-var shake=0;function addShake(a){shake=Math.max(shake,a);if(navigator.vibrate&&a>=6){try{navigator.vibrate(18);}catch(_){}}}
+var shake=0;/* 別的 module 要整個換掉 shake 用這個（import 進去的變數不能直接賦值） */function setShake(v){shake=v;}function addShake(a){shake=Math.max(shake,a);if(navigator.vibrate&&a>=6){try{navigator.vibrate(18);}catch(_){}}}
 
 // 飄落桂花（在底座後方）
 var petalGeo=(function(){var s=new THREE.Shape();for(var i=0;i<=28;i++){var a=i/28*TAU,r=0.55+0.45*Math.abs(Math.cos(2*a));i?s.lineTo(Math.cos(a)*r,Math.sin(a)*r):s.moveTo(Math.cos(a)*r,Math.sin(a)*r);}return new THREE.ShapeGeometry(s);})();
@@ -4856,6 +4859,7 @@ function updatePetals(dt,t){var dm=petalDummy;
     dm.position.set(p.x,-p.y,-80);dm.rotation.set(p.rx,p.ry,0);dm.scale.setScalar(Math.max(3.5,L.cs*0.085)*p.s);dm.updateMatrix();petalMesh.setMatrixAt(i,dm.matrix);}
   petalMesh.instanceMatrix.needsUpdate=true;}
 
+// 音效（audio.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    audio.js：Web Audio 程式合成音效（不需要音效檔）
    消除音效會隨連擊數沿五聲音階往上升
@@ -4933,7 +4937,7 @@ var AudioFX=(function(){
     lose:function(){[12,8,5,0].forEach(function(sm,k){tone(note(sm-12),0.6,'triangle',0.08,k*0.18);});}};
 })();
 
-
+// 2D 特效層（render/fx2d.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/fx2d.js：大招全版特效（半透明、集中在畫面邊緣、不擋操作）
    ===================================================================== */
@@ -5046,6 +5050,7 @@ var FX2D=(function(){
       list=list.filter(function(e){e.t+=dt;e.draw(e.t);return e.t<e.dur;});}};
 })();
 
+// 光點彙集、光彈、傷害數字（render/hitfx.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/effects.js（續）：光點彙集、光彈與傷害數字
    ===================================================================== */
@@ -5062,7 +5067,7 @@ function updateMotes(dt){var n=0;
     if(q>=1){m.on=false;emit(x,y,0,0,0.18,L.cs*0.7,m.col,0);}}
   moteMesh.count=n;moteMesh.instanceMatrix.needsUpdate=true;moteMesh.instanceColor.needsUpdate=true;}
 var shotPool=[];for(var si=0;si<48;si++){var smm=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:glowTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));smm.visible=false;boardScene.add(smm);shotPool.push({m:smm,on:false});}
-var inflight=0;
+var inflight=0;/* 別的 module 要整個換掉 inflight 用這個（import 進去的變數不能直接賦值） */function setInflight(v){inflight=v;}
 function fireShot(from,to,color,delay,cb,big){var s=null;for(var k=0;k<shotPool.length;k++)if(!shotPool[k].on){s=shotPool[k];break;}
   if(!s){if(cb)cb();return;}
   s.on=true;s.t=-(delay||0);s.d=A.shot;s.x0=from.x;s.y0=from.y;s.x1=to.x;s.y1=to.y;
@@ -5084,10 +5089,12 @@ function toScreen(v){_sv.copy(v).project(bcam);return {x:(_sv.x+1)/2*L.W,y:(1-_s
 function bossScreen(){return toScreen(BS.bossPoint(0,1.05));}
 function foxScreen(i){return toScreen(BS.foxPoint(i,0.55));}
 
+// 版面（layout.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    版面
    ===================================================================== */
-var L={W:1,H:1,cs:40,bx:0,by:0,K:17},DEV_ASPECT=0;   // DEV_ASPECT：場景編輯器（另一個 artifact）用 TEAM.dev().setAspect 把遊戲畫面固定成設計畫面的長寬比；遊戲裡永遠是 0
+function cellXY(row,col){return {x:L.bx+(col+0.5)*L.cs,y:L.by+(row+0.5)*L.cs};}   // 格子中心的螢幕座標（第 4 步從 flow.js 搬來，給各機制的畫法共用）
+var L={W:1,H:1,cs:40,bx:0,by:0,K:17},DEV_ASPECT=0;/* 別的 module 要整個換掉 DEV_ASPECT 用這個（import 進去的變數不能直接賦值） */function setDevAspect(v){DEV_ASPECT=v;}   // DEV_ASPECT：場景編輯器（另一個 artifact）用 TEAM.dev().setAspect 把遊戲畫面固定成設計畫面的長寬比；遊戲裡永遠是 0
 var comboEl=document.getElementById('combo'),toastEl=document.getElementById('toast'),bannerEl=document.getElementById('banner'),topEl=document.getElementById('topbar'),
     bossBarEl=document.getElementById('bossbar'),teamBarEl=document.getElementById('teambar'),cdEl=document.getElementById('bossCd'),timerEl=document.getElementById('timer');
 function layout(){
@@ -5113,6 +5120,7 @@ window.addEventListener('resize',layout);
    所以改成看畫面實際的大小，變了就重新排版；大小沒變就不動。 */
 if(window.ResizeObserver)new ResizeObserver(function(){var bh=document.body.clientHeight,bw=Math.min(window.innerWidth,Math.round(bh*(DEV_ASPECT||0.5625)));if(bh!==L.H||bw!==L.W)layout();}).observe(document.body);
 
+// 動畫小工具（anim.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    動畫小工具
    ===================================================================== */
@@ -5127,15 +5135,229 @@ function easeOut(k){return 1-(1-k)*(1-k);}
 function easeFall(k){return k*k*0.75+k*0.25;}
 function easeOutBack(k){var c1=1.9,c3=c1+1;return 1+c3*Math.pow(k-1,3)+c1*Math.pow(k-1,2);}
 
-/* =====================================================================
-   遊戲流程
-   ===================================================================== */
+// 鎖鏈的畫法：BOSS 放鎖的動畫、鎖被打開的特效和音效、被鎖的珠子上畫一個鎖。邏輯在 lock.js。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+//
+// 每一包機制的接口（畫法這一半；灰盒試玩要換成素的畫法，換掉這個檔就好）：
+//   place(got)              邏輯 place() 放好之後播的動畫；回傳 Promise，播完盤面才能再動
+//   onClear(st,ps)          消珠的每一步（Board 算好的 st）；要等的動畫推進 ps
+//   tint(v)                 這顆珠的亮度要乘多少（1＝不變）
+//   drawBegin() / drawOrb(v,x,y,z,K,s,t) / drawEnd(t)  每一格畫盤面時，每顆珠子上面要加畫的東西
+//   drawCover(v,x,y,z,K,s,rz,t)  整顆珠要換成別的畫法時畫在這裡、回傳 true（這顆就不畫珠子了）；選填（落英用）
+//   reset()                 開新的一場時清掉還在播的東西（選填）
+//   onEvent(e)              主迴圈收到 Battle 的事件時的反應（選填；媚惑：迷住、醒來、被清心擋下）
+//   hud()                   每一格更新 HUD（選填；媚惑：狐狸頭上的鎖鏈與秒數、畫面四周的粉紅光）
+//   update(dt,t)            每一格畫完珠子之後的動畫（選填；紅繩：繩子和鈴鐺）
+//   afterMove()             邏輯的 afterMove 回傳 true 之後播的（選填；天鏡：反照）
+//   chip()                  隊伍血條旁的小標籤 HTML，沒有就回傳 ''（選填；天鏡：反照倒數）
+//   coverSkill(cfg)         封面頁「技能」那一段的說明文字（選填；cfg＝這一關的設定）
+//   其他給流程直接叫的：shatter(u) 打開一個鎖（水狐變奏也用）、tap() 想換被鎖的珠時的聲音（紅繩的 tap(res)：隔著繩換不過去；天鏡的 tap()：想換鏡片）
+// 貼圖、網格（lockMesh）還是在 render/orbs.js 建：建立的先後會影響 three.js 物件的編號和畫的順序，搬了畫面可能差一點點。
+var lk=0;   // 這一格畫了幾個鎖
+var LOCK_VIEW={
+  key:'lock',
+  place:function(list){if(!list.length)return Promise.resolve();var bp=bossScreen(),col=new THREE.Color(0x9a5cff);BS.boss.attack();AudioFX.charge();
+    list.forEach(function(it){var q=cellXY(it.r,it.c);beam(bp.x,bp.y,q.x,q.y,L.cs*0.28,col,0.4);});
+    return wait(0.2).then(function(){AudioFX.lock();addShake(5);
+      return Promise.all(list.map(function(it){var v=views.get(it.id);if(!v)return null;v.locked=true;var q=cellXY(it.r,it.c);ringFx(q.x,q.y,L.cs*0.9,L.cs*0.4,col,0.3);
+        return tween(0.28,function(k){v.lockS=1.7-0.7*k;},easeOutBack).then(function(){v.lockS=1;});}));});},
+  onClear:function(st,ps){(st.unlocks||[]).forEach(function(u){ps.push(after(u.depth*A.chainStep+0.02,function(){LOCK_VIEW.shatter(u);}));});},   // 旁邊消掉而解開的鎖
+  shatter:function(u){var v=views.get(u.id);if(!v)return;v.locked=false;var q=cellXY(v.row,v.col),cs=L.cs;
+    AudioFX.unlock();ringFx(q.x,q.y,cs*0.3,cs*1.4,new THREE.Color(0xb88cff),0.4);
+    for(var k=0;k<14;k++){var a=rand(0,TAU),sp=rand(1.5,4)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*1.5,rand(.35,.6),rand(.14,.26)*cs,k%3?new THREE.Color(0x8e86b8):new THREE.Color(0xc9a0ff),cs*9);}
+    v.f=1.8;tween(0.25,function(k){v.f=1.8-0.8*k;});},
+  tap:function(){AudioFX.rattle();},
+  coverSkill:function(c){return '每 '+c.interval+' 秒鎖住 '+c.count+' 顆珠，狂暴後每 '+c.enrageInterval+' 秒鎖 '+c.enrageCount+' 顆。把鎖住的珠連進三消就能解開。';},
+  tint:function(v){return v.locked?0.62:1;},   // 被鎖的珠暗一點
+  drawBegin:function(){lk=0;},
+  drawOrb:function(v,x,y,z,K,s,t){if(v.locked&&lk<24){var ls=K*s*2.6*(v.lockS||1)*(1+0.03*Math.sin(t*3+v.ph));setM(lockMesh,lk++,x+(v.rattle||0)*K,y,z+K*0.82*s,0,ls,ls,1);}},
+  drawEnd:function(){lockMesh.count=lk;lockMesh.instanceMatrix.needsUpdate=true;}
+};
+
+// 落英的畫法：桃花從 BOSS 那裡飄下來蓋住珠子、被吹開飛走；被蓋住的格子只畫桃花（染上底下珠子的顏色）。邏輯在 petal.js。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock_view.js 開頭。
+// 桃花的網格（PEACH）還是在 render/orbs.js 建。
+// ---- 落英：桃花從 BOSS 那裡飄下來蓋住珠子；旁邊有珠被消掉時被吹開、飛走 ----
+var PFL=[],PEACHBASE=new THREE.Color(1,0.47,0.61),PTINT=ORB.map(function(o){var c=o.color.clone();return c.multiplyScalar(1/Math.max(c.r,c.g,c.b));});
+PTINT[4]=new THREE.Color(0.31,0.21,1);
+PTINT[0]=new THREE.Color(1,0.32,0.12);PTINT[2]=new THREE.Color(0,0.62,0.38);   // 火珠的花更紅（2026-09-27 使用者：原本火的花太淡）；木珠的花：使用者指定 40bda6，實際畫出來約 5ab9a4～67cab2（shader 會往灰混、再打光，紅色壓不到更低）   // 暗珠上的花：偏藍的紫，才跟心珠的粉拉得開（2026-09-27 使用者：畫出來要接近 b48bff；粉色不動）
+// 花要染的顏色：那顆珠的顏色、最亮的分量拉到 1（shader 再往白色混，所以是淡淡的）；PEACHBASE 是還沒落地時的桃紅
+function petalTint(type){return type>=0&&PTINT[type]?PTINT[type]:PEACHBASE;}
+function petalSpark(type){return petalTint(type).clone().lerp(WHITE,0.45);}   // PFL：飛行中的桃花（mode 'in' 飄下來、'out' 被吹走），syncOrbs 畫
+function petalFlight(mode,x0,y0,x1,y1,dur,delay,tc){var f={on:false,x:x0,y:y0,s:mode==='in'?0.5:1,rx:0,ry:0,rz:0,br:1,c:new THREE.Color().copy(mode==='in'?PEACHBASE:tc)},sd=Math.random()<0.5?-1:1,
+    cx=(x0+x1)/2+sd*rand(0.6,1.4)*L.cs,cy=mode==='in'?Math.min(y0,y1)+rand(-0.2,0.6)*L.cs:(y0+y1)/2,spin=rand(4,7)*sd,ph=rand(0,TAU);
+  function go(){f.on=true;PFL.push(f);
+    return tween(dur,function(k){var e=mode==='in'?easeOut(k):k*k*0.4+k*0.6,u=1-e;f.x=u*u*x0+2*u*e*cx+e*e*x1;f.y=u*u*y0+2*u*e*cy+e*e*y1;
+      if(mode==='in'){f.s=0.5+0.5*easeOut(k)+0.18*Math.sin(Math.PI*k);f.c.copy(PEACHBASE).lerp(tc,smoothstep(0.45,1,k));f.rz=spin*(1-e)*0.6;f.rx=Math.sin(k*9+ph)*0.7*(1-k);f.ry=Math.cos(k*7+ph)*0.6*(1-k);}
+      else {f.s=1.05-0.75*k;f.rz=spin*0.25*k;f.ry=k*Math.PI*1.3*sd;f.rx=Math.sin(k*6+ph)*0.5;f.br=1+0.5*(1-k);}})
+    .then(function(){f.on=false;var i=PFL.indexOf(f);if(i>=0)PFL.splice(i,1);});}
+  return delay?wait(delay).then(go):go();}
+var pc=0;   // 這一格畫了幾朵蓋住珠子的花
+var PETAL_VIEW={
+  key:'petal',
+  place:function(list){if(!list.length)return Promise.resolve();var bp=bossScreen();BS.boss.attack();AudioFX.petal();
+  return Promise.all(list.map(function(it,i){var q=cellXY(it.r,it.c);
+    var tv=views.get(it.id),tt=tv?tv.type:-1;
+    return petalFlight('in',bp.x+rand(-24,24),bp.y+rand(-16,8),q.x,q.y,0.55,i*0.09,petalTint(tt)).then(function(){var v=views.get(it.id);if(!v)return;v.petal=1;v.petalS=1.3;AudioFX.petalLand(i);
+      for(var k=0;k<5;k++){var a=rand(0,TAU),sp=rand(0.8,1.8)*L.cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-L.cs*0.6,rand(.3,.5),rand(.14,.22)*L.cs,petalSpark(v.type),L.cs*4);}
+      return tween(0.24,function(k){v.petalS=1.3-0.3*k;},easeOutBack).then(function(){v.petalS=1;});});}));},
+  onClear:function(st,ps){(st.reveals||[]).forEach(function(u){ps.push(after(u.depth*A.chainStep+0.06,function(){PETAL_VIEW.blow(u.id);}));});},   // 旁邊消掉而吹開的花瓣
+// 吹開一片花瓣：cleared 是那顆珠同時被消掉（不另外閃一下）
+  blow:function(id,cleared){var v=views.get(id);if(!v||!v.petal)return;v.petal=0;PETAL.revealed(battle);
+  var q=cellXY(v.row,v.col),sd=Math.random()<0.5?-1:1;petalFlight('out',q.x,q.y,q.x+sd*rand(0.9,1.7)*L.cs,q.y-rand(1.6,2.6)*L.cs,0.6,0,petalTint(v.type));AudioFX.bloom();
+  for(var k=0;k<6;k++){var a=rand(0,TAU),sp=rand(1,2.4)*L.cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-L.cs*1.2,rand(.35,.6),rand(.12,.2)*L.cs,petalSpark(v.type),L.cs*5);}
+  if(!cleared){v.f=1.7;tween(0.3,function(k){v.f=1.7-0.7*k;});}},
+  reset:function(){PFL.length=0;},   // 開新的一場：飛到一半的花不要了
+  drawBegin:function(){pc=0;},
+  drawCover:function(v,x,y,z,K,s,rz,t){if(v.petal&&pc<24){var ps=K*s*1.12*(v.petalS||1),prz=rz+0.1*Math.sin(t*0.9+v.ph);_e.set(Math.sin(t*1.3+v.ph)*0.07,Math.cos(t*1.1+v.ph)*0.08,prz);_q.setFromEuler(_e);   // 落英：蓋住的珠只畫桃花（晃得比珠子少，顏色才不會忽深忽淺）
+      _p.set(x,y,z);_s.set(ps*v.sx,ps*v.sy,ps);_m.compose(_p,_q,_s);PEACH.cov.m.setMatrixAt(pc,_m);var ptc=petalTint(v.type);PEACH.cov.m.instanceColor.setXYZ(pc,ptc.r*v.f,ptc.g*v.f,ptc.b*v.f);   /* 花染上底下珠子的顏色 */
+      _e.set(0,0,prz);_q.setFromEuler(_e);_m.compose(_p,_q,_s);PEACH.cov.p.setMatrixAt(pc,_m);pc++;return true;}   /* 金色的底不跟著晃，才會四周一樣寬 */return false;},
+  drawEnd:function(){var K=L.K;
+    var nf=0;PFL.forEach(function(f){if(!f.on||nf>=20)return;_e.set(f.rx,f.ry,f.rz);_q.setFromEuler(_e);_p.set(f.x,-f.y,75);var fs=K*1.12*f.s;_s.set(fs,fs,fs);_m.compose(_p,_q,_s);
+    PEACH.fly.m.setMatrixAt(nf,_m);PEACH.fly.p.setMatrixAt(nf,_m);PEACH.fly.m.instanceColor.setXYZ(nf,f.c.r*f.br,f.c.g*f.br,f.c.b*f.br);nf++;});
+  [PEACH.cov,PEACH.fly].forEach(function(P,j){var n2=j?nf:pc;P.m.count=P.p.count=n2;P.m.instanceMatrix.needsUpdate=true;P.p.instanceMatrix.needsUpdate=true;P.m.instanceColor.needsUpdate=true;});
+  },
+  coverSkill:function(c){return '每 '+c.interval+' 秒飄下 '+c.count+' 片落英蓋住珠子，狂暴後每 '+c.enrageInterval+' 秒 '+c.enrageCount+' 片。花瓣會染上底下珠子淡淡的顏色，旁邊有珠被消掉就會吹開。';}
+};
+
+// 媚惑的畫法：BOSS 射粉紅光迷住狐狸、狐狸頭上掛交叉的鎖鏈和剩下的秒數、醒來時鎖鏈斷開、清心擋下時的光圈；畫面四周的粉紅光（2D 特效層）。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock_view.js 開頭。
+// 狐狸身上的愛心、晃動（BS.setCharm／charmPoke／clearCharm）在 render/battle.js，開場的 BS.clearCharm() 照舊在 beginBattle。
+// 媚惑：粉紅光束打到兩隻狐狸，牠們頭上繞愛心、旁邊顯示剩餘秒數；解除時彈一下
+var CHARMCOL=new THREE.Color(0xff8fd0),CALMCOL=new THREE.Color(0xd6c4ff),charmTags=[];
+// 清心保護中，BOSS 的媚惑被擋下
+function onCharmBlocked(){BS.boss.attack();AudioFX.shield();var bp=bossScreen();ringFx(bp.x,bp.y,L.cs*0.4,L.cs*2,CHARMCOL,0.4);
+  BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.35,L.cs*1.1,CALMCOL,0.45);});popNum(L.W/2,L.teamY+L.teamH*0.66,'擋下媚惑','heal','清心');}
+// 半條鎖鏈（從中心往外）：畫法同第二關被鎖的珠子，細細的一環橢圓、一環側面交替
+var CHAIN_URL=(function(){var c=document.createElement('canvas');c.width=240;c.height=48;var g=c.getContext('2d');g.scale(2,2);g.lineCap='round';
+  g.shadowColor='rgba(255,130,215,.9)';g.shadowBlur=5;
+  for(var k=0;k<5;k++){var x=11+k*22;
+    if(k%2===0){g.lineWidth=7;g.strokeStyle='#2a1430';g.beginPath();g.ellipse(x,12,13,7.5,0,0,TAU);g.stroke();g.lineWidth=3.2;g.strokeStyle='#f6cbea';g.beginPath();g.ellipse(x,12,13,7.5,0,0,TAU);g.stroke();}
+    else {g.lineWidth=8;g.strokeStyle='#2a1430';g.beginPath();g.moveTo(x-12,12);g.lineTo(x+12,12);g.stroke();g.lineWidth=3.2;g.strokeStyle='#e8aadc';g.beginPath();g.moveTo(x-11,12);g.lineTo(x+11,12);g.stroke();}}
+  return c.toDataURL();})();
+(function(){var box=document.getElementById('charmTags');for(var i=0;i<6;i++){var d=document.createElement('div');d.className='charmLock';
+  d.innerHTML=[40,220,-40,140].map(function(r){return '<i class="lk" style="--r:'+r+'deg;background-image:url('+CHAIN_URL+')"></i>';}).join('')+'<div class="cnt"><i class="hrt"></i><b></b></div>';
+  box.appendChild(d);charmTags.push(d);}})();
+function onCharm(e){BS.boss.attack();AudioFX.charm();after(0.25,function(){AudioFX.rattle();});var bp=bossScreen();
+  showBanner(battle.boss.name+'施展媚惑，'+e.foxes.map(function(i){return CONFIG.ult[ULT_KEYS[i]].fox;}).join('和')+'被迷住了');
+  e.foxes.forEach(function(i){var fp=foxScreen(i),el=charmTags[i];beam(bp.x,bp.y,fp.x,fp.y,L.cs*0.35,CHARMCOL,0.5);ringFx(fp.x,fp.y,L.cs*0.3,L.cs*1.2,CHARMCOL,0.5);BS.setCharm(i,true);BS.foxes[i].hit();
+    if(el){el.classList.remove('break','on');el._brk=0;}});}
+// 媚惑解除：鎖鏈從中間斷開往兩邊掉
+function onUncharm(i){BS.setCharm(i,false);BS.foxes[i].attack();var fp=lockPoint(i);ringFx(fp.x,fp.y,L.cs*0.25,L.cs*1.0,CHARMCOL,0.45);AudioFX.unlock();
+  var el=charmTags[i];if(!el)return;el.classList.add('break');el._brk=performance.now();setTimeout(function(){el.classList.remove('break','on');el._brk=0;},560);}
+function bumpCharmTag(i){var el=charmTags[i];if(!el)return;el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');AudioFX.rattle();}
+function lockPoint(i){return toScreen(BS.foxPoint(i,0.42));}
+function updateCharmTags(){for(var i=0;i<6;i++){var el=charmTags[i],left=battle.charmed?battle.charmed[i]:0,on=left>0&&G.mode!=='result';
+  if(on||el._brk){var q=lockPoint(i),sz=Math.round(L.W/6*1.15);el.style.left=q.x.toFixed(1)+'px';el.style.top=q.y.toFixed(1)+'px';el.style.setProperty('--lk',sz+'px');}
+  if(on){var tx=String(Math.ceil(left)),b=el.lastChild.lastChild;if(b.textContent!==tx)b.textContent=tx;if(!el.classList.contains('on')){el.classList.add('on');}}
+  else if(!el._brk)el.classList.remove('on');}}
+var CHARM_VIEW={
+  key:'charm',
+  onEvent:function(e){if(e.type==='charm')onCharm(e);if(e.type==='uncharm')onUncharm(e.fox);if(e.type==='charmBlocked')onCharmBlocked();},
+  hud:function(){updateCharmTags();FX2D.setCharm(fighting()&&battle.charmed&&battle.charmed.some(function(v){return v>0;}));},
+  poke:function(i){BS.charmPoke(i);bumpCharmTag(i);},   // 被迷住的狐狸想出手、想放大招：晃一下、鎖鏈跳一下
+  uncharm:onUncharm,   // 清心（心狐大招變奏）解除媚惑也用這個
+  coverSkill:function(c){return '每 '+c.interval+' 秒迷住 '+c.count+' 隻狐狸 '+c.dur+' 秒，狂暴後每 '+c.enrageInterval+' 秒一次。被迷住的狐狸不出手，能量照樣累積。';}
+};
+
+// 紅繩的畫法：BOSS 射紅光拉出繩子、震落鈴鐺、解開時的光圈、盤面上的繩子和鈴鐺每一格的動畫、隔著繩換不過去時晃一下。邏輯在 cord.js。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock_view.js 開頭。
+// 繩子和鈴鐺的網格（CORDV 等）還是在 render/orbs.js 建；BOSS 身上的結界（戰場亮點 stageFx）在 render/battle.js。
+// 繩子旁邊有珠被消掉：震落最下面那顆鈴鐺；掉光就解開（盤面上的繩全部解開時，BOSS 身上的結界碎掉）
+function knockBell(h){var cv=cordFind(h.id),d=stageFx();if(d.hit)d.hit();if(!cv)return;
+  if(cv.nb>0){cv.nb--;cordDropBell(cv,cv.nb);}cv.flash=1;AudioFX.bell(cv.nb);
+  if(h.bells<=0){cv.untie=0;AudioFX.untie();var e=cordEnds(cv);ringFx(e.x,(e.y0+e.y1)/2,L.cs*0.3,L.cs*1.8,ROPECOL,0.5);
+    if(!CORDV.some(function(o){return o.w&&o.untie<0;})){if(d.brk)d.brk();addShake(4);}}}
+var CORD_VIEW={
+  key:'cord',
+// 拉一條紅繩：BOSS 那邊一道紅光打到繩子的位置，繩子從上往下拉出來，BOSS 身上的結界亮起
+  place:function(w){if(!w)return Promise.resolve();var cs=L.cs,bp=bossScreen(),x=L.bx+(w.c+1)*cs,ym=L.by+(w.r0+w.r1+1)/2*cs,d=stageFx();BS.boss.attack();AudioFX.cord();
+  if(d.cords)d.cords(board.cords.length);beam(bp.x,bp.y,x,ym,cs*0.3,ROPECOL,0.45);var cv=cordAdd(w);
+  return wait(0.12).then(function(){return tween(0.4,function(k){cv.appear=k;});}).then(function(){cv.appear=1;cv.flash=1;});},
+  onClear:function(st,ps){(st.cords||[]).forEach(function(h){ps.push(after(h.depth*A.chainStep+0.08,function(){knockBell(h);}));});},
+  update:function(dt,t){updateCords(dt,t);},   // 每一格：繩子晃、鈴鐺擺、解開的繩子飄走
+  reset:function(){cordReset();},   // 開新的一場：盤面上的繩子和掉到一半的鈴鐺都收掉
+  tap:function(res){AudioFX.bellTap();cordFlashAt(res.r,res.c);   // 隔著紅繩換不過去：兩顆珠左右晃一下、繩子亮一下
+    [views.get(res.a),views.get(res.b)].forEach(function(v){if(v)tween(0.3,function(k){v.ox=Math.sin(k*Math.PI*4)*0.06*(1-k);}).then(function(){v.ox=0;});});},
+  coverSkill:function(c){return '每 '+c.interval+' 秒在兩行珠子之間拉一條紅繩：隔著繩不能交換，橫的連線也穿不過去。繩子兩旁或上下消掉珠會震落鈴鐺，'+c.bells+' 顆掉光就解開。';}
+};
+
+// 天鏡的畫法：BOSS 射銀光把珠子變成小圓鏡、鏡子裂開／碎掉（碎掉時反光打回天狐，扣 bonus 點血）、盤面上的鏡片、
+// 反照時大鏡子染金和金光、隊伍列的「反照 ×2　N 秒」小標籤。邏輯在 shard.js。
+// 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock_view.js 開頭。
+// ---- 第五關紅繩結界、第六關鏡片與反照（2026-09-28 Version 108 做在盤面上，跟第二關的鎖鏈一樣；Version 111 全部打碎的獎勵換成反照）----
+// 鏡片的網格（shardMesh、shardMat）還是在 render/orbs.js 建；天狐身邊的大鏡子是戰場亮點（stageFx）。
+// 碎掉的鏡片反光扣 BOSS 血（battle.hitBoss）照原本寫在畫法的動畫裡：打到一半結束時沒播到的不扣，時機跟拆包前一樣。
+var SILVER=new THREE.Color(0xe6efff),GLARECOL=new THREE.Color(0xffe29a);
+// 天鏡射出鏡片：鏡子閃一下，銀色的光打到那幾顆珠，珠子變成鏡片
+function animShard(list){if(!list.length)return Promise.resolve();var bp=bossScreen(),d=stageFx();if(d.fire)d.fire();BS.boss.attack();AudioFX.shard();
+  list.forEach(function(it){var q=cellXY(it.r,it.c);beam(bp.x,bp.y,q.x,q.y,L.cs*0.26,SILVER,0.4);});
+  return wait(0.2).then(function(){addShake(3);return Promise.all(list.map(function(it){var v=views.get(it.id);if(!v)return null;v.shard=true;v.type=-2;v.petal=0;
+    var q=cellXY(it.r,it.c);ringFx(q.x,q.y,L.cs*0.9,L.cs*0.4,SILVER,0.3);return tween(0.28,function(k){v.shardS=1.6-0.6*k;},easeOutBack).then(function(){v.shardS=1;});}));});}
+// 鏡片碎掉：碎片噴開，反光打回天狐（CONFIG.stages[5].shard.bonus 點傷害）
+function breakShard(u){var v=views.get(u.id);if(!v)return;var q=cellXY(v.row,v.col),cs=L.cs,d=stageFx(),k;AudioFX.shardBreak();
+  for(k=0;k<10;k++){var a=rand(0,TAU),sp=rand(1.2,3)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*1.1,rand(.3,.55),rand(.12,.22)*cs,k%3?SILVER:GOLD,cs*7);}
+  if(fighting()&&battle.boss.shard){var bp=bossScreen();beam(q.x,q.y,bp.x,bp.y,cs*0.22,SILVER,0.35);
+    after(0.15,function(){if(!fighting())return;var r=battle.hitBoss(battle.boss.shard.bonus);if(d.pulse)d.pulse();if(r.dealt<=0)return;BS.boss.hit();
+      popNum(bp.x+rand(-L.W*0.14,L.W*0.14),bp.y+rand(-L.H*0.05,0),r.dealt,'up','反光');updateBars();if(r.enraged)onEnrage();if(r.killed)onBossDown();});}
+  return tween(0.16,function(k){v.shardS=1+0.35*k;v.f=1+0.8*k;}).then(function(){views.delete(u.id);});}
+// 鏡子第一次被打到：裂開（鏡面多幾道裂痕、閃一下、噴幾顆銀色碎光），還在原地
+function crackShard(u){var v=views.get(u.id);if(!v)return;var q=cellXY(v.row,v.col),cs=L.cs,k;AudioFX.shardCrack();v.crack=1;
+  ringFx(q.x,q.y,cs*0.3,cs*1.0,SILVER,0.3);for(k=0;k<5;k++){var a=rand(0,TAU),sp=rand(0.8,1.8)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*0.7,rand(.25,.4),rand(.1,.16)*cs,SILVER,cs*6);}
+  return tween(0.24,function(k2){v.shardS=1.18-0.18*k2;v.f=1.8-0.8*k2;}).then(function(){v.shardS=1;v.f=1;});}
+// 反照（Version 111）：盤面上的鏡子全部打碎，天鏡的光照回天狐自己——大鏡子染金、天狐被照得一閃，glare 秒內你打出的傷害 ×glareMul
+function onGlare(){var d=stageFx(),sd=battle.boss.shard,bp=bossScreen(),cs=L.cs,k;if(d.glare)d.glare(true);AudioFX.glare();BS.boss.hit();
+  ringFx(bp.x,bp.y,cs*0.6,cs*4.2,GOLD,0.65);after(0.12,function(){ringFx(bp.x,bp.y,cs*0.3,cs*2.8,GLARECOL,0.5);});
+  for(k=0;k<16;k++){var a=rand(0,TAU),sp=rand(1.4,3.2)*cs;emit(bp.x,bp.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*0.8,rand(.45,.8),rand(.14,.26)*cs,k%3?GOLD:GLARECOL,cs*3);}
+  showBanner('天狐被自己的光照到了　'+sd.glare+' 秒內傷害 ×'+sd.glareMul);}
+function onGlareEnd(){var d=stageFx();if(d.glare)d.glare(false);}
+var sh=0;   // 這一格畫了幾面鏡片
+var SHARD_VIEW={
+  key:'shard',
+  place:animShard,
+  onClear:function(st,ps){if(st.shards&&st.shards.length)st.shards.forEach(function(u){ps.push(after(u.depth*A.chainStep+0.05,function(){return u.left<=0?breakShard(u):crackShard(u);}));});},
+  afterMove:onGlare,   // 邏輯判定反照開始之後：大鏡子染金、金光、橫幅
+  onEvent:function(e){if(e.type==='glareEnd')onGlareEnd();},
+  tap:function(){AudioFX.shardTap();},   // 想換鏡片：叮一聲
+  chip:function(){return (battle.glare>0?'<span class="chip glare">反照 ×'+battle.boss.shard.glareMul+'　'+Math.ceil(battle.glare)+' 秒</span>':'');},
+  drawBegin:function(){sh=0;},
+  drawCover:function(v,x,y,z,K,s,rz,t){if(v.shard){if(sh<12){var ss=K*s*2.55*(v.shardS||1);setM(shardMesh,sh,x+(v.rattle||0)*K,y,z+K*0.2,rz+0.05*Math.sin(t*0.8+v.ph),ss*v.sx,ss*v.sy,1);   // 鏡片：一面小圓鏡，反光慢慢刷過去；裂開之後多幾道裂痕
+        shardMesh.instanceColor.setXYZ(sh,Math.min(1.7,v.f),v.ph/TAU,v.crack?1:0);sh++;}return true;}return false;},
+  drawEnd:function(t){shardMesh.count=sh;shardMat.uniforms.time.value=t;shardMesh.instanceMatrix.needsUpdate=true;shardMesh.instanceColor.needsUpdate=true;},
+  coverSkill:function(c){return '開場 '+c.first+' 秒起每 '+c.interval+' 秒射出 '+c.count+' 面小圓鏡，旁邊消掉珠先裂開、再一次才碎。全部打碎，天狐被自己的光照到，'+c.glare+' 秒內傷害 ×'+c.glareMul+'。';}
+};
+
+// BOSS 機制的畫法清單（跟 index.js 的邏輯清單同一個順序）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 灰盒試玩時，把某一包的畫法換成素的版本（色塊、記號），邏輯不用動。
+var MECH_VIEWS={lock:LOCK_VIEW,petal:PETAL_VIEW,cord:CORD_VIEW,shard:SHARD_VIEW,charm:CHARM_VIEW};
+var MECH_VIEW_LIST=[LOCK_VIEW,PETAL_VIEW,CORD_VIEW,SHARD_VIEW,CHARM_VIEW];
+
+// 共用的可變狀態（state.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 var board=new Board(COLS,ROWS,NT),battle=new Battle(CONFIG),MULT=CONFIG.multiplier;
 var views=new Map();
 var S={locked:true,sel:null,time:0,lastAct:0,stableAt:0,hint:null,hintAt:0};
 var G={mode:'title',prev:null};
+var APP={screen:'garden',stage:0,sigil:0};
+/* 每場戰鬥的暫時狀態（session）：beginBattle 開場呼叫 newSession() 整個換一個新的，不用再一項一項手動歸零。
+   新機制要記「這一場」的東西就加在 freshSession() 裡，開場自然就是乾淨的。
+   2026-09-29 第 3 步從 flow.js 的全域變數（和 S.shardBroke）搬進來；歸零的時機跟 v112 一樣（都只在 beginBattle 開場）。
+   別的 module 讀寫一律寫 SES.xxx，不要先存成區域變數：上一場沒走完的連鎖或計時器，寫到的是「當下這一場」，跟原本的全域變數一樣。 */
+function freshMech(){var o={};MECHS.forEach(function(m){if(m.session)o[m.key]=m.session();});return o;}
+function freshSession(){return {
+  U:null,                   // 正在放的大招特寫（tryUlt 設、finishUlt 清）
+  ULT_SEL:[0,0,0,0,0,0],    // 這一場每隻狐狸帶原版（0）還是變奏（1）：beginBattle 從存檔讀進來
+  mech:freshMech(),         // 已經搬成一包的機制各自卡著的狀態（SES.mech.lock、petal、cord、shard），內容由各包的 session() 決定
+  pendingSwords:0,          // 木狐大招的劍氣：盤面停下來才變
+  pendingUnlock:false       // 水狐變奏（淨流）：盤面停下來後解開全部鎖鏈
+};}
+var SES=freshSession();
+function newSession(){SES=freshSession();}
+
+// 遊戲流程、觸控、每幀同步、主迴圈（flow.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+/* =====================================================================
+   遊戲流程
+   ===================================================================== */
 function makeView(id,type,row,col,special,dir){var v={id:id,type:type,special:special||null,dir:dir||null,row:row,col:col,ox:0,oy:0,z:0,s:1,sx:1,sy:1,rz:0,f:1,ph:rand(0,TAU)};views.set(id,v);return v;}
-function cellXY(row,col){return {x:L.bx+(col+0.5)*L.cs,y:L.by+(row+0.5)*L.cs};}
 function ciXY(ci){return cellXY((ci/COLS)|0,ci%COLS);}
 function fighting(){return G.mode==='playing'||G.mode==='timeup';}
 
@@ -5155,7 +5377,7 @@ function battleFromClear(st){
   function sendMotes(type,cells,delay){var to=toScreen(BS.foxPoint(type,0.3)),col=typeColor(type),lim=Math.min(cells.length,8);
     for(var k=0;k<lim;k++){var it=cells[Math.floor(k*cells.length/lim)],p=cellXY(it.r,it.c);flyMote(p.x,p.y,to.x+rand(-6,6),to.y+rand(-6,6),col,delay+0.05+k*0.012,A.gather);}}
   function act(type,n,S2,delay,cells){if(cells&&cells.length)sendMotes(type,cells,delay);var arrive=delay+A.gather+0.05;
-    if(battle.isCharmed(type)){after(arrive,function(){BS.charmPoke(type);bumpCharmTag(type);});return;}   // 被媚惑：能量照算，但不攻擊、不補血
+    if(battle.isCharmed(type)){after(arrive,function(){MECH_VIEWS.charm.poke(type);});return;}   // 被媚惑：能量照算，但不攻擊、不補血
     if(type===HEART){var healed=battle.heal(n);after(arrive,function(){healFx(healed);});}else fireFromFox(type,n,S2,arrive);}
   var ci=0;
   st.groups.forEach(function(g,gi){if(g.skip)return;var cl=(cellsBy['g'+gi]||[]).slice();if(g.spawn)cl.push({r:g.spawn.r,c:g.spawn.c,type:g.type});
@@ -5177,11 +5399,11 @@ function teamBarPoint(){return {x:L.W/2+rand(-L.W*0.2,L.W*0.2),y:L.teamY+L.teamH
 function healFx(healed){var f=BS.foxes[HEART];f.attack();AudioFX.heal();var to=teamBarPoint();
   fireShot(foxScreen(HEART),to,ORB[HEART].color.clone().lerp(WHITE,0.35),0,function(){if(healed>0)popNum(to.x,to.y-12,'+'+healed,'heal','');updateBars();});}
 var BOSSCOL=new THREE.Color(0xc9a0ff);
-var sealT=0,ULT_KEYS=['fire','water','wood','light','dark','heart'],U=null,pendingSwords=0,pendingLocks=0,pendingPetals=0,pendingUnlock=false,ULT_SEL=[0,0,0,0,0,0],VT=0,
+var sealT=0,ULT_KEYS=['fire','water','wood','light','dark','heart'],VT=0,
     CAM={pos:new THREE.Vector3(0,0,14),look:new THREE.Vector3(0,0,0)},ultBannerEl=document.getElementById('ultBanner'),chipsEl=document.getElementById('chips');
 var veilTex=canvasTex(8,128,function(g,w,h){var gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(4,6,20,0)');gr.addColorStop(0.22,'rgba(4,6,20,1)');gr.addColorStop(1,'rgba(4,6,20,1)');g.fillStyle=gr;g.fillRect(0,0,w,h);});
 var veil=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:veilTex,transparent:true,opacity:0,depthWrite:false}));veil.visible=false;boardScene.add(veil);
-// 這一場每隻狐狸帶原版（0）還是變奏（1）：beginBattle 時從存檔讀進 ULT_SEL
+// 這一場每隻狐狸帶原版（0）還是變奏（1）：beginBattle 時從存檔讀進 SES.ULT_SEL
 function ultAltOn(key){var d=Save.data();return !!(CONFIG.ultAlt[key]&&d.ults[key]&&d.ult[key]==='alt');}
 function ultName(key,alt){return alt?CONFIG.ultAlt[key].name:CONFIG.ult[key].name;}
 function ultDesc(key,alt,st){var a=CONFIG.ultAlt[key],bn=st?st.name:'BOSS ';
@@ -5189,15 +5411,15 @@ function ultDesc(key,alt,st){var a=CONFIG.ultAlt[key],bn=st?st.name:'BOSS ';
   if(alt&&key==='heart')return '解除所有媚惑，'+a.guard+' 秒內不會再被迷住；只回復 '+Math.round(a.heal*100)+'% 血量，沒有護盾。';
   return skillText(key,st||{name:'BOSS '});}
 function tryUlt(i){if(G.mode!=='playing'||battle.energy[i]<CONFIG.ult.max)return false;
-  if(battle.isCharmed(i)){AudioFX.bad();BS.charmPoke(i);bumpCharmTag(i);return false;}   // 被媚惑時大招按不下去
+  if(battle.isCharmed(i)){AudioFX.bad();MECH_VIEWS.charm.poke(i);return false;}   // 被媚惑時大招按不下去
   var fox=BS.foxes[i],cfg=CONFIG.ult[ULT_KEYS[i]],fp=fox.group.position;
   battle.energy[i]=0;G.prev='playing';G.mode='ult';S.sel=null;S.hint=null;drag=null;
   fox.jump(false);fox.setReady(false);fox.ult();AudioFX.ult();if(navigator.vibrate){try{navigator.vibrate(30);}catch(_){}}
-  U={i:i,t:0,dur:CONFIG.ult.closeup,fx:fp.x,fy:fox.group.userData.baseY,fz:fp.z,s:fox.scale||0.6};
-  ultBannerEl.querySelector('small').textContent=cfg.fox;ultBannerEl.querySelector('b').textContent=ultName(ULT_KEYS[i],ULT_SEL[i]);ultBannerEl.classList.add('show');
-  var uf=BS.ultFx,tc=new THREE.Color(CONFIG.orbs[i].color).lerp(WHITE,0.3);uf.group.visible=true;uf.group.position.set(fp.x,U.fy,fp.z);
+  SES.U={i:i,t:0,dur:CONFIG.ult.closeup,fx:fp.x,fy:fox.group.userData.baseY,fz:fp.z,s:fox.scale||0.6};
+  ultBannerEl.querySelector('small').textContent=cfg.fox;ultBannerEl.querySelector('b').textContent=ultName(ULT_KEYS[i],SES.ULT_SEL[i]);ultBannerEl.classList.add('show');
+  var uf=BS.ultFx,tc=new THREE.Color(CONFIG.orbs[i].color).lerp(WHITE,0.3);uf.group.visible=true;uf.group.position.set(fp.x,SES.U.fy,fp.z);
   uf.back.material.color.copy(tc);uf.ground.material.color.copy(tc);uf.glow.material.color.copy(tc);uf.motes.forEach(function(m){m.material.color.copy(tc).lerp(WHITE,0.45);});veil.visible=true;addShake(4);return true;}
-function updateUlt(rdt){var u=U,d=u.dur,inT=0.28,outT=0.22,e;u.t+=rdt;
+function updateUlt(rdt){var u=SES.U,d=u.dur,inT=0.28,outT=0.22,e;u.t+=rdt;
   if(u.t<inT)e=easeOut(u.t/inT);else if(u.t>d-outT)e=1-easeInOut(Math.min(1,(u.t-(d-outT))/outT));else e=1;
   CAM.pos.set(u.fx*0.8*e,(u.fy+0.55)*e,14+(u.fz+3.4-14)*e);CAM.look.set(u.fx*e,(u.fy-0.37)*e,u.fz*e);
   var uf=BS.ultFx,s=u.s/0.6,op=Math.min(1,u.t/0.2)*(u.t>d-outT?Math.max(0,(d-u.t)/outT):1);
@@ -5208,7 +5430,7 @@ function updateUlt(rdt){var u=U,d=u.dur,inT=0.28,outT=0.22,e;u.t+=rdt;
     var ms=0.09*s*(0.7+0.3*Math.sin(u.t*9+k));m.scale.set(ms,ms,1);m.material.opacity=op*(0.6+0.4*Math.sin(u.t*7+k*2));});
   veil.material.opacity=0.72*e;
   if(u.t>=d)finishUlt();}
-function finishUlt(){var i=U.i;U=null;CAM.pos.set(0,0,14);CAM.look.set(0,0,0);bcam.position.copy(CAM.pos);bcam.lookAt(CAM.look);bcam.updateMatrixWorld();
+function finishUlt(){var i=SES.U.i;SES.U=null;CAM.pos.set(0,0,14);CAM.look.set(0,0,0);bcam.position.copy(CAM.pos);bcam.lookAt(CAM.look);bcam.updateMatrixWorld();
   BS.ultFx.group.visible=false;veil.visible=false;veil.material.opacity=0;ultBannerEl.classList.remove('show');
   G.mode='playing';S.lastAct=S.time;applyUlt(i);}
 function applyUlt(i){var key=ULT_KEYS[i],cfg=CONFIG.ult[key],fox=BS.foxes[i],from=foxScreen(i),bp=bossScreen(),col=typeColor(i);
@@ -5217,24 +5439,24 @@ function applyUlt(i){var key=ULT_KEYS[i],cfg=CONFIG.ult[key],fox=BS.foxes[i],fro
   if(key==='dark'){AudioFX.slash();addShake(9);}
   if(key==='fire'){for(var k=0;k<cfg.balls;k++)(function(k){after(k*0.11,function(){if(!fighting())return;var res=battle.ultDamage(i);fox.attack();AudioFX.fireball();
       fireShot(foxScreen(i),{x:bp.x+rand(-26,26),y:bp.y+rand(-22,22)},new THREE.Color(0xffa060),0,function(){onShotHit(res,i);},1.6);});})(k);}
-  else if(key==='water'){var walt=ULT_SEL[i],wd=walt?CONFIG.ultAlt.water.delay:cfg.delay;if(walt)pendingUnlock=true;battle.atk+=wd;   /* 淨流：盤面停下來後解開全部鎖鏈；倒數加回去之後就不算在蓄力了 */if(battle.atk>battle.boss.charge)battle.charging=false;
+  else if(key==='water'){var walt=SES.ULT_SEL[i],wd=walt?CONFIG.ultAlt.water.delay:cfg.delay;if(walt)SES.pendingUnlock=true;battle.atk+=wd;   /* 淨流：盤面停下來後解開全部鎖鏈；倒數加回去之後就不算在蓄力了 */if(battle.atk>battle.boss.charge)battle.charging=false;
     beam(from.x,from.y,bp.x,bp.y,L.cs*0.55,col,0.45);BS.boss.hit();
     for(var w=0;w<3;w++)(function(w){after(w*0.12,function(){ringFx(bp.x,bp.y,L.cs*0.4,L.cs*(2.4+w*0.8),col,0.5);});})(w);
     var cp=toScreen(BS.bossPoint(-1.05,1.8));popNum(cp.x,cp.y-8,'+'+wd+' 秒','water',ultName('water',walt));
     cdEl.classList.add('sealed');clearTimeout(sealT);sealT=setTimeout(function(){cdEl.classList.remove('sealed');},1800);}
-  else if(key==='wood'){pendingSwords+=cfg.swords;}
+  else if(key==='wood'){SES.pendingSwords+=cfg.swords;}
   else if(key==='light'){battle.buff=cfg.dur;BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.2,GOLD,0.5);});}
   else if(key==='dark'){var res=battle.ultDamage(i),c=Math.max(1,battle.combo);
     fireShot(from,bp,new THREE.Color(0xb48cff),0,function(){onShotHit(res,i,'影襲 '+c+' 連擊');addShake(8);},2.4);}
-  else if(key==='heart'&&ULT_SEL[i]){var ca=CONFIG.ultAlt.heart,h2=battle.healPct(ca.heal),freed=battle.clearCharm(ca.guard);AudioFX.heal();   // 清心
-    freed.forEach(function(j){onUncharm(j);});BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.3,CALMCOL,0.55);});
+  else if(key==='heart'&&SES.ULT_SEL[i]){var ca=CONFIG.ultAlt.heart,h2=battle.healPct(ca.heal),freed=battle.clearCharm(ca.guard);AudioFX.heal();   // 清心
+    freed.forEach(function(j){MECH_VIEWS.charm.uncharm(j);});BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.3,CALMCOL,0.55);});
     popNum(L.W/2,L.teamY+L.teamH*0.66,'+'+h2,'heal',freed.length?'清心・解除媚惑':'清心');updateBars();}
   else if(key==='heart'){var h=battle.healPct(cfg.heal);battle.shield=true;AudioFX.heal();AudioFX.shield();
     BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.3,col,0.55);});
     popNum(L.W/2,L.teamY+L.teamH*0.66,'+'+h,'heal','月華治癒');updateBars();}}
 function foxAt(x){var best=-1,bd=L.W/12;BS.foxes.forEach(function(f,i){var q=foxScreen(i),d=Math.abs(q.x-x);if(d<bd){bd=d;best=i;}});return best;}
 var lastChips='';
-function updateChips(){var h=(battle.glare>0?'<span class="chip glare">反照 ×'+battle.boss.shard.glareMul+'　'+Math.ceil(battle.glare)+' 秒</span>':'')+(battle.shield?'<span class="chip shield">護盾</span>':'')+(battle.charmGuard>0?'<span class="chip calm">清心 '+Math.ceil(battle.charmGuard)+' 秒</span>':'')+(battle.buff>0?'<span class="chip buff">加護 '+Math.ceil(battle.buff)+' 秒</span>':'');
+function updateChips(){var h=MECH_VIEW_LIST.map(function(mv){return mv.chip?mv.chip():'';}).join('')+(battle.shield?'<span class="chip shield">護盾</span>':'')+(battle.charmGuard>0?'<span class="chip calm">清心 '+Math.ceil(battle.charmGuard)+' 秒</span>':'')+(battle.buff>0?'<span class="chip buff">加護 '+Math.ceil(battle.buff)+' 秒</span>':'');
   if(h!==lastChips){chipsEl.innerHTML=h;lastChips=h;}teamBarEl.classList.toggle('shielded',battle.shield);}
 function updateEnergy(rdt){var ready0=G.mode==='playing'||G.mode==='ult';
   BS.foxes.forEach(function(f,i){var e=battle.energy[i];f.energyDisp+=(e-f.energyDisp)*Math.min(1,rdt*8);if(Math.abs(e-f.energyDisp)<0.3)f.energyDisp=e;
@@ -5250,70 +5472,10 @@ function onBossAttack(ev){
   popNum(L.W/2,L.teamY+L.teamH*0.66,'-'+ev.dmg,'team',ev.blocked?'護盾擋下 '+ev.blocked:'');updateBars();
   if(battle.teamHp<=0){G.mode='lost';after(1.3,function(){showResult('hp');});}}
 function onEnrage(){BS.boss.setGlow(1);AudioFX.enrage();bossBarEl.classList.add('enraged');var p=bossScreen();ringFx(p.x,p.y,L.cs*0.6,L.cs*4,BOSSCOL,0.6);addShake(6);showBanner(battle.boss.name+'狂暴了，攻擊變快');}
-// ---- 第五關紅繩結界、第六關鏡片與反照（2026-09-28 Version 108 做在盤面上，跟第二關的鎖鏈一樣；Version 111 全部打碎的獎勵換成反照）----
-var pendingCord=null,pendingShards=0,SILVER=new THREE.Color(0xe6efff),GLARECOL=new THREE.Color(0xffe29a);
+// 戰場亮點（BOSS 身邊的裝飾：第五關的結界、第六關的大鏡子…），紅繩、天鏡的畫法會叫
 function stageFx(){return BS.deco(APP.stage)||{};}
-// 拉一條紅繩：BOSS 那邊一道紅光打到繩子的位置，繩子從上往下拉出來，BOSS 身上的結界亮起
-function animCord(w){if(!w)return Promise.resolve();var cs=L.cs,bp=bossScreen(),x=L.bx+(w.c+1)*cs,ym=L.by+(w.r0+w.r1+1)/2*cs,d=stageFx();BS.boss.attack();AudioFX.cord();
-  if(d.cords)d.cords(board.cords.length);beam(bp.x,bp.y,x,ym,cs*0.3,ROPECOL,0.45);var cv=cordAdd(w);
-  return wait(0.12).then(function(){return tween(0.4,function(k){cv.appear=k;});}).then(function(){cv.appear=1;cv.flash=1;});}
-// 繩子旁邊有珠被消掉：震落最下面那顆鈴鐺；掉光就解開（盤面上的繩全部解開時，BOSS 身上的結界碎掉）
-function knockBell(h){var cv=cordFind(h.id),d=stageFx();if(d.hit)d.hit();if(!cv)return;
-  if(cv.nb>0){cv.nb--;cordDropBell(cv,cv.nb);}cv.flash=1;AudioFX.bell(cv.nb);
-  if(h.bells<=0){cv.untie=0;AudioFX.untie();var e=cordEnds(cv);ringFx(e.x,(e.y0+e.y1)/2,L.cs*0.3,L.cs*1.8,ROPECOL,0.5);
-    if(!CORDV.some(function(o){return o.w&&o.untie<0;})){if(d.brk)d.brk();addShake(4);}}}
-// 天鏡射出鏡片：鏡子閃一下，銀色的光打到那幾顆珠，珠子變成鏡片
-function animShard(list){if(!list.length)return Promise.resolve();var bp=bossScreen(),d=stageFx();if(d.fire)d.fire();BS.boss.attack();AudioFX.shard();
-  list.forEach(function(it){var q=cellXY(it.r,it.c);beam(bp.x,bp.y,q.x,q.y,L.cs*0.26,SILVER,0.4);});
-  return wait(0.2).then(function(){addShake(3);return Promise.all(list.map(function(it){var v=views.get(it.id);if(!v)return null;v.shard=true;v.type=-2;v.petal=0;
-    var q=cellXY(it.r,it.c);ringFx(q.x,q.y,L.cs*0.9,L.cs*0.4,SILVER,0.3);return tween(0.28,function(k){v.shardS=1.6-0.6*k;},easeOutBack).then(function(){v.shardS=1;});}));});}
-// 鏡片碎掉：碎片噴開，反光打回天狐（CONFIG.stages[5].shard.bonus 點傷害）
-function breakShard(u){var v=views.get(u.id);if(!v)return;var q=cellXY(v.row,v.col),cs=L.cs,d=stageFx(),k;AudioFX.shardBreak();
-  for(k=0;k<10;k++){var a=rand(0,TAU),sp=rand(1.2,3)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*1.1,rand(.3,.55),rand(.12,.22)*cs,k%3?SILVER:GOLD,cs*7);}
-  if(fighting()&&battle.boss.shard){var bp=bossScreen();beam(q.x,q.y,bp.x,bp.y,cs*0.22,SILVER,0.35);
-    after(0.15,function(){if(!fighting())return;var r=battle.hitBoss(battle.boss.shard.bonus);if(d.pulse)d.pulse();if(r.dealt<=0)return;BS.boss.hit();
-      popNum(bp.x+rand(-L.W*0.14,L.W*0.14),bp.y+rand(-L.H*0.05,0),r.dealt,'up','反光');updateBars();if(r.enraged)onEnrage();if(r.killed)onBossDown();});}
-  return tween(0.16,function(k){v.shardS=1+0.35*k;v.f=1+0.8*k;}).then(function(){views.delete(u.id);});}
-// 鏡子第一次被打到：裂開（鏡面多幾道裂痕、閃一下、噴幾顆銀色碎光），還在原地
-function crackShard(u){var v=views.get(u.id);if(!v)return;var q=cellXY(v.row,v.col),cs=L.cs,k;AudioFX.shardCrack();v.crack=1;
-  ringFx(q.x,q.y,cs*0.3,cs*1.0,SILVER,0.3);for(k=0;k<5;k++){var a=rand(0,TAU),sp=rand(0.8,1.8)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*0.7,rand(.25,.4),rand(.1,.16)*cs,SILVER,cs*6);}
-  return tween(0.24,function(k2){v.shardS=1.18-0.18*k2;v.f=1.8-0.8*k2;}).then(function(){v.shardS=1;v.f=1;});}
-// 這一步打碎了鏡片、而且盤面上一片都不剩：天狐被自己的光照到（反照）
-function afterMove(){if(!S.shardBroke)return;S.shardBroke=false;if(board.shardCount()===0&&battle.boss.shard&&fighting())onGlare();}
-// 反照（Version 111）：盤面上的鏡子全部打碎，天鏡的光照回天狐自己——大鏡子染金、天狐被照得一閃，glare 秒內你打出的傷害 ×glareMul
-function onGlare(){battle.startGlare();var d=stageFx(),sd=battle.boss.shard,bp=bossScreen(),cs=L.cs,k;if(d.glare)d.glare(true);AudioFX.glare();BS.boss.hit();
-  ringFx(bp.x,bp.y,cs*0.6,cs*4.2,GOLD,0.65);after(0.12,function(){ringFx(bp.x,bp.y,cs*0.3,cs*2.8,GLARECOL,0.5);});
-  for(k=0;k<16;k++){var a=rand(0,TAU),sp=rand(1.4,3.2)*cs;emit(bp.x,bp.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*0.8,rand(.45,.8),rand(.14,.26)*cs,k%3?GOLD:GLARECOL,cs*3);}
-  showBanner('天狐被自己的光照到了　'+sd.glare+' 秒內傷害 ×'+sd.glareMul);}
-function onGlareEnd(){var d=stageFx();if(d.glare)d.glare(false);}
-// 媚惑：粉紅光束打到兩隻狐狸，牠們頭上繞愛心、旁邊顯示剩餘秒數；解除時彈一下
-var CHARMCOL=new THREE.Color(0xff8fd0),CALMCOL=new THREE.Color(0xd6c4ff),charmTags=[];
-// 清心保護中，BOSS 的媚惑被擋下
-function onCharmBlocked(){BS.boss.attack();AudioFX.shield();var bp=bossScreen();ringFx(bp.x,bp.y,L.cs*0.4,L.cs*2,CHARMCOL,0.4);
-  BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.35,L.cs*1.1,CALMCOL,0.45);});popNum(L.W/2,L.teamY+L.teamH*0.66,'擋下媚惑','heal','清心');}
-// 半條鎖鏈（從中心往外）：畫法同第二關被鎖的珠子，細細的一環橢圓、一環側面交替
-var CHAIN_URL=(function(){var c=document.createElement('canvas');c.width=240;c.height=48;var g=c.getContext('2d');g.scale(2,2);g.lineCap='round';
-  g.shadowColor='rgba(255,130,215,.9)';g.shadowBlur=5;
-  for(var k=0;k<5;k++){var x=11+k*22;
-    if(k%2===0){g.lineWidth=7;g.strokeStyle='#2a1430';g.beginPath();g.ellipse(x,12,13,7.5,0,0,TAU);g.stroke();g.lineWidth=3.2;g.strokeStyle='#f6cbea';g.beginPath();g.ellipse(x,12,13,7.5,0,0,TAU);g.stroke();}
-    else{g.lineWidth=8;g.strokeStyle='#2a1430';g.beginPath();g.moveTo(x-12,12);g.lineTo(x+12,12);g.stroke();g.lineWidth=3.2;g.strokeStyle='#e8aadc';g.beginPath();g.moveTo(x-11,12);g.lineTo(x+11,12);g.stroke();}}
-  return c.toDataURL();})();
-(function(){var box=document.getElementById('charmTags');for(var i=0;i<6;i++){var d=document.createElement('div');d.className='charmLock';
-  d.innerHTML=[40,220,-40,140].map(function(r){return '<i class="lk" style="--r:'+r+'deg;background-image:url('+CHAIN_URL+')"></i>';}).join('')+'<div class="cnt"><i class="hrt"></i><b></b></div>';
-  box.appendChild(d);charmTags.push(d);}})();
-function onCharm(e){BS.boss.attack();AudioFX.charm();after(0.25,function(){AudioFX.rattle();});var bp=bossScreen();
-  showBanner(battle.boss.name+'施展媚惑，'+e.foxes.map(function(i){return CONFIG.ult[ULT_KEYS[i]].fox;}).join('和')+'被迷住了');
-  e.foxes.forEach(function(i){var fp=foxScreen(i),el=charmTags[i];beam(bp.x,bp.y,fp.x,fp.y,L.cs*0.35,CHARMCOL,0.5);ringFx(fp.x,fp.y,L.cs*0.3,L.cs*1.2,CHARMCOL,0.5);BS.setCharm(i,true);BS.foxes[i].hit();
-    if(el){el.classList.remove('break','on');el._brk=0;}});}
-// 媚惑解除：鎖鏈從中間斷開往兩邊掉
-function onUncharm(i){BS.setCharm(i,false);BS.foxes[i].attack();var fp=lockPoint(i);ringFx(fp.x,fp.y,L.cs*0.25,L.cs*1.0,CHARMCOL,0.45);AudioFX.unlock();
-  var el=charmTags[i];if(!el)return;el.classList.add('break');el._brk=performance.now();setTimeout(function(){el.classList.remove('break','on');el._brk=0;},560);}
-function bumpCharmTag(i){var el=charmTags[i];if(!el)return;el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');AudioFX.rattle();}
-function lockPoint(i){return toScreen(BS.foxPoint(i,0.42));}
-function updateCharmTags(){for(var i=0;i<6;i++){var el=charmTags[i],left=battle.charmed?battle.charmed[i]:0,on=left>0&&G.mode!=='result';
-  if(on||el._brk){var q=lockPoint(i),sz=Math.round(L.W/6*1.15);el.style.left=q.x.toFixed(1)+'px';el.style.top=q.y.toFixed(1)+'px';el.style.setProperty('--lk',sz+'px');}
-  if(on){var tx=String(Math.ceil(left)),b=el.lastChild.lastChild;if(b.textContent!==tx)b.textContent=tx;if(!el.classList.contains('on')){el.classList.add('on');}}
-  else if(!el._brk)el.classList.remove('on');}}
+// 走完一步、整串連鎖都停下來：各機制檢查要不要觸發（天鏡：鏡片全部打碎 → 反照），要的話邏輯先算、再叫畫法
+function afterMove(){MECHS.forEach(function(m){if(m.afterMove&&m.afterMove(battle,board,SES.mech[m.key],battle.boss[m.key],fighting()))MECH_VIEWS[m.key].afterMove();});}
 function onBossDown(){G.mode='won';BS.boss.defeat();cdEl.classList.add('hidden');var p=bossScreen();
   for(var k=0;k<4;k++)after(k*0.18,function(){burst(p.x+rand(-40,40),p.y+rand(-40,30),3,true);});ringFx(p.x,p.y,L.cs*0.5,L.cs*5,GOLD,0.8);addShake(12);
   after(1.6,function(){showResult('win');});}
@@ -5326,7 +5488,7 @@ function updateBars(){
   teamBarEl.querySelector('.num').textContent=battle.teamHp+' / '+battle.teamMax;}
 var lastTimerText='';
 function updateHUD(){
-  updateCharmTags();
+  MECH_VIEW_LIST.forEach(function(mv){if(mv.hud)mv.hud();});   // 各機制每一格要更新的 HUD（媚惑：狐狸頭上的鎖鏈與秒數、畫面四周的粉紅光）
   var tt=String(Math.ceil(battle.time));if(tt!==lastTimerText){timerEl.querySelector('b').textContent=tt;if(G.mode==='playing'&&battle.time<=10&&battle.time>0)AudioFX.tick();lastTimerText=tt;}
   timerEl.classList.toggle('warn',battle.time<=10&&(G.mode==='playing'||G.mode==='timeup'));
   updateChips();
@@ -5361,53 +5523,14 @@ function animConvert(st){var from=st.fromXY||cellXY(st.from[0],st.from[1]),ps=[]
     ps.push(after(i*0.02,function(){beam(from.x,from.y,q.x,q.y,L.cs*(st.col?0.3:0.18),bc,0.35);v.special=it.special;v.dir=it.dir;
       return tween(A.convert,function(k){v.s=1+0.25*Math.sin(k*Math.PI);v.f=1+0.8*Math.sin(k*Math.PI);});}));});
   return Promise.all(ps);}
-function shatterLock(u){var v=views.get(u.id);if(!v)return;v.locked=false;var q=cellXY(v.row,v.col),cs=L.cs;
-  AudioFX.unlock();ringFx(q.x,q.y,cs*0.3,cs*1.4,new THREE.Color(0xb88cff),0.4);
-  for(var k=0;k<14;k++){var a=rand(0,TAU),sp=rand(1.5,4)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*1.5,rand(.35,.6),rand(.14,.26)*cs,k%3?new THREE.Color(0x8e86b8):new THREE.Color(0xc9a0ff),cs*9);}
-  v.f=1.8;tween(0.25,function(k){v.f=1.8-0.8*k;});}
-function animLock(list){if(!list.length)return Promise.resolve();var bp=bossScreen(),col=new THREE.Color(0x9a5cff);BS.boss.attack();AudioFX.charge();
-  list.forEach(function(it){var q=cellXY(it.r,it.c);beam(bp.x,bp.y,q.x,q.y,L.cs*0.28,col,0.4);});
-  return wait(0.2).then(function(){AudioFX.lock();addShake(5);
-    return Promise.all(list.map(function(it){var v=views.get(it.id);if(!v)return null;v.locked=true;var q=cellXY(it.r,it.c);ringFx(q.x,q.y,L.cs*0.9,L.cs*0.4,col,0.3);
-      return tween(0.28,function(k){v.lockS=1.7-0.7*k;},easeOutBack).then(function(){v.lockS=1;});}));});}
-function lockedCount(){var n=0;board.g.forEach(function(row){row.forEach(function(o){if(o&&o.locked)n++;});});return n;}
-// ---- 落英：桃花從 BOSS 那裡飄下來蓋住珠子；旁邊有珠被消掉時被吹開、飛走 ----
-var PFL=[],PEACHBASE=new THREE.Color(1,0.47,0.61),PTINT=ORB.map(function(o){var c=o.color.clone();return c.multiplyScalar(1/Math.max(c.r,c.g,c.b));});
-PTINT[4]=new THREE.Color(0.31,0.21,1);
-PTINT[0]=new THREE.Color(1,0.32,0.12);PTINT[2]=new THREE.Color(0,0.62,0.38);   // 火珠的花更紅（2026-09-27 使用者：原本火的花太淡）；木珠的花：使用者指定 40bda6，實際畫出來約 5ab9a4～67cab2（shader 會往灰混、再打光，紅色壓不到更低）   // 暗珠上的花：偏藍的紫，才跟心珠的粉拉得開（2026-09-27 使用者：畫出來要接近 b48bff；粉色不動）
-// 花要染的顏色：那顆珠的顏色、最亮的分量拉到 1（shader 再往白色混，所以是淡淡的）；PEACHBASE 是還沒落地時的桃紅
-function petalTint(type){return type>=0&&PTINT[type]?PTINT[type]:PEACHBASE;}
-function petalSpark(type){return petalTint(type).clone().lerp(WHITE,0.45);}   // PFL：飛行中的桃花（mode 'in' 飄下來、'out' 被吹走），syncOrbs 畫
-function petalFlight(mode,x0,y0,x1,y1,dur,delay,tc){var f={on:false,x:x0,y:y0,s:mode==='in'?0.5:1,rx:0,ry:0,rz:0,br:1,c:new THREE.Color().copy(mode==='in'?PEACHBASE:tc)},sd=Math.random()<0.5?-1:1,
-    cx=(x0+x1)/2+sd*rand(0.6,1.4)*L.cs,cy=mode==='in'?Math.min(y0,y1)+rand(-0.2,0.6)*L.cs:(y0+y1)/2,spin=rand(4,7)*sd,ph=rand(0,TAU);
-  function go(){f.on=true;PFL.push(f);
-    return tween(dur,function(k){var e=mode==='in'?easeOut(k):k*k*0.4+k*0.6,u=1-e;f.x=u*u*x0+2*u*e*cx+e*e*x1;f.y=u*u*y0+2*u*e*cy+e*e*y1;
-      if(mode==='in'){f.s=0.5+0.5*easeOut(k)+0.18*Math.sin(Math.PI*k);f.c.copy(PEACHBASE).lerp(tc,smoothstep(0.45,1,k));f.rz=spin*(1-e)*0.6;f.rx=Math.sin(k*9+ph)*0.7*(1-k);f.ry=Math.cos(k*7+ph)*0.6*(1-k);}
-      else{f.s=1.05-0.75*k;f.rz=spin*0.25*k;f.ry=k*Math.PI*1.3*sd;f.rx=Math.sin(k*6+ph)*0.5;f.br=1+0.5*(1-k);}})
-    .then(function(){f.on=false;var i=PFL.indexOf(f);if(i>=0)PFL.splice(i,1);});}
-  return delay?wait(delay).then(go):go();}
-function animPetal(list){if(!list.length)return Promise.resolve();var bp=bossScreen();BS.boss.attack();AudioFX.petal();
-  return Promise.all(list.map(function(it,i){var q=cellXY(it.r,it.c);
-    var tv=views.get(it.id),tt=tv?tv.type:-1;
-    return petalFlight('in',bp.x+rand(-24,24),bp.y+rand(-16,8),q.x,q.y,0.55,i*0.09,petalTint(tt)).then(function(){var v=views.get(it.id);if(!v)return;v.petal=1;v.petalS=1.3;AudioFX.petalLand(i);
-      for(var k=0;k<5;k++){var a=rand(0,TAU),sp=rand(0.8,1.8)*L.cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-L.cs*0.6,rand(.3,.5),rand(.14,.22)*L.cs,petalSpark(v.type),L.cs*4);}
-      return tween(0.24,function(k){v.petalS=1.3-0.3*k;},easeOutBack).then(function(){v.petalS=1;});});}));}
-// 吹開一片花瓣：cleared 是那顆珠同時被消掉（不另外閃一下）
-function blowPetal(id,cleared){var v=views.get(id);if(!v||!v.petal)return;v.petal=0;battle.revealed++;
-  var q=cellXY(v.row,v.col),sd=Math.random()<0.5?-1:1;petalFlight('out',q.x,q.y,q.x+sd*rand(0.9,1.7)*L.cs,q.y-rand(1.6,2.6)*L.cs,0.6,0,petalTint(v.type));AudioFX.bloom();
-  for(var k=0;k<6;k++){var a=rand(0,TAU),sp=rand(1,2.4)*L.cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-L.cs*1.2,rand(.35,.6),rand(.12,.2)*L.cs,petalSpark(v.type),L.cs*5);}
-  if(!cleared){v.f=1.7;tween(0.3,function(k){v.f=1.7-0.7*k;});}}
 function animClear(st){
   var ps=[],cs=L.cs;
   battleFromClear(st);
-  (st.unlocks||[]).forEach(function(u){ps.push(after(u.depth*A.chainStep+0.02,function(){shatterLock(u);}));});
-  (st.reveals||[]).forEach(function(u){ps.push(after(u.depth*A.chainStep+0.06,function(){blowPetal(u.id);}));});
-  if(st.shards&&st.shards.length){var brk=st.shards.filter(function(u){return u.left<=0;}).length;if(brk){S.shardBroke=true;battle.shattered+=brk;}
-    st.shards.forEach(function(u){ps.push(after(u.depth*A.chainStep+0.05,function(){return u.left<=0?breakShard(u):crackShard(u);}));});}
-  (st.cords||[]).forEach(function(h){if(h.bells<=0)battle.untied++;ps.push(after(h.depth*A.chainStep+0.08,function(){knockBell(h);}));});
+  MECHS.forEach(function(m){if(m.onClear)m.onClear(battle,st,SES.mech[m.key]);});   // 各機制在這一步要記的（天鏡：打碎幾片、這一步有沒有打碎；紅繩：解開幾條）
+  MECH_VIEW_LIST.forEach(function(mv){if(mv.onClear)mv.onClear(st,ps);});   // 各機制在這一步要播的（鎖鏈：解開的鎖；落英：吹開的花瓣；紅繩：震落鈴鐺；天鏡：鏡片裂開或碎掉）
   st.blasts.forEach(function(b){ps.push(after(b.depth*A.chainStep,function(){blastFx(b);}));});
   st.items.forEach(function(it){var v=views.get(it.id);if(!v)return;
-    ps.push(after(it.depth*A.chainStep,function(){var r0=v.row,c0=v.col;if(it.petal)blowPetal(it.id,true);
+    ps.push(after(it.depth*A.chainStep,function(){var r0=v.row,c0=v.col;if(it.petal)MECH_VIEWS.petal.blow(it.id,true);
       return tween(A.clear,function(k){v.s=1+0.3*k;v.f=1+1.6*k;if(it.to){v.row=r0+(it.to[0]-r0)*k*0.8;v.col=c0+(it.to[1]-c0)*k*0.8;v.s=1+0.3*k-0.5*k*k;}},easeOut)
         .then(function(){views.delete(it.id);var q=cellXY(v.row,v.col);burst(q.x,q.y,v.type);});}));});
   return Promise.all(ps).then(function(){
@@ -5438,10 +5561,9 @@ function attemptSwap(r1,c1,r2,c2){
   if(r2<0||c2<0||r2>=ROWS||c2>=COLS){nudge(r1,c1,r2-r1,c2-c1);return;}
   S.locked=true;S.sel=null;S.hint=null;
   var res=board.trySwap(r1,c1,r2,c2);if(!res){S.locked=false;return;}
-  if(res.locked){var lv=views.get(res.lockedId);if(res.shard)AudioFX.shardTap();else AudioFX.rattle();S.locked=false;
+  if(res.locked){var lv=views.get(res.lockedId);(res.shard?MECH_VIEWS.shard:MECH_VIEWS.lock).tap();S.locked=false;
     if(lv)tween(0.3,function(k){lv.rattle=Math.sin(k*Math.PI*6)*0.12*(1-k);}).then(function(){lv.rattle=0;});return;}
-  if(res.walled){S.locked=false;AudioFX.bellTap();cordFlashAt(res.r,res.c);   // 隔著紅繩換不過去：兩顆珠左右晃一下、繩子亮一下
-    [views.get(res.a),views.get(res.b)].forEach(function(v){if(v)tween(0.3,function(k){v.ox=Math.sin(k*Math.PI*4)*0.06*(1-k);}).then(function(){v.ox=0;});});return;}
+  if(res.walled){S.locked=false;MECH_VIEWS.cord.tap(res);return;}   // 隔著紅繩換不過去
   var va=views.get(res.a),vb=views.get(res.b);
   if(res.valid)AudioFX.swap();else AudioFX.bad();
   animSwap(va,vb).then(function(){
@@ -5462,7 +5584,6 @@ function dropInBoard(){
   return Promise.all(ps).then(settle);}
 
 // ---- 畫面切換：庭院 → 隊伍展示 → 戰鬥 ----
-var APP={screen:'garden',stage:0,sigil:0};
 function setScreen(sc){APP.screen=sc;gameEl.setAttribute('data-screen',sc);}
 function weakHtml(st){return st.attr==='none'?'沒有弱點':'被<em>'+st.weak+'</em>剋制';}
 /* ---- 存檔：整個進度是一個物件，只有 load()／save() 碰 localStorage（以後換成 App 原生儲存或雲端，只改這裡）----
@@ -5514,8 +5635,8 @@ function applyOutfit(f){var o=Save.outfitOf(f);SLOTS.forEach(function(s){var id=
 function applyAllOutfits(){WKEYS.forEach(applyOutfit);}
 applyAllOutfits();
 function setBossHud(){var st=CONFIG.stages[APP.stage];bossBarEl.querySelector('.name').textContent=st.name;var at=bossBarEl.querySelector('.attr');at.textContent=st.attrName;at.className='attr a-'+st.attr;}
-function resetBattleFx(){FX2D.clear();cordReset();cdEl.classList.remove('sealed');tweens.length=0;PFL.length=0;shotPool.forEach(function(q){q.on=false;q.m.visible=false;q.cb=null;});inflight=0;motes.forEach(function(m){m.on=false;});parts.forEach(function(q){q.on=false;});
-  [beams,rings].forEach(function(pool){pool.forEach(function(f){f.life=0;f.m.visible=false;});});shake=0;bannerEl.classList.remove('show');toastEl.classList.remove('show');}
+function resetBattleFx(){FX2D.clear();cdEl.classList.remove('sealed');tweens.length=0;MECH_VIEW_LIST.forEach(function(mv){if(mv.reset)mv.reset();});shotPool.forEach(function(q){q.on=false;q.m.visible=false;q.cb=null;});setInflight(0);motes.forEach(function(m){m.on=false;});parts.forEach(function(q){q.on=false;});
+  [beams,rings].forEach(function(pool){pool.forEach(function(f){f.life=0;f.m.visible=false;});});setShake(0);bannerEl.classList.remove('show');toastEl.classList.remove('show');}
 // ---- 月下庭院：星星計數、關卡資訊框、傳送、第一次通關的收集動畫 ----
 var gHintEl=document.getElementById('gHint'),gToastEl=document.getElementById('gToast'),gToastT=0,gHintT=0,
     gStarsEl=document.getElementById('gStars'),gStarNumEl=document.getElementById('gStarNum'),gResetEl=document.getElementById('gReset'),
@@ -5623,11 +5744,7 @@ var sigilsEl=document.getElementById('sigils');
 CONFIG.sigils.forEach(function(sg,i){var b=document.createElement('button');b.type='button';b.className='sigil s-'+sg.id;b.innerHTML='<span class="knot"></span><span class="glyph">'+sg.glyph+'</span><span class="nm">'+sg.name+'</span>';
   b.addEventListener('click',function(){APP.sigil=i;AudioFX.init();AudioFX.select();fillTeamHud();TEAM.cheer();});sigilsEl.appendChild(b);});
 function coverSkill(st){
-  if(st.lock)return '每 '+st.lock.interval+' 秒鎖住 '+st.lock.count+' 顆珠，狂暴後每 '+st.lock.enrageInterval+' 秒鎖 '+st.lock.enrageCount+' 顆。把鎖住的珠連進三消就能解開。';
-  if(st.petal)return '每 '+st.petal.interval+' 秒飄下 '+st.petal.count+' 片落英蓋住珠子，狂暴後每 '+st.petal.enrageInterval+' 秒 '+st.petal.enrageCount+' 片。花瓣會染上底下珠子淡淡的顏色，旁邊有珠被消掉就會吹開。';
-  if(st.charm)return '每 '+st.charm.interval+' 秒迷住 '+st.charm.count+' 隻狐狸 '+st.charm.dur+' 秒，狂暴後每 '+st.charm.enrageInterval+' 秒一次。被迷住的狐狸不出手，能量照樣累積。';
-  if(st.cord)return '每 '+st.cord.interval+' 秒在兩行珠子之間拉一條紅繩：隔著繩不能交換，橫的連線也穿不過去。繩子兩旁或上下消掉珠會震落鈴鐺，'+st.cord.bells+' 顆掉光就解開。';
-  if(st.shard)return '開場 '+st.shard.first+' 秒起每 '+st.shard.interval+' 秒射出 '+st.shard.count+' 面小圓鏡，旁邊消掉珠先裂開、再一次才碎。全部打碎，天狐被自己的光照到，'+st.shard.glare+' 秒內傷害 ×'+st.shard.glareMul+'。';
+  for(var mi=0;mi<MECH_VIEW_LIST.length;mi++){var mv=MECH_VIEW_LIST[mi];if(mv.coverSkill&&st[mv.key])return mv.coverSkill(st[mv.key]);}   // 已經搬成一包的機制：說明寫在各包的畫法裡
   return '血量低於 '+Math.round(st.enrageAt*100)+'% 會狂暴，出手間隔從 '+st.interval+' 秒縮短成 '+st.enrageInterval+' 秒。';}
 function fillTeamHud(){var st=CONFIG.stages[APP.stage],cv=st.cover||{};
   var dU=Save.data(),ownU=ULT_KEYS.filter(function(k){return CONFIG.ultAlt[k]&&dU.ults[k];}),onU=ownU.filter(ultAltOn);   // 拿到變奏後才顯示「大招」按鈕
@@ -5645,7 +5762,7 @@ function fillTeamHud(){var st=CONFIG.stages[APP.stage],cv=st.cover||{};
   Array.prototype.forEach.call(sigilsEl.children,function(b,i){b.classList.toggle('on',i===APP.sigil);b.setAttribute('aria-pressed',i===APP.sigil?'true':'false');});
   document.getElementById('sigilDesc').textContent=CONFIG.sigils[APP.sigil].name+'：'+CONFIG.sigils[APP.sigil].desc;}
 function goGarden(){FX2D.clear();showPanel(null);G.mode='menu';setScreen('garden');closeBox(true);refreshGarden();GARDEN.setLoc(APP.gardenLoc);APP.gardenLoc=GARDEN.getLoc();if(!running)startLoop();
-  if(APP.newStar>=0&&APP.newStar===GARDEN.getLoc())celebrate(APP.newStar);else{APP.newStar=-1;refreshGarden();if(!maybeReveal()&&!maybeChalNotice())showHint();}}
+  if(APP.newStar>=0&&APP.newStar===GARDEN.getLoc())celebrate(APP.newStar);else {APP.newStar=-1;refreshGarden();if(!maybeReveal()&&!maybeChalNotice())showHint();}}
 // ---- 換裝頁 ----
 var wFoxesEl=document.getElementById('wFoxes'),wGridEl=document.getElementById('wGrid'),wHintEl=document.getElementById('wHint'),wSlot='head';APP.wardFox='little';
 var NONE_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/></svg>';
@@ -5732,8 +5849,9 @@ document.addEventListener('pointerdown',function(){AudioFX.init();},{once:true})
 var overlayEl=document.getElementById('overlay'),panels={start:document.getElementById('pStart'),pause:document.getElementById('pPause'),result:document.getElementById('pResult')};
 function showPanel(name){overlayEl.classList.toggle('show',!!name);Object.keys(panels).forEach(function(k){panels[k].classList.toggle('show',k===name);});}
 function beginBattle(){
-  showPanel(null);battle.reset(CONFIG.stages[APP.stage],CONFIG.sigils[APP.sigil]);BS.setStage(APP.stage);gameEl.classList.toggle('dayFight',BS.isDay(APP.stage));setPetalStyle(CONFIG.stages[APP.stage].style);setBossHud();resetBattleFx();U=null;pendingSwords=0;pendingLocks=0;pendingPetals=0;pendingUnlock=false;ULT_SEL=ULT_KEYS.map(function(k){return ultAltOn(k)?1:0;});CAM.pos.set(0,0,14);CAM.look.set(0,0,0);veil.visible=false;ultBannerEl.classList.remove('show');BS.ultFx.group.visible=false;
-  BS.foxes.forEach(function(f){f.energyDisp=0;});BS.boss.reset();BS.foxes.forEach(function(f){f.reset();});BS.clearCharm();bossBarEl.classList.remove('enraged');pendingCord=null;pendingShards=0;S.shardBroke=false;
+  newSession();SES.ULT_SEL=ULT_KEYS.map(function(k){return ultAltOn(k)?1:0;});   // 每場的暫時狀態（大招特寫、卡著的鎖鏈／花瓣／紅繩／鏡片／劍氣…）整個換新，見 state.js
+  showPanel(null);battle.reset(CONFIG.stages[APP.stage],CONFIG.sigils[APP.sigil]);BS.setStage(APP.stage);gameEl.classList.toggle('dayFight',BS.isDay(APP.stage));setPetalStyle(CONFIG.stages[APP.stage].style);setBossHud();resetBattleFx();CAM.pos.set(0,0,14);CAM.look.set(0,0,0);veil.visible=false;ultBannerEl.classList.remove('show');BS.ultFx.group.visible=false;
+  BS.foxes.forEach(function(f){f.energyDisp=0;});BS.boss.reset();BS.foxes.forEach(function(f){f.reset();});BS.clearCharm();bossBarEl.classList.remove('enraged');
   comboEl.className='hud bhud';updateBars();G.mode='intro';
   dropInBoard().then(function(){if(G.mode==='intro'){G.mode='playing';S.lastAct=S.time;}});}
 function showResult(kind){if(G.mode==='result')return;G.mode='result';S.sel=null;S.hint=null;
@@ -5767,7 +5885,7 @@ function fillInfo(){var st=CONFIG.stages[APP.stage],sg=CONFIG.sigils[APP.sigil],
     '<dt>血量</dt><dd>'+st.hp.toLocaleString('zh-TW')+'</dd>'+
     '<dt>攻擊</dt><dd>每 '+st.interval+' 秒一次（狂暴後 '+st.enrageInterval+' 秒），每次打掉隊伍 '+Math.round(st.hitPct*100)+'% 血量</dd>'+
     '<dt>技能</dt><dd>'+st.skill+'</dd><dt>符印</dt><dd>'+sg.name+'：'+sg.desc+'</dd></dl></div><h3>狐狸大招</h3>';
-  CONFIG.orbs.forEach(function(o,i){var key=ULT_KEYS[i],u=CONFIG.ult[key],alt=ULT_SEL[i],c=new THREE.Color(o.color).lerp(new THREE.Color(0xffffff),0.25).getHexString();
+  CONFIG.orbs.forEach(function(o,i){var key=ULT_KEYS[i],u=CONFIG.ult[key],alt=SES.ULT_SEL[i],c=new THREE.Color(o.color).lerp(new THREE.Color(0xffffff),0.25).getHexString();
     h+='<div class="skill"><i class="ic" style="background:#'+c+'">'+o.name+'</i><div><b>'+u.fox+'<em>'+ultName(key,alt)+(alt?'（變奏）':'')+'</em></b><span>'+ultDesc(key,alt,st)+'</span></div></div>';});
   h+='<p class="infoNote">每消一顆珠，同屬性的狐狸加 '+CONFIG.ult.energyPerOrb+' 能量，集滿 '+CONFIG.ult.max+' 會跳起來發光，點牠就能放大招；放大招時計時會暫停。</p>';
   infoInnerEl.innerHTML=h;}
@@ -5814,9 +5932,8 @@ document.addEventListener('dblclick',function(e){e.preventDefault();});
    每幀：把珠子狀態寫進 InstancedMesh
    ===================================================================== */
 var counts=new Array(NT);
-function setM(mesh,i,x,y,z,rz,sx,sy,sz){_e.set(0,0,rz);_q.setFromEuler(_e);_p.set(x,y,z);_s.set(sx,sy,sz);_m.compose(_p,_q,_s);mesh.setMatrixAt(i,_m);}
 function syncOrbs(t){
-  var K=L.K,cs=L.cs,i,hn=0,tj=0,sw=0,bm=0,lk=0,pc=0,sh=0,hintSet=null;
+  var K=L.K,cs=L.cs,i,hn=0,tj=0,sw=0,bm=0,hintSet=null;MECH_VIEW_LIST.forEach(function(mv){if(mv.drawBegin)mv.drawBegin();});
   for(i=0;i<NT;i++)counts[i]=0;
   if(S.hint){hintSet={};S.hint.forEach(function(id){hintSet[id]=1;});}
   var hp=(t-S.hintAt)%1.6,hw=hp<0.6?Math.sin(hp/0.6*Math.PI*4)*0.16*Math.sin(hp/0.6*Math.PI):0;
@@ -5826,18 +5943,14 @@ function syncOrbs(t){
     var s=v.s*(v.id===selId?1.1+0.04*Math.sin(t*6):1),rz=v.rz;
     if(hintSet&&hintSet[v.id]){rz+=hw;s*=1+Math.abs(hw)*0.4;}
     var x=L.bx+(v.col+0.5+v.ox)*cs,y=-(L.by+(v.row+0.5+v.oy)*cs+(1-v.sy)*K*s),z=v.z*K,mesh,plate,n;
-    if(v.shard){if(sh<12){var ss=K*s*2.55*(v.shardS||1);setM(shardMesh,sh,x+(v.rattle||0)*K,y,z+K*0.2,rz+0.05*Math.sin(t*0.8+v.ph),ss*v.sx,ss*v.sy,1);   // 鏡片：一面小圓鏡，反光慢慢刷過去；裂開之後多幾道裂痕
-        shardMesh.instanceColor.setXYZ(sh,Math.min(1.7,v.f),v.ph/TAU,v.crack?1:0);sh++;}return;}
-    if(v.petal&&pc<24){var ps=K*s*1.12*(v.petalS||1),prz=rz+0.1*Math.sin(t*0.9+v.ph);_e.set(Math.sin(t*1.3+v.ph)*0.07,Math.cos(t*1.1+v.ph)*0.08,prz);_q.setFromEuler(_e);   // 落英：蓋住的珠只畫桃花（晃得比珠子少，顏色才不會忽深忽淺）
-      _p.set(x,y,z);_s.set(ps*v.sx,ps*v.sy,ps);_m.compose(_p,_q,_s);PEACH.cov.m.setMatrixAt(pc,_m);var ptc=petalTint(v.type);PEACH.cov.m.instanceColor.setXYZ(pc,ptc.r*v.f,ptc.g*v.f,ptc.b*v.f);   /* 花染上底下珠子的顏色 */
-      _e.set(0,0,prz);_q.setFromEuler(_e);_m.compose(_p,_q,_s);PEACH.cov.p.setMatrixAt(pc,_m);pc++;return;}   /* 金色的底不跟著晃，才會四周一樣寬 */
+    if(MECH_VIEW_LIST.some(function(mv){return mv.drawCover&&mv.drawCover(v,x,y,z,K,s,rz,t);}))return;   // 各機制把整顆珠蓋掉的（落英：只畫桃花；天鏡：畫成鏡片），蓋掉就不畫珠子
     if(v.type<0){mesh=TJ.mesh;plate=TJ.plate;n=tj++;rz+=t*1.4;
       setM(TJ.glow,n,x,y,z-K*0.9*s,0,K*s*3.2*(0.9+0.1*pulse),K*s*3.2*(0.9+0.1*pulse),1);}
-    else{var o=ORB[v.type];mesh=o.mesh;plate=o.plate;n=counts[v.type]++;}
+    else {var o=ORB[v.type];mesh=o.mesh;plate=o.plate;n=counts[v.type]++;}
     if(n>=CAP)return;
     _e.set(Math.sin(t*1.3+v.ph)*0.12,Math.cos(t*1.1+v.ph)*0.15,rz);_q.setFromEuler(_e);
     _p.set(x,y,z);_s.set(K*s*v.sx,K*s*v.sy,K*s);_m.compose(_p,_q,_s);mesh.setMatrixAt(n,_m);
-    var ff=v.locked?v.f*0.62:v.f;mesh.instanceColor.setXYZ(n,ff,ff,ff);
+    var ff=v.f;MECH_VIEW_LIST.forEach(function(mv){if(mv.tint)ff*=mv.tint(v);});   /* 被鎖的珠暗一點 */mesh.instanceColor.setXYZ(n,ff,ff,ff);
     setM(plate,n,x,y,z-K*0.72*s,rz,K*s*v.sx,K*s*v.sy,1);
     var cr=Math.cos(rz),sr=Math.sin(rz),hx=-0.28,hy=0.32;
     setM(hlMesh,hn++,x+(hx*cr-hy*sr)*K*s,y+(hx*sr+hy*cr)*K*s,z+K*0.66*s,0.7+rz,0.2*K*s,0.12*K*s,1);
@@ -5845,17 +5958,14 @@ function syncOrbs(t){
     if(v.special==='sword'){var ang=v.dir==='v'?Math.PI/2:0,bs=1+0.08*pulse;
       setM(swordGlow,sw,x,y,z+K*0.7*s,ang,K*s*3.0*bs,K*s*1.35,1);setM(swordBlade,sw,x,y,z+K*0.74*s,ang,K*s*1.18*bs,K*s*1.75,1);sw++;}
     else if(v.special==='bomb'){setM(bombRing,bm++,x,y,z+K*0.7*s,t*1.2,K*s*2.9,K*s*2.9,1);}
-    if(v.locked&&lk<24){var ls=K*s*2.6*(v.lockS||1)*(1+0.03*Math.sin(t*3+v.ph));setM(lockMesh,lk++,x+(v.rattle||0)*K,y,z+K*0.82*s,0,ls,ls,1);}
+    MECH_VIEW_LIST.forEach(function(mv){if(mv.drawOrb)mv.drawOrb(v,x,y,z,K,s,t);});   // 各機制畫在珠子上的（鎖鏈：鎖）
   });
   for(i=0;i<NT;i++){var om=ORB[i];om.mesh.count=om.plate.count=Math.min(CAP,counts[i]);
     om.mesh.instanceMatrix.needsUpdate=true;om.mesh.instanceColor.needsUpdate=true;om.plate.instanceMatrix.needsUpdate=true;}
   TJ.mesh.count=TJ.plate.count=TJ.glow.count=Math.min(16,tj);[TJ.mesh,TJ.plate,TJ.glow].forEach(function(m){m.instanceMatrix.needsUpdate=true;});TJ.mesh.instanceColor.needsUpdate=true;
   swordGlow.count=swordBlade.count=sw;bombRing.count=bm;hlMesh.count=hn;
-  lockMesh.count=lk;shardMesh.count=sh;shardMat.uniforms.time.value=t;shardMesh.instanceMatrix.needsUpdate=true;shardMesh.instanceColor.needsUpdate=true;
-  [swordGlow,swordBlade,bombRing,hlMesh,lockMesh].forEach(function(m){m.instanceMatrix.needsUpdate=true;});
-  var nf=0;PFL.forEach(function(f){if(!f.on||nf>=20)return;_e.set(f.rx,f.ry,f.rz);_q.setFromEuler(_e);_p.set(f.x,-f.y,75);var fs=K*1.12*f.s;_s.set(fs,fs,fs);_m.compose(_p,_q,_s);
-    PEACH.fly.m.setMatrixAt(nf,_m);PEACH.fly.p.setMatrixAt(nf,_m);PEACH.fly.m.instanceColor.setXYZ(nf,f.c.r*f.br,f.c.g*f.br,f.c.b*f.br);nf++;});
-  [PEACH.cov,PEACH.fly].forEach(function(P,j){var n2=j?nf:pc;P.m.count=P.p.count=n2;P.m.instanceMatrix.needsUpdate=true;P.p.instanceMatrix.needsUpdate=true;P.m.instanceColor.needsUpdate=true;});
+  MECH_VIEW_LIST.forEach(function(mv){if(mv.drawEnd)mv.drawEnd(t);});
+  [swordGlow,swordBlade,bombRing,hlMesh].forEach(function(m){m.instanceMatrix.needsUpdate=true;});
   swordGlow.material.opacity=0.75+0.25*pulse;
   if(S.sel){var c=cellXY(S.sel[0],S.sel[1]);ring.visible=true;ring.position.set(c.x,-c.y,40);var rs=cs*(1.02+0.04*Math.sin(t*6));ring.scale.set(rs,rs,1);}
   else ring.visible=false;
@@ -5873,27 +5983,21 @@ function frame(now){
   var frozen=G.mode==='ult',dt=frozen?0:rdt;S.time+=dt;var t=S.time;
   updateTweens(dt);
   if(frozen)updateUlt(rdt);
-  if(pendingLocks>0&&G.mode==='playing'&&!S.locked){var nl=Math.min(pendingLocks,Math.max(0,8-lockedCount()));pendingLocks=0;
-    if(nl>0){S.locked=true;S.sel=null;S.hint=null;animLock(board.lockRandom(nl)).then(settle);}}
-  if(pendingPetals>0&&G.mode==='playing'&&!S.locked){var pst=battle.boss.petal,np=Math.min(pendingPetals,Math.max(0,(pst?pst.max:10)-board.petalCount()));pendingPetals=0;
-    if(np>0){S.locked=true;S.sel=null;S.hint=null;animPetal(board.petalRandom(np)).then(settle);}}
-  if(pendingCord&&G.mode==='playing'&&!S.locked){var pcd=pendingCord,cdc=battle.boss.cord;pendingCord=null;
-    if(cdc&&board.cords.length<cdc.max){var cw=board.cordRandom(pcd.len,pcd.bells);if(cw){S.locked=true;S.sel=null;S.hint=null;animCord(cw).then(settle);}}}
-  if(pendingShards>0&&G.mode==='playing'&&!S.locked){var sdc=battle.boss.shard,nsh=Math.min(pendingShards,Math.max(0,(sdc?sdc.max:8)-board.shardCount()));pendingShards=0;
-    if(nsh>0){S.locked=true;S.sel=null;S.hint=null;animShard(board.shardRandom(nsh,sdc&&sdc.hits)).then(settle);}}
-  if(pendingUnlock&&G.mode==='playing'&&!S.locked){pendingUnlock=false;board.unlockAll().forEach(function(u,k){after(k*0.07,function(){shatterLock(u);});});}
-  if(pendingSwords>0&&G.mode==='playing'&&!S.locked){var ns=pendingSwords;pendingSwords=0;S.locked=true;S.sel=null;S.hint=null;
+  MECHS.forEach(function(m){if(!m.place||G.mode!=='playing'||S.locked)return;   // 盤面停下來：各機制把卡著的東西放上去（鎖鏈：鎖；落英：花瓣；紅繩：繩子；天鏡：鏡片），一格最多一種
+    var got=m.place(board,SES.mech[m.key],battle.boss[m.key]);if(got){S.locked=true;S.sel=null;S.hint=null;MECH_VIEWS[m.key].place(got).then(settle);}});
+  if(SES.pendingUnlock&&G.mode==='playing'&&!S.locked){SES.pendingUnlock=false;board.unlockAll().forEach(function(u,k){after(k*0.07,function(){MECH_VIEWS.lock.shatter(u);});});}
+  if(SES.pendingSwords>0&&G.mode==='playing'&&!S.locked){var ns=SES.pendingSwords;SES.pendingSwords=0;S.locked=true;S.sel=null;S.hint=null;
     animConvert({fromXY:foxScreen(2),col:new THREE.Color(0x8ef0b4),items:board.addRandomSpecials(ns,'sword')}).then(settle);}
-  if(G.mode==='playing'){battle.tick(dt).forEach(function(e){if(e.type==='charge')AudioFX.charge();if(e.type==='lock')pendingLocks+=e.count;if(e.type==='petal')pendingPetals+=e.count;if(e.type==='charm')onCharm(e);if(e.type==='uncharm')onUncharm(e.fox);if(e.type==='charmBlocked')onCharmBlocked();if(e.type==='cord')pendingCord=e;if(e.type==='shard')pendingShards+=e.count;if(e.type==='glareEnd')onGlareEnd();if(e.type==='attack'&&G.mode==='playing')onBossAttack(e);else if(e.type==='timeup'&&G.mode==='playing')onTimeUp();});}
+  if(G.mode==='playing'){battle.tick(dt).forEach(function(e){if(e.type==='charge')AudioFX.charge();MECHS.forEach(function(m){if(m.onEvent)m.onEvent(e,SES.mech[m.key]);});MECH_VIEW_LIST.forEach(function(mv){if(mv.onEvent)mv.onEvent(e);});if(e.type==='attack'&&G.mode==='playing')onBossAttack(e);else if(e.type==='timeup'&&G.mode==='playing')onTimeUp();});}
   BS.boss.charge(G.mode==='playing'&&battle.charging?Math.min(1,1-battle.atk/battle.boss.charge):0);
   if(G.mode==='timeup'&&!S.locked&&inflight===0)showResult(battle.bossHp<=0?'win':'time');
   if(!S.locked&&battle.combo>0&&t-S.stableAt>A.comboReset){battle.combo=0;comboEl.classList.remove('show');}
   if(battle.combo>0&&G.mode!=='result'){var ck=S.locked?1:Math.max(0,1-(t-S.stableAt)/A.comboReset);if(Math.abs(ck-comboK)>0.004||(ck===1)!==(comboK===1)){comboK=ck;comboEl.style.setProperty('--k',ck.toFixed(3));comboEl.classList.toggle('low',ck<0.3);}}
   if(G.mode==='playing'&&!S.locked&&!S.hint&&!S.sel&&!drag&&t-S.lastAct>A.hintDelay){var mv=board.findMove();
     if(mv){S.hint=mv.cells.map(function(p){return board.g[p[0]][p[1]].id;});S.hintAt=t;}}
-  updateParticles(dt);updateFx(dt);updateMotes(dt);updateShots(dt);updatePetals(rdt,VT);BS.update(rdt,VT);syncOrbs(t);updateCords(dt,t);updateEnergy(rdt);updateHUD();
-  FX2D.setBuff(fighting()?battle.buff:0);FX2D.setCharm(fighting()&&battle.charmed&&battle.charmed.some(function(v){return v>0;}));FX2D.update(rdt);
-  var sx=0,sy=0;if(shake>0.05){sx=(Math.random()*2-1)*shake;sy=(Math.random()*2-1)*shake;shake*=Math.pow(0.0005,rdt);}else shake=0;
+  updateParticles(dt);updateFx(dt);updateMotes(dt);updateShots(dt);updatePetals(rdt,VT);BS.update(rdt,VT);syncOrbs(t);MECH_VIEW_LIST.forEach(function(mv){if(mv.update)mv.update(dt,t);});updateEnergy(rdt);updateHUD();
+  FX2D.setBuff(fighting()?battle.buff:0);FX2D.update(rdt);
+  var sx=0,sy=0;if(shake>0.05){sx=(Math.random()*2-1)*shake;sy=(Math.random()*2-1)*shake;setShake(shake*Math.pow(0.0005,rdt));}else setShake(0);
   ortho.position.set(-sx,sy,0);bcam.position.set(CAM.pos.x+sx*0.01,CAM.pos.y-sy*0.01,CAM.pos.z);bcam.lookAt(CAM.look);
   renderer.clear();renderer.render(battleScene,bcam);renderer.clearDepth();renderer.render(boardScene,ortho);
   raf=requestAnimationFrame(frame);}
@@ -5903,12 +6007,109 @@ document.addEventListener('visibilitychange',function(){
   if(document.hidden){if(G.mode==='playing'||G.mode==='intro')pauseGame();else stopLoop();}
   else if(G.mode!=='paused')startLoop();});
 
+// 入口：接在所有 module 的最後，組好除錯入口 window.__game、開始遊戲。
+// 執行順序：每個 module 第一行 import 前一個 module（照拆檔前的區塊順序串成一條鏈），這裡只接在鏈的最後一個後面。
+// ES module 深度優先、先執行被 import 的；照這條鏈，任何 module 被拜訪時後面的 module 都已在堆疊上，
+// 前面的區塊 import 後面的函式不會讓後面的先執行，所以整個遊戲的執行順序跟拆檔前一模一樣。新增 module 要接進鏈裡。
 // 測試用
 window.__game={bcam:bcam,TEAM:TEAM,WARD:WARD,Save:Save,goWard:function(){goWard();},board:board,views:views,S:S,G:G,battle:battle,BS:BS,GARDEN:GARDEN,foxScreen:foxScreen,tryUlt:tryUlt,petals:petals,APP:APP,goTeam:function(k){goTeam(k);},startTrial:function(){startTrial();},
   attemptSwap:function(r1,c1,r2,c2){attemptSwap(r1,c1,r2,c2);},L:L,PFL:PFL,showResult:function(k){showResult(k);}};
 layout();fillBoardStatic();updateBars();goGarden();startLoop();
-var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else if(/[?&]test5/.test(QS)){APP.stage=4;startTrial();}else if(/[?&]test4/.test(QS)){APP.stage=3;startTrial();}else if(/[?&]test3/.test(QS)){APP.stage=2;startTrial();}else if(/[?&]test2/.test(QS)){APP.stage=1;startTrial();}else if(/[?&]test/.test(QS)){APP.stage=0;startTrial();}else if(/[?&]team/.test(QS)){goTeam(1);}
-})();
-</script>
+var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else if(/[?&]test5/.test(QS)){APP.stage=4;startTrial();}else if(/[?&]test4/.test(QS)){APP.stage=3;startTrial();}else if(/[?&]test3/.test(QS)){APP.stage=2;startTrial();}else if(/[?&]test2/.test(QS)){APP.stage=1;startTrial();}else if(/[?&]test/.test(QS)){APP.stage=0;startTrial();}else if(/[?&]team/.test(QS)){goTeam(1);}</script>
+</head>
+<body>
+<div id="game">
+  <canvas id="c" aria-label="狐仙三消"></canvas>
+  <canvas id="fx2d" class="bhud" aria-hidden="true"></canvas>
+  <div id="topbar" class="hud bhud">
+    <button id="pauseBtn" type="button" aria-label="暫停"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="1" width="3.6" height="12" rx="1.2"/><rect x="8.4" y="1" width="3.6" height="12" rx="1.2"/></svg></button>
+    <div id="timer"><b>60</b><small>秒</small></div><span></span>
+  </div>
+  <button id="muteBtn" type="button" aria-label="關閉音效"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3.5v11L6 12H3z" fill="currentColor" style="fill:var(--gold);stroke:none"/><path class="on" d="M13 7.2a4 4 0 0 1 0 5.6M15.2 5a7 7 0 0 1 0 10"/><path class="off" d="M13.5 7.5l5 5M18.5 7.5l-5 5"/></svg></button>
+  <div id="bossbar" class="hud bhud"><div class="brow"><span class="name">三尾狐</span><span class="attr">木</span><span class="rage">狂暴中</span><span class="num">12000</span></div><div class="bar"><i class="lag"></i><i class="fill"></i></div></div>
+  <div id="bossCd" class="hud bhud hidden">8</div>
+  <div id="teambar" class="hud bhud"><div class="trow"><span>隊伍血量<span id="chips"></span></span><span class="num">1000 / 1000</span></div><div class="bar"><i class="lag"></i><i class="fill"></i></div></div>
+  <div id="combo" class="hud bhud"><b>0</b><span>Combo</span><i class="cring" aria-hidden="true"></i></div>
+  <div id="toast" class="hud bhud toast"><span>沒有可以消的步了，重新洗牌</span></div>
+  <div id="banner" class="hud bhud toast"><span>三尾狐狂暴了，攻擊變快</span></div>
+  <div id="ultBanner" class="hud bhud"><small>火狐</small><b>狐火連彈</b></div>
+  <div id="fx" class="hud bhud"></div>
+  <div id="charmTags" class="hud bhud" aria-hidden="true"></div>
+  <div id="gStars" class="ghud"><svg viewBox="-50 -50 100 100" aria-hidden="true"><path d="M0.0 -46.0 L12.1 -16.6 L43.7 -14.2 L19.5 6.3 L27.0 37.2 L0.0 20.5 L-27.0 37.2 L-19.5 6.3 L-43.7 -14.2 L-12.1 -16.6 Z"/></svg><span>星星</span><b id="gStarNum">0/2</b></div>
+  <div id="gReset" class="ghud" role="dialog" aria-label="清除全部進度"><p>清除全部進度，從頭開始？<small>星星、飾品、穿搭、大招變奏、挑戰都會清掉，而且沒辦法復原。</small></p><div><button type="button" id="gResetNo">取消</button><button type="button" id="gResetYes">全部清除</button></div></div>
+  <button id="gWard" class="ghud gBtn" type="button" aria-label="換裝"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 10c-2.2-2.6-5.6-4.2-6.6-2.8-.9 1.3.2 4.8 1.6 5.4 1.4.6 3.4-1 5-2.6zM10 10c2.2-2.6 5.6-4.2 6.6-2.8.9 1.3-.2 4.8-1.6 5.4-1.4.6-3.4-1-5-2.6z"/><path d="M9 11l-2.2 5.2M11 11l2.2 5.2"/><circle cx="10" cy="10" r="1.3"/></svg></button>
+  <button id="gSaveBtn" class="ghud gBtn" type="button" aria-label="存檔備份"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4h9.5a1.8 1.8 0 0 1 0 3.6H14V15a1.8 1.8 0 0 1-1.8 1.8H4.6A1.8 1.8 0 0 1 2.8 15v-.6H11"/><path d="M5 4a1.8 1.8 0 0 0-1.8 1.8V14.4M7 8.5h4.5M7 11.2h4.5"/></svg></button>
+  <button id="gMap" class="ghud gBtn" type="button" aria-label="地圖" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.8 5.4l4.6-1.9 5.2 1.9 4.6-1.9v11.6l-4.6 1.9-5.2-1.9-4.6 1.9z"/><path d="M7.4 3.5v11.6M12.6 5.4V17"/></svg></button>
+  <div id="gMapBox" class="ghud" role="dialog" aria-label="地圖"><b>地圖</b><p>傳送到各章的主島</p><div id="gMapList"></div></div>
+  <div id="gSave" class="ghud" role="dialog" aria-label="存檔備份">
+    <b>存檔備份</b>
+    <p>把這串備份碼存起來（例如貼到備忘錄）。換手機或資料被清掉時，貼回來就能還原星星、飾品和穿搭。</p>
+    <textarea id="gSaveOut" rows="3" readonly aria-label="備份碼"></textarea>
+    <div class="row"><button type="button" id="gSaveCopy">複製備份碼</button></div>
+    <hr>
+    <p>還原：貼上之前存的備份碼，目前的進度會被取代。</p>
+    <textarea id="gSaveIn" rows="3" placeholder="貼在這裡" aria-label="貼上備份碼"></textarea>
+    <div class="row"><button type="button" id="gSaveClose">關閉</button><button type="button" id="gSaveLoad">還原</button></div>
+    <p id="gSaveMsg" aria-live="polite"></p>
+  </div>
+  <div id="gTitle" class="ghud"><b>月下小院</b></div>
+  <div id="gHint" class="ghud hide"><span></span></div>
+  <div id="gToast" class="ghud toast"><span></span></div>
+  <div id="gChal" class="ghud" role="dialog" aria-labelledby="gChalT"><small>新的試煉</small><b id="gChalT">挑戰任務已解鎖</b><p>每一關都多了一個挑戰，<br>完成可以拿到新的飾品。</p><button type="button" id="gChalOk">好</button></div>
+  <div id="lvBox" class="ghud" role="dialog" aria-label="關卡資訊">
+    <div class="lvHead"><small id="lvTitle">第一關</small><span class="lvDone"><svg viewBox="-50 -50 100 100" aria-hidden="true"><path d="M0.0 -46.0 L12.1 -16.6 L43.7 -14.2 L19.5 6.3 L27.0 37.2 L0.0 20.5 L-27.0 37.2 L-19.5 6.3 L-43.7 -14.2 L-12.1 -16.6 Z"/></svg>已通關</span></div>
+    <b id="lvName">三尾狐</b>
+    <div class="lvRow"><i id="lvAttr">木</i><span id="lvWeakRow">被<em id="lvWeak">火</em>剋制</span></div>
+    <p id="lvSkill"></p>
+    <p id="lvChal" class="lvChal"><span>挑戰</span><b id="lvChalText"></b><em>已達成</em></p>
+    <button id="lvGo" type="button">進入關卡</button>
+  </div>
+  <div id="gFlash" class="ghud" aria-hidden="true"></div>
+  <div id="starRing" class="ghud" aria-hidden="true"></div>
+  <div id="teamHud" class="thud" data-stage="0">
+    <button id="backBtn" type="button" aria-label="回到庭院">‹</button>
+    <div class="cvTop"><span id="cvSeries">狐仙三消　月下試煉</span><span id="cvIssue">第一關</span></div>
+    <h1 class="cvName" id="cvName">三尾狐</h1>
+    <p class="cvDeck" id="cvDeck">竹林月夜</p>
+    <div class="cvSide">
+      <p class="cvHead" id="cvHead"></p>
+      <p class="cvLore" id="cvLore"></p>
+      <dl class="cvStats"><dt>屬性</dt><dd><i id="cvAttr">木</i></dd><dt>弱點</dt><dd id="cvWeak">火</dd><dt>血量</dt><dd id="cvHp">12,000</dd><dt>時限</dt><dd id="cvTime">60 秒</dd><dt>攻擊</dt><dd id="cvAtk">每 8 秒</dd></dl>
+      <div class="cvSkill"><b id="cvSkillName">狂暴</b><span id="cvSkillText"></span></div>
+    </div>
+    <p class="cvTag" id="cvTag"></p>
+    <div class="cvFoot">
+      <div class="cvPills"><button id="cvUlt" type="button" class="cvUlt" hidden><span>大招</span><b id="cvUltList"></b><i aria-hidden="true"></i></button><div id="cvChal" class="cvChal" hidden><span>挑戰</span><b id="cvChalText"></b><em>已達成</em></div></div>
+      <div class="sigilLabel">選一個隊伍符印</div>
+      <div class="cvRow"><div class="sigils" id="sigils"></div><button id="goBtn" type="button" class="goBtn">開始試煉</button></div>
+      <p id="sigilDesc"></p>
+    </div>
+  </div>
+  <div id="wardHud" class="whud">
+    <button id="wBack" type="button" aria-label="回到庭院">‹</button>
+    <div class="wTitle">換裝</div>
+    <div id="wNew" aria-live="polite"></div>
+    <div class="wName"><b id="wName">小狐狸</b><small id="wSub"></small></div>
+    <div class="wPanel">
+      <div class="wFoxes" id="wFoxes" role="tablist" aria-label="選狐狸"></div>
+      <div class="wTabs" role="tablist" aria-label="部位"><button type="button" class="wTab" data-slot="head">頭飾</button><button type="button" class="wTab" data-slot="neck">頸飾</button><button type="button" class="wTab" data-slot="tail">尾飾</button><button type="button" class="wTab" data-slot="ult">大招</button></div>
+      <div class="wGrid" id="wGrid"></div>
+      <p class="wHint" id="wHint" aria-live="polite"></p>
+    </div>
+  </div>
+  <div id="overlay">
+    <div class="panel" id="pStart"><h2>狐仙三消</h2><p>在 60 秒內用三消打倒三尾狐。<br>每消一組珠，同屬性的狐狸就會出手。</p>
+      <button class="btn" id="startBtn" type="button">開始</button><p class="tip">滑動相鄰的兩顆珠交換，連成三顆以上就消除。<br>能量集滿的狐狸會跳起來，點牠放大招。<br>火屬性剋三尾狐，水屬性打牠只有一半傷害。</p></div>
+    <div class="panel" id="pPause"><h2>暫停</h2><p id="pauseSub">計時和三尾狐的攻擊都停下來了。</p>
+      <button class="btn" id="resumeBtn" type="button">繼續</button><button class="btn ghost" id="restartBtn" type="button">重新開始</button><button class="btn ghost" id="homeBtn" type="button">回到庭院</button>
+      <button class="infoToggle" id="infoToggle" type="button" aria-expanded="false" aria-controls="infoBody"><span>關卡與技能介紹</span><i class="chev" aria-hidden="true"></i></button>
+      <div class="infoBody" id="infoBody"><div class="infoInner" id="infoInner"></div></div></div>
+    <div class="panel" id="pResult"><h2 id="rTitle">勝利</h2><p id="rSub">三尾狐被打倒了</p><p class="rDrop" id="rDrop"></p>
+      <dl><dt>總傷害</dt><dd id="rDmg">0</dd><dt>最高連擊</dt><dd id="rCombo">0</dd><dt>剩餘時間</dt><dd id="rTime">0 秒</dd></dl>
+      <button class="btn" id="againBtn" type="button">再來一場</button><button class="btn ghost" id="homeBtn2" type="button">回到庭院</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </body>
 </html>
