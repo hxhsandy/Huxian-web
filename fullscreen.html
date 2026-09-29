@@ -7,11 +7,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="狐仙全螢幕">
-<title>狐仙三消（全螢幕預覽）</title>
+<title>狐仙三消（全螢幕新版）</title>
 <style>
 :root{
   --bg:#0b1330; --gold:#e8c67e; --ink:#f4ecd8; --glass:rgba(14,22,52,.62); --line:rgba(232,198,126,.45); --panel:rgba(16,24,58,.9);
   box-sizing:border-box;
+  /* 全螢幕（2026-09-29）：整頁畫滿（瀏海、底部橫條後面也畫），按鈕、血條、珠盤待在安全框裡。
+     安全區用變數讀：手機模擬器（lab/sim.html）會設 --sim-safe-*，沒設就是手機給的 env()；電腦上是 0。 */
+  --safe-top:var(--sim-safe-top, env(safe-area-inset-top, 0px));
+  --safe-bottom:var(--sim-safe-bottom, env(safe-area-inset-bottom, 0px));
   color-scheme:dark;
 }
 @media (prefers-color-scheme: dark){
@@ -19,13 +23,22 @@
 }
 :root[data-theme="dark"]{ --bg:#0b1330; --gold:#e8c67e; --ink:#f4ecd8; --glass:rgba(14,22,52,.62); --line:rgba(232,198,126,.45); --panel:rgba(16,24,58,.9); }
 *,*::before,*::after{box-sizing:inherit}
-html{height:100vh;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
-body{height:100vh;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);
+html{height:100vh;height:100dvh;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+body{height:100vh;height:100dvh;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);
   font-family:"Noto Serif TC","Songti TC","Source Han Serif TC","PMingLiU",serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
   overscroll-behavior:none;touch-action:none}
 #game{position:relative;height:100%;margin:0 auto;overflow:hidden;background:var(--bg)}
 #c{position:absolute;top:0;left:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+/* #frame＝安全框（全螢幕 2026-09-29）：#game 和畫布畫滿整頁，按鈕、血條、珠盤這些都放在 #frame 裡、照安全框排。
+   有安全區時（layout() 加 .safe）才定位、往內縮；安全區是 0 時不定位（static）——定位的話 Chrome 分圖層的方式會變，
+   半透明的血條會跟 v112 差 1 階（眼睛看不出來，但逐像素比對會差），所以電腦上照原本的樣子排。
+   #frame 自己不接點擊（點空白處要點到畫布），裡面的東西照原本的設定（:where 的權重是 0，各自寫的 pointer-events 照樣優先）。 */
+#frame{height:100%;pointer-events:none}
+#frame.safe{position:absolute;left:0;right:0;top:var(--safe-top);bottom:var(--safe-bottom);height:auto}
+/* 量安全區用：看不見、零寬，padding 就是上下安全區（layout() 讀它；安全區晚到時它的高度會變，ResizeObserver 看得到） */
+#safeProbe{position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+:where(#frame>*){pointer-events:auto}
 .hud{position:absolute;left:0;right:0;pointer-events:none}
 button{font:inherit;cursor:pointer}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
@@ -112,7 +125,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dmg.team{font-size:22px;color:#ff9fb8;text-shadow:0 0 8px rgba(190,90,200,.9),0 2px 3px rgba(0,0,0,.75)}
 .dmg.heal{font-size:17px;color:#ffc4da;text-shadow:0 0 8px rgba(255,120,170,.8),0 2px 3px rgba(0,0,0,.7)}
 
-#overlay{position:absolute;inset:0;padding-top:64px!important;display:none;align-items:center;justify-content:center;background:rgba(6,9,26,.55);
+#overlay{position:absolute;inset:0;top:calc(-1 * var(--safe-top));bottom:calc(-1 * var(--safe-bottom));padding-top:calc(64px + var(--safe-top))!important;padding-bottom:calc(24px + var(--safe-bottom))!important;display:none;align-items:center;justify-content:center;background:rgba(6,9,26,.55);
   backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:24px}
 #overlay.show{display:flex}
 .panel{display:none;width:min(320px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:26px 22px 22px;border-radius:22px;background:var(--panel);border:1px solid var(--line);
@@ -219,7 +232,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   color:#fff3d2;font-size:15px;letter-spacing:.3em;text-indent:.3em;box-shadow:0 0 14px rgba(232,198,126,.2)}
 #lvGo:active{transform:scale(.97)}
 /* 傳送白光、星星收集動畫 */
-#gFlash{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#fffdf4 0%,#fff6dc 55%,#f3e2b8 100%);opacity:0;pointer-events:none;z-index:8}
+#gFlash{position:absolute;inset:0;top:calc(-1 * var(--safe-top));bottom:calc(-1 * var(--safe-bottom));background:radial-gradient(circle at 50% 45%,#fffdf4 0%,#fff6dc 55%,#f3e2b8 100%);opacity:0;pointer-events:none;z-index:8}
 #starRing{position:absolute;left:50%;top:40%;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(255,230,160,.95);
   box-shadow:0 0 18px rgba(255,214,120,.9),inset 0 0 14px rgba(255,214,120,.6);opacity:0;pointer-events:none;z-index:8}
 #starRing.burst{animation:ringOut 1s ease-out}
@@ -937,7 +950,7 @@ var MECHS=[LOCK,PETAL,CORD,SHARD,CHARM];
 /* =====================================================================
    render/common.js：共用材質、金邊、貼圖（沿用月下小狐）
    ===================================================================== */
-var gameEl=document.getElementById('game'),canvas=document.getElementById('c');
+var gameEl=document.getElementById('game'),frameEl=document.getElementById('frame'),safeProbeEl=document.getElementById('safeProbe'),canvas=document.getElementById('c');
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,powerPreference:'high-performance'});
 var PR=Math.min(window.devicePixelRatio||1,2);
 renderer.setPixelRatio(PR);renderer.setClearColor(0x0b1330,1);renderer.autoClear=false;renderer.localClippingEnabled=true;
@@ -1740,9 +1753,9 @@ var BS=(function(){
     // 天空：外面白天的同一個 shader、同一組顏色；畫面最上面到 BOSS 血條下面、最下面到隊伍那一排，各一段 004abb 的深藍漸層（2026-09-27 使用者）
     var sm=K.skyMat.clone(),S0=K.LOOKS.day,sk=S0.sky,u=sm.uniforms;
     //   2026-09-27 清晨版（使用者選的方向）：整片天空改成畫面上方深藍 → 中間藍紫 → 往下到粉色的漸層（用畫面上的高度算），太陽的光暈照舊疊上去
-    sm.fragmentShader=sm.fragmentShader.replace('uniform float g1k','uniform vec3 cTop,cMid,cLow; uniform float uH,sMid,sLow,g1k')
-      .replace('gl_FragColor=vec4(col,1.0);','float fr=(uH-gl_FragCoord.y)/uH; vec3 gc=mix(cTop,cMid,smoothstep(0.0,sMid,fr)); gc=mix(gc,cLow,smoothstep(sMid,sLow,fr)); col=gc*(0.97+0.06*n)+g1*pow(m,e1)*g1k; gl_FragColor=vec4(col,1.0);');
-    u.cTop={value:new THREE.Color(0x004abb)};u.cMid={value:new THREE.Color(0x6c6cd6)};u.cLow={value:new THREE.Color(0xf6a8c8)};u.uH={value:1};u.sMid={value:0.48};u.sLow={value:0.76};   /* 2026-09-27 使用者：粉色往下拉，隊伍那一排的背景還是紫色 */
+    sm.fragmentShader=sm.fragmentShader.replace('uniform float g1k','uniform vec3 cTop,cMid,cLow; uniform float uH,uB,sMid,sLow,g1k')
+      .replace('gl_FragColor=vec4(col,1.0);','float fr=(uH+uB-gl_FragCoord.y)/uH; vec3 gc=mix(cTop,cMid,smoothstep(0.0,sMid,fr)); gc=mix(gc,cLow,smoothstep(sMid,sLow,fr)); col=gc*(0.97+0.06*n)+g1*pow(m,e1)*g1k; gl_FragColor=vec4(col,1.0);');
+    u.cTop={value:new THREE.Color(0x004abb)};u.cMid={value:new THREE.Color(0x6c6cd6)};u.cLow={value:new THREE.Color(0xf6a8c8)};u.uH={value:1};u.uB={value:0};u.sMid={value:0.48};u.sLow={value:0.76};   /* 2026-09-27 使用者：粉色往下拉，隊伍那一排的背景還是紫色 */
     u.top.value.fromArray(sk.top);u.mid.value.fromArray(sk.mid);u.low.value.fromArray(sk.low);u.g1.value.fromArray(sk.g1);u.g2.value.fromArray(sk.g2);
     u.g1k.value=sk.g1k;u.g2k.value=sk.g2k;u.nb.value=sk.nb;u.na.value=sk.na;u.e1.value=sk.e1||30;u.e2.value=sk.e2||5;u.mistK.value=0;   /* 不往下變霧白：白霧只在石台下面 */
     u.moonDir.value.copy(SUNB).add(new THREE.Vector3(0.6,0.5,0)).normalize();   // 天空的亮光在太陽右上一點（跟外面一樣）
@@ -1875,9 +1888,9 @@ var BS=(function(){
     var shadows=!FOX_SHADOW?[]:foxes.map(function(f){var m=new THREE.Mesh(new THREE.PlaneGeometry(1.35,1.35),new THREE.MeshBasicMaterial({map:shTex,transparent:true,depthWrite:false}));m.position.z=-0.004;m.renderOrder=-1;m.visible=false;f.base.add(m);return m;});
     var D={G:G,turf:turf,cloudMat:cloudMat,DAY_OL:K.DAY_OL,on:false,show:function(on){this.on=on;G.visible=on;turf.visible=stemM.visible=leafM.visible=flM.visible=fallG.visible=on;shadows.forEach(function(m){m.visible=on;});if(on)this.layout();},
       update:function(dt,t){anim.forEach(function(f){f(dt,t);});},
-      // 天空漸層用畫布的實際高度算
-      layout:function(){var db=renderer.getDrawingBufferSize(new THREE.Vector2());
-        u.uH.value=db.y;}};
+      // 天空漸層用畫布的實際高度算。全螢幕（畫布比安全框高）時照安全框算：uH＝框高、uB＝框下面那一截，框外就是最上、最下的顏色
+      layout:function(){var db=renderer.getDrawingBufferSize(new THREE.Vector2()),pr=renderer.getPixelRatio();
+        u.uH.value=L.st||L.sb?L.H*pr:db.y;u.uB.value=L.sb*pr;}};
     return D;}
   // 月夜的燈光下，白天的東西會偏藍偏暗：在材質上補回來（顏色乘上 DAYK、再加一點暖色自發光），看起來才接近外面白天
   var DAYK=new THREE.Color(1.25,1.18,1.05),FOX_SHADOW=false;   // FOX_SHADOW：六狐腳下的深藍影子（Version 87 試過，清晨版先拿掉）
@@ -5097,10 +5110,14 @@ function cellXY(row,col){return {x:L.bx+(col+0.5)*L.cs,y:L.by+(row+0.5)*L.cs};} 
 var L={W:1,H:1,cs:40,bx:0,by:0,K:17},DEV_ASPECT=0;/* 別的 module 要整個換掉 DEV_ASPECT 用這個（import 進去的變數不能直接賦值） */function setDevAspect(v){DEV_ASPECT=v;}   // DEV_ASPECT：場景編輯器（另一個 artifact）用 TEAM.dev().setAspect 把遊戲畫面固定成設計畫面的長寬比；遊戲裡永遠是 0
 var comboEl=document.getElementById('combo'),toastEl=document.getElementById('toast'),bannerEl=document.getElementById('banner'),topEl=document.getElementById('topbar'),
     bossBarEl=document.getElementById('bossbar'),teamBarEl=document.getElementById('teambar'),cdEl=document.getElementById('bossCd'),timerEl=document.getElementById('timer');
+// 安全框：st、sb 是上下安全區（#safeProbe 的 padding＝CSS 的 --safe-top／--safe-bottom），H 是框的高度；整頁（#game、畫布）高＝st＋H＋sb。電腦上 st、sb 都是 0。
+function safeFrame(){var cs=getComputedStyle(safeProbeEl),st=parseFloat(cs.paddingTop)||0,sb=parseFloat(cs.paddingBottom)||0,H=gameEl.clientHeight-st-sb;
+  return {H:H,st:st,sb:sb,W:Math.min(window.innerWidth,Math.round(H*(DEV_ASPECT||0.5625)))};}
+var TEAM_GAP=14;   // 隊伍血條和珠盤框之間的縫（px）：390×844 時原本就是 14
 function layout(){
-  var bodyH=document.body.clientHeight,W=Math.min(window.innerWidth,Math.round(bodyH*(DEV_ASPECT||0.5625))),H=bodyH,Y=CONFIG.layout;
-  gameEl.style.width=W+'px';renderer.setSize(W,H,false);
-  L.W=W;L.H=H;L.topH=H*Y.top;L.battleY=L.topH;L.battleH=H*Y.battle;L.teamY=L.battleY+L.battleH;L.teamH=H*Y.team;L.boardY=L.teamY+L.teamH;L.boardH=H-L.boardY;
+  var F=safeFrame(),W=F.W,H=F.H,Y=CONFIG.layout;frameEl.classList.toggle('safe',F.st>0||F.sb>0);   // 有安全區才讓 #frame 往內縮（見 index.html 的 #frame）
+  gameEl.style.width=W+'px';renderer.setSize(W,H+F.st+F.sb,false);   // 畫布畫滿整頁（上下延伸到安全區後面）
+  L.W=W;L.H=H;L.st=F.st;L.sb=F.sb;L.topH=H*Y.top;L.battleY=L.topH;L.battleH=H*Y.battle;L.teamY=L.battleY+L.battleH;L.teamH=H*Y.team;L.boardY=L.teamY+L.teamH;L.boardH=H-L.boardY;
   L.cs=Math.floor(Math.min((W-26)/COLS,(L.boardH-34)/ROWS));L.K=L.cs*0.43;
   L.bx=Math.round((W-L.cs*COLS)/2);L.by=Math.round(L.boardY+(L.boardH-L.cs*ROWS)/2-6);
   ortho.left=0;ortho.right=W;ortho.top=0;ortho.bottom=-H;ortho.updateProjectionMatrix();
@@ -5110,15 +5127,33 @@ function layout(){
   document.getElementById('muteBtn').style.top=Math.max(6,(L.topH-36)/2)+'px';
   topEl.style.height=L.topH+'px';
   bossBarEl.style.top=(L.topH+2)+'px';
-  teamBarEl.style.top=(L.teamY+L.teamH*0.74)+'px';
-  var vy=L.teamY-70;veil.position.set(W/2,-(vy+(H-vy)/2),99);veil.scale.set(W,H-vy,1);ultBannerEl.style.top=(L.teamY-L.teamH*0.1)+'px';
+  // 隊伍血條黏在珠盤框上緣、固定留縫（全螢幕階段 B）：底邊對齊珠盤框往上 TEAM_GAP，字撐高只會往上長，不會再蓋到珠盤
+  // （CK 的 iPhone 12 上原本會往下蓋約 5px；375×667 本來就蓋 4px）。珠盤框的外緣＝L.by−11（render/orbs.js 的 rebuildBase）。
+  teamBarEl.style.top='auto';teamBarEl.style.bottom=(H-(L.by-11)+TEAM_GAP)+'px';
+  var vy=L.teamY-70;veil.position.set(W/2,-(vy+(H+F.sb-vy)/2),99);veil.scale.set(W,H+F.sb-vy,1);ultBannerEl.style.top=(L.teamY-L.teamH*0.1)+'px';
   comboEl.style.top=(L.teamY-46)+'px';toastEl.style.top=(L.boardY+L.boardH*0.45)+'px';bannerEl.style.top=(L.battleY+L.battleH*0.5)+'px';
 }
 window.addEventListener('resize',layout);
+// 畫面延伸：相機（戰鬥、庭院、封面、換裝頁的透視相機，盤面的正交相機）都照安全框算構圖，畫的時候分三塊：
+//   安全框用原本的相機、視窗剛好是框；上下安全區各用 setViewOffset 只畫框外那一條（瀏海後面、底部橫條後面的延長）。
+//   不整張一起延伸：那樣投影矩陣變了，細的幾何（封面的竹葉、線條）邊緣會有一些點翻到另一邊，框裡的畫面跟以前差得比較多。
+//   畫完相機還原，所以遊戲裡的投影、點擊換算（toScreen、射線）都照安全框，不用改。安全區是 0 時就是原本的一次 render。
+function viewOffset(cam,y,h){var v=cam.view&&cam.view.enabled?cam.view:null,fw=v?v.fullWidth:L.W,fh=v?v.fullHeight:L.H,x=v?v.offsetX:0,y0=v?v.offsetY:0,w=v?v.width:L.W,k=(v?v.height:L.H)/L.H;
+  cam.setViewOffset(fw,fh,x,y0+y*k,w,h*k);}   // 原本就有裁切（封面、換裝頁）：在它的裁切上再往框外多裁
+function renderExt(scene,cam){
+  if(!(L.st||L.sb)){renderer.render(scene,cam);return;}
+  var W=L.W,H=L.H,st=L.st,sb=L.sb,v=cam.view&&cam.view.enabled?{fw:cam.view.fullWidth,fh:cam.view.fullHeight,x:cam.view.offsetX,y:cam.view.offsetY,w:cam.view.width,h:cam.view.height}:null;
+  function back(){if(v)cam.setViewOffset(v.fw,v.fh,v.x,v.y,v.w,v.h);else cam.clearViewOffset();}
+  renderer.setScissorTest(true);
+  renderer.setViewport(0,sb,W,H);renderer.setScissor(0,sb,W,H);renderer.render(scene,cam);   // 安全框（WebGL 的 y 從下面算）
+  if(st){viewOffset(cam,-st,st);renderer.setViewport(0,sb+H,W,st);renderer.setScissor(0,sb+H,W,st);renderer.render(scene,cam);back();}   // 瀏海後面
+  if(sb){viewOffset(cam,H,sb);renderer.setViewport(0,0,W,sb);renderer.setScissor(0,0,W,sb);renderer.render(scene,cam);back();}   // 底部橫條後面
+  renderer.setScissorTest(false);renderer.setViewport(0,0,W,H+st+sb);}
 /* 加到主畫面（全螢幕）時，手機上下的安全區內距常在第一次排版之後才生效，而且不會觸發 resize：
    畫面變矮了卻沒重新排版，觸控對不準格子、隊伍血條壓到盤面（2026-09-28 使用者回報）。
-   所以改成看畫面實際的大小，變了就重新排版；大小沒變就不動。 */
-if(window.ResizeObserver)new ResizeObserver(function(){var bh=document.body.clientHeight,bw=Math.min(window.innerWidth,Math.round(bh*(DEV_ASPECT||0.5625)));if(bh!==L.H||bw!==L.W)layout();}).observe(document.body);
+   所以改成看畫面實際的大小，變了就重新排版；大小沒變就不動。
+   全螢幕之後整頁高度不變、變的是安全區，所以也看 #safeProbe（它的高度就是上下安全區）。 */
+if(window.ResizeObserver){var ro=new ResizeObserver(function(){var F=safeFrame();if(F.H!==L.H||F.W!==L.W||F.st!==L.st||F.sb!==L.sb)layout();});ro.observe(document.body);ro.observe(safeProbeEl,{box:'border-box'});}
 
 // 動畫小工具（anim.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
@@ -5702,7 +5737,7 @@ function closeBox(instant){if(boxK<0)return;boxOpen=false;lvBoxEl.classList.remo
 function positionBox(){if(boxK<0)return;var q=GARDEN.lampTop(boxK),w=lvBoxEl.offsetWidth,h=lvBoxEl.offsetHeight;
   var left=Math.max(12,Math.min(L.W-w-12,q.x-w/2));
   lvBoxEl.style.left=left+'px';lvBoxEl.style.top=(q.y-14-h)+'px';lvBoxEl.style.setProperty('--ax',Math.max(18,Math.min(w-18,q.x-left))+'px');
-  var r=lvBoxEl.getBoundingClientRect(),gr=gameEl.getBoundingClientRect();GARDEN.setLift(boxK,r.top-gr.top-34);}
+  var r=lvBoxEl.getBoundingClientRect(),gr=frameEl.getBoundingClientRect();GARDEN.setLift(boxK,r.top-gr.top-34);}
 document.getElementById('lvGo').addEventListener('click',function(){if(boxK<0||!boxOpen||GARDEN.isBusy())return;var k=boxK;AudioFX.init();AudioFX.select();closeBox(true);
   setTimeout(function(){if(APP.screen==='garden')goTeam(k);},180);});
 document.addEventListener('pointerdown',function(e){if(APP.screen!=='garden')return;
@@ -5717,7 +5752,7 @@ GARDEN.setHandlers({first:function(){AudioFX.init();},flash:flashTo,
   empty:function(){if(boxOpen)closeBox();}});
 
 // 第一次通關：星星飛到畫面中央轉一圈、收進左上角 → 燈點亮 → 這座島上浮現通往下一關的傳送陣
-function starTarget(){var gr=gameEl.getBoundingClientRect(),ic=gStarsEl.querySelector('svg').getBoundingClientRect();
+function starTarget(){var gr=frameEl.getBoundingClientRect(),ic=gStarsEl.querySelector('svg').getBoundingClientRect();
   return {x:ic.left-gr.left+ic.width/2,y:ic.top-gr.top+ic.height/2,s:ic.width*1.25};}
 function starRing(cx,cy){AudioFX.starSpin();starRingEl.style.left=cx+'px';starRingEl.style.top=cy+'px';starRingEl.classList.remove('burst');void starRingEl.offsetWidth;starRingEl.classList.add('burst');}
 function celebrate(k){GARDEN.setBusy(true);hideHint();closeBox(true);
@@ -5906,7 +5941,8 @@ document.getElementById('restartBtn').addEventListener('click',function(){startL
    觸控：滑動交換＋點選交換
    ===================================================================== */
 var drag=null;
-function localXY(e){var r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+function localXY(e){var r=frameEl.getBoundingClientRect();   // 安全框的座標（畫布上下延伸出去了，量框不量畫布）
+  return {x:e.clientX-r.left,y:e.clientY-r.top};}
 function cellAt(x,y){var c=Math.floor((x-L.bx)/L.cs),r=Math.floor((y-L.by)/L.cs);if(c<0||r<0||c>=COLS||r>=ROWS)return null;return [r,c];}
 canvas.addEventListener('pointerdown',function(e){e.preventDefault();if(G.mode!=='playing')return;var p=localXY(e);
   if(p.y>L.teamY-L.teamH*0.35&&p.y<L.boardY-4){var fi=foxAt(p.x);if(fi>=0)tryUlt(fi);return;}
@@ -5979,7 +6015,7 @@ function frame(now){
   if(!running)return;
   var rdt=Math.max(0,Math.min(0.05,(now-last)/1000))*(window.__speed||1);last=now;VT+=rdt;   /* 第一格的時間戳可能比 startLoop 還早，負的就當 0 */
   if(APP.screen!=='battle'){var gsn=APP.screen==='garden'?GARDEN:APP.screen==='fox'?WARD:TEAM;gsn.update(rdt,VT);if(APP.screen==='garden'){GARDEN.preRender(renderer);updateGardenHud();}
-    renderer.clear();renderer.render(gsn.scene,gsn.camera);raf=requestAnimationFrame(frame);return;}
+    renderer.clear();renderExt(gsn.scene,gsn.camera);raf=requestAnimationFrame(frame);return;}
   var frozen=G.mode==='ult',dt=frozen?0:rdt;S.time+=dt;var t=S.time;
   updateTweens(dt);
   if(frozen)updateUlt(rdt);
@@ -5999,7 +6035,7 @@ function frame(now){
   FX2D.setBuff(fighting()?battle.buff:0);FX2D.update(rdt);
   var sx=0,sy=0;if(shake>0.05){sx=(Math.random()*2-1)*shake;sy=(Math.random()*2-1)*shake;setShake(shake*Math.pow(0.0005,rdt));}else setShake(0);
   ortho.position.set(-sx,sy,0);bcam.position.set(CAM.pos.x+sx*0.01,CAM.pos.y-sy*0.01,CAM.pos.z);bcam.lookAt(CAM.look);
-  renderer.clear();renderer.render(battleScene,bcam);renderer.clearDepth();renderer.render(boardScene,ortho);
+  renderer.clear();renderExt(battleScene,bcam);renderer.clearDepth();renderExt(boardScene,ortho);
   raf=requestAnimationFrame(frame);}
 function startLoop(){if(running)return;running=true;last=performance.now();raf=requestAnimationFrame(frame);}
 function stopLoop(){running=false;cancelAnimationFrame(raf);}
@@ -6018,8 +6054,10 @@ layout();fillBoardStatic();updateBars();goGarden();startLoop();
 var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else if(/[?&]test5/.test(QS)){APP.stage=4;startTrial();}else if(/[?&]test4/.test(QS)){APP.stage=3;startTrial();}else if(/[?&]test3/.test(QS)){APP.stage=2;startTrial();}else if(/[?&]test2/.test(QS)){APP.stage=1;startTrial();}else if(/[?&]test/.test(QS)){APP.stage=0;startTrial();}else if(/[?&]team/.test(QS)){goTeam(1);}</script>
 </head>
 <body>
+<div id="safeProbe" aria-hidden="true"></div>
 <div id="game">
   <canvas id="c" aria-label="狐仙三消"></canvas>
+  <div id="frame">
   <canvas id="fx2d" class="bhud" aria-hidden="true"></canvas>
   <div id="topbar" class="hud bhud">
     <button id="pauseBtn" type="button" aria-label="暫停"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="1" width="3.6" height="12" rx="1.2"/><rect x="8.4" y="1" width="3.6" height="12" rx="1.2"/></svg></button>
@@ -6107,6 +6145,7 @@ var QS=location.search;if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else i
     <div class="panel" id="pResult"><h2 id="rTitle">勝利</h2><p id="rSub">三尾狐被打倒了</p><p class="rDrop" id="rDrop"></p>
       <dl><dt>總傷害</dt><dd id="rDmg">0</dd><dt>最高連擊</dt><dd id="rCombo">0</dd><dt>剩餘時間</dt><dd id="rTime">0 秒</dd></dl>
       <button class="btn" id="againBtn" type="button">再來一場</button><button class="btn ghost" id="homeBtn2" type="button">回到庭院</button></div>
+  </div>
   </div>
 </div>
 

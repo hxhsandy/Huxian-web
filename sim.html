@@ -62,7 +62,7 @@ label.tog{font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer}
    pad：這個頁面用 :root 的 padding 讓出安全區（狐仙三消 v112 的做法）；模擬「加到主畫面」時替它設成那支手機的數字。 */
 var PAGES={
   now:{src:'index.html',name:'現在的版本（v112）',pad:true},
-  full:{src:'fullscreen.html',name:'全螢幕預覽版',pad:false}
+  full:{src:'fullscreen.html',name:'全螢幕新版',pad:false}
 };
 var SCREENS=[['','庭院'],['?test','第一關戰鬥'],['?test2','第二關戰鬥'],['?test3','第三關戰鬥'],['?test4','第四關戰鬥'],['?test5','第五關戰鬥'],['?test6','第六關戰鬥'],['?team','第二關封面']];
 /* ---- 手機（CSS 像素＝網頁看到的大小）----
@@ -76,7 +76,7 @@ var DEVICES=[
 ];
 var MODES=[
   {id:'home',name:'加到主畫面・現在的版本',page:'now',how:'home'},
-  {id:'full',name:'加到主畫面・全螢幕預覽',page:'full',how:'home'},
+  {id:'full',name:'加到主畫面・全螢幕新版',page:'full',how:'home'},
   {id:'safari',name:'Safari 瀏覽器',page:'now',how:'safari'}
 ];
 var st={devs:['se','i13','i15'],mode:'home',screen:'?test4',safe:true};
@@ -96,7 +96,7 @@ function buildBar(){
   s.value=st.screen;$('#cSafe').checked=st.safe;
   var mode=MODES.find(function(o){return o.id===st.mode;});
   $('#note').textContent={home:'加到主畫面・現在的版本：安全區用上下內距讓出來（就是妳看到的上下兩條深色邊）。',
-    full:'加到主畫面・全螢幕預覽：拔掉安全區、畫面畫滿，介面還沒讓位，所以上排會被狀態列和瀏海蓋到。',
+    full:'加到主畫面・全螢幕新版：畫面延伸到瀏海和底部橫條後面，按鈕、血條、珠盤待在安全框裡；隊伍血條黏在珠盤上緣。',
     safari:'Safari 瀏覽器：網頁拿不到安全區；上面狀態列、下面網址列是 Safari 自己的（高度是約略值）。'}[mode.id]+
     '　紅色虛線＝安全框（要按、要讀的東西該待在裡面）。外框、瀏海形狀是近似，尺寸照 Apple 規格；最後以實機為準。';
 }
