@@ -5372,7 +5372,6 @@ var AudioFX=(function(){
     s.connect(f);f.connect(g);g.connect(master);s.start(t);s.stop(t+dur+0.05);}
   var SCALE=[0,2,4,7,9,12,14,16,19,21,24,26,28,31,33,36];
   function note(semi){return 523.25*Math.pow(2,semi/12);}
-  var TYPE=[7,9,12,9,14,12,7,16];   // 對話框逐字的音高（五聲音階）
   return {init:init,isMuted:function(){return muted;},
     setMuted:function(m){muted=m;try{localStorage.setItem('fox3-muted',m?'1':'0');}catch(_){}},
     clear:function(combo,when){var f=note(SCALE[Math.min(SCALE.length-1,Math.max(0,combo-1))]);
@@ -5385,10 +5384,8 @@ var AudioFX=(function(){
     taiji:function(){[0,7,12,16,19,24].forEach(function(sm,k){tone(note(sm),0.8,'sine',0.06,k*0.04);});noise(0.6,0.06,3000,8000,0,0.5);},
     hit:function(strong){var n=performance.now();if(n-lastHit<45)return;lastHit=n;tone(strong?240:280,0.1,'triangle',0.08,0,strong?120:160);noise(0.07,0.06,2200,900,0,1);},
     heal:function(){tone(1046.5,0.35,'sine',0.07);tone(1318.5,0.35,'sine',0.05,0.06);},
-    // 對話框逐字（2026-09-29 CK：不要鍵盤聲，要輕柔的小叮／泡泡音，刪節號的點更輕；CK 手機聽了再調）：
-    //   字＝很小聲、音高從低一點滑上去的「啵」＋一點點高八度；i 是這句第幾格，音高照五聲音階輪流（不用亂數）。點＝更小聲、更短的叮
-    type:function(dot,i){if(dot){tone(note(19),0.06,'sine',0.006,0,null,0.004);return;}
-      var f=note(TYPE[i%TYPE.length]);tone(f*0.84,0.1,'sine',0.02,0,f,0.004);tone(f*2,0.05,'sine',0.004,0.002);},
+    // 對話框逐字（2026-09-29 CK：不要鍵盤聲、要輕柔；第一版字是「啵」、刪節號的點是細叮，CK 聽完：每個字都用那聲細叮）：很小聲、很短的高音叮
+    type:function(){tone(note(19),0.06,'sine',0.006,0,null,0.004);},
     charge:function(){tone(170,0.6,'sawtooth',0.035,0,420,0.05);},
     bossAttack:function(){tone(110,0.55,'sawtooth',0.1,0,55);noise(0.5,0.22,1300,200,0,0.8,'lowpass');},
     enrage:function(){tone(92,0.9,'sawtooth',0.1,0,70);tone(97,0.9,'sawtooth',0.07,0,72);},
@@ -6048,9 +6045,9 @@ function typed(o,dt){if(o.n>=o.u.length)return false;o.acc+=dt;var ch=false;
   while(o.n<o.u.length){var p=o.n>0?o.u[o.n-1]:null,d=(o.u[o.n].d>=0?DOT:CH)+(p&&(p.d<0||p.d===2&&o.u[o.n].d<0)?SLOW[p.c]||0:0);   /* 前一格是一般字、或是「…」的最後一點而下一格是字，才多停（「……」六個點之間平均） */if(o.acc<d)break;o.acc-=d;o.n++;ch=true;}
   return ch;}
 function done(o){return o.n>=o.u.length;}
-// 逐字音效（2026-09-29 CK）：剛出現的那一格是字就「啵」一下、是刪節號的點就更輕的叮；標點、空白不出聲。一格一格跑時才響（點一下整句跑完不響）
+// 逐字音效（2026-09-29 CK）：剛出現的那一格是字、或刪節號的點，就細細叮一聲（CK：每個字都用這聲）；標點、空白不出聲。一格一格跑時才響（點一下整句跑完不響）
 var MUTE=/[，。、？！「」『』：；（）\s]/;
-function blip(o){var x=o.u[o.n-1];if(!x)return;if(x.d>=0)AudioFX.type(true);else if(!MUTE.test(x.c))AudioFX.type(false,o.n);}
+function blip(o){var x=o.u[o.n-1];if(x&&(x.d>=0||!MUTE.test(x.c)))AudioFX.type();}
 // 整句都排出來（還沒出現的看不到、但佔位置，字不會跳）；「…」畫成一個字寬、裡面三個點（.dlgDots）
 function esc(c){return c==='<'?'&lt;':c==='&'?'&amp;':c;}
 function html(o){var h='';o.u.forEach(function(x,i){var on=i<o.n;
@@ -6832,8 +6829,8 @@ document.addEventListener('visibilitychange',function(){
 // 企劃：docs/06_drops.md「信」、03_design_story.md「劇情」第 5 條。字在 config.js 的 CONFIG.letter。
 // 樣子是遊星的草案（待 CK／繪星定）：米白信封綁一小段紅繩、信封上不寫字；信紙淡淡的桂花黃，直書三行、字有點歪，角落一朵小桂花。
 //   LETTER.show(from)   擋住畫面的演出：信從 from（安全框座標，例如 BOSS 平台 bossScreen()；不給就是畫面中上）飄到畫面正中央 →
-//                       停住、輕輕浮著，信封上金色光圈一下一下往外爆開，提示「點這裡」（2026-09-29 CK；同一天 CK 看完預覽：要更明顯，
-//                       像打倒 BOSS 那一下的金色圓圈特效 ringFx → 同樣的粗光圈＋內圈細線，往外擴散、越來越淡）→
+//                       停住、輕輕浮著，金色光圈一下一下從外面收進信封，提示「點這裡」（2026-09-29 CK；同一天 CK 看完預覽：要更明顯，
+//                       像打倒 BOSS 那一下的金色圓圈特效 ringFx → 同樣的粗光圈＋內圈細線；再看一次：動態改成往內收）→
 //                       點信封才打開（點到信封外面不算）：紅繩鬆開、封口掀開、信紙抽出來展開 → 字一行一行浮出 → 點一下收起來，收完才 resolve。
 //                       一開始就記進存檔（story.letter＝1，換裝頁多一格「信」；fresh.letter＝換裝按鈕的小紅點）。
 //                       打開之後點一下＝直接跳到字都出現。
@@ -6846,8 +6843,10 @@ var el$1=document.getElementById('letter'),envEl=el$1.querySelector('.lEnv'),fla
 // 時間表（秒）：飄過來、繩子鬆開、封口掀開、信紙抽出、展開、每一行開始、每個字間隔、字浮出的時間
 // 2026-09-29 CK：飛到鏡頭前那段後半段快一點 → 飄過來 1.5 → 1.2 秒、時間前段慢後段快（FLY_W），打開之後的每一段長度不變（整段往前 0.3 秒）
 var T_FLY=1.2,FLY_W=1.35,T_CORD=1.7,T_FLAP=2.2,T_PULL=2.8,T_OPEN=3.5,T_LINE0=3.7,T_LINE=1.3,T_CH=0.13,T_FADE=0.35,T_CLOSE=0.6;
-// 光圈：每 RING_P 秒爆一次，一次 RING_D 秒（跟 ringFx 一樣：ease-out 往外擴散、透明度 (1−k)×1.6）；第二圈晚 RING_2 秒、小一點。大小是信封寬的倍數
-var RING_P=1.4,RING_D=0.8,RING_2=0.22,RING_S=[[0.45,2.3],[0.45,1.7]];
+// 光圈：每 RING_P 秒一次，一次 RING_D 秒；第二圈晚 RING_2 秒、小一點。RING_S＝[收到多小, 從多大開始]，是信封寬的倍數
+//   2026-09-29 CK：樣子對了（跟 ringFx 一樣），動態改成往內收——從外面大圈收到信封：打倒 BOSS 那一下的時間倒過來播
+//   （一開始在外面慢、越收越快，大小照 1−p³；外面淡淡出現、越收越亮，碰到信封前一點點淡掉）
+var RING_P=1.4,RING_D=0.9,RING_2=0.22,RING_S=[[0.8,2.6],[0.8,2]];
 var cur=null,last$1=-1;
 // 光圈的圖（ringFx 用的 ringTex 同樣的樣子：半徑 0.78 一圈粗光圈帶柔光、0.62 一圈細線），逐點算（不用 canvas 漸層、陰影：iPhone 會抖色），金色；第一次打開信才畫
 function ringImg(){var N=256,c=document.createElement('canvas');c.width=c.height=N;var g=c.getContext('2d'),im=g.createImageData(N,N),D=im.data,h=N/2,x,y;
@@ -6872,11 +6871,11 @@ function render(){var t=cur.t,W=el$1.clientWidth,H=el$1.clientHeight,cx=W/2,cy=H
   // 信封：從 from 飄到畫面中間（中間拱起一點、左右輕輕晃）、慢慢變大；信紙展開時往下沉、淡掉
   var k=ease$1(Math.pow(seg(t,0,T_FLY),FLY_W)),x=f.x+(cx-f.x)*k,y=f.y+(cy-f.y)*k-Math.sin(Math.PI*k)*H*0.06,rot=Math.sin(seg(t,0,T_FLY)*TAU)*7*(1-k),sc=0.3+0.7*k,
       out=ease$1(seg(t,T_PULL,T_OPEN));
-  // 停在中間等點：信封輕輕上下浮；金色光圈從信封中間一下一下往外爆開（兩圈錯開一點）；打開時光圈很快收掉
+  // 停在中間等點：信封輕輕上下浮；金色光圈從外面一下一下往信封收進來（兩圈錯開一點）；打開時光圈很快收掉
   var w=cur.wt,wa=cur.stage==='fly'?0:cur.stage==='wait'?Math.min(1,w/0.4):Math.max(0,1-cur.ot/0.25);   /* 飄過來的時候沒有光圈 */
   y+=Math.sin(w*2.2)*4*Math.min(1,w/0.5);
   Array.prototype.forEach.call(ringEls,function(r,i){var u=w-i*RING_2,p=u<0?1:(u%RING_P)/RING_D,o=0,s=1;
-    if(p<1){var e=1-Math.pow(1-p,3),S=RING_S[i];s=S[0]+(S[1]-S[0])*e;o=wa*Math.min(1,(1-p)*1.6);}
+    if(p<1){var S=RING_S[i];s=S[0]+(S[1]-S[0])*(1-p*p*p);o=wa*Math.min(1,p*1.6,(1-p)/0.12);}
     r.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) translate(-50%,-50%) scale('+s.toFixed(3)+')';r.style.opacity=o.toFixed(3);});
   envEl.style.transform='translate('+x.toFixed(1)+'px,'+(y+out*40).toFixed(1)+'px) translate(-50%,-50%) rotate('+rot.toFixed(2)+'deg) scale('+sc.toFixed(3)+')';
   envEl.style.opacity=(1-out).toFixed(3);
