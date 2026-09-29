@@ -1178,6 +1178,40 @@ var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,powerPreferen
 var PR=Math.min(window.devicePixelRatio||1,2);
 renderer.setPixelRatio(PR);renderer.setClearColor(0x0b1330,1);renderer.autoClear=false;renderer.localClippingEnabled=true;
 
+// ?smoothglow（2026-09-29 預覽開關，給 CK 在手機上同一個畫面開關各截一張比）：手機上月亮、隊伍大招光圈的中間看得到雜點、霧讓它更明顯，
+//   猜是 iPhone 的 canvas 畫放射漸層（createRadialGradient）會加抖色（dither），小貼圖放大後就看得到。還沒確定，所以先做開關、不直接改。
+//   開的時候：不在畫面上的 canvas（貼圖、2D 特效的小圖）呼叫 createRadialGradient 改成自己一點一點算顏色（照 canvas 規格：兩個圓的圓錐漸層、
+//   顏色不預乘 alpha 線性內插、超出兩端用端點的顏色），算成一張圖、用 pattern 填上去：形狀、顏色都跟漸層一樣，只是沒有抖色。
+//   在畫面上的 canvas（#fx2d 每格畫的）照原本的（每格都算太慢）。只接 fillStyle（專案裡的放射漸層都是拿來填的）。沒開開關時什麼都不動。
+var SMOOTH_GLOW=typeof location!=='undefined'&&/[?&]smoothglow(&|=|$)/.test(location.search);
+if(SMOOTH_GLOW)(function(){
+  var P=CanvasRenderingContext2D.prototype,orig=P.createRadialGradient,fs=Object.getOwnPropertyDescriptor(P,'fillStyle'),probe=document.createElement('canvas').getContext('2d');
+  function rgba(css){probe.fillStyle='#000';probe.fillStyle=css;var v=probe.fillStyle;   // 瀏覽器會正規化成 #rrggbb 或 rgba(r, g, b, a)
+    if(v.charAt(0)==='#')return [parseInt(v.slice(1,3),16),parseInt(v.slice(3,5),16),parseInt(v.slice(5,7),16),1];
+    var m=v.match(/[\d.]+/g).map(Number);return [m[0],m[1],m[2],m.length>3?m[3]:1];}
+  function Smooth(a){this.a=a;this.stops=[];}
+  Smooth.prototype.addColorStop=function(o,c){this.stops.push([o,rgba(c)]);this.stops.sort(function(x,y){return x[0]-y[0];});};
+  P.createRadialGradient=function(x0,y0,r0,x1,y1,r1){return this.canvas&&this.canvas.isConnected?orig.apply(this,arguments):new Smooth([x0,y0,r0,x1,y1,r1]);};
+  // 點 (px,py) 在漸層上的位置 ω（找最大的 ω 讓點落在圓 ω 上、半徑不為負）；沒有就是 null（透明）
+  function omega(g,px,py){var a=g.a,cx=a[3]-a[0],cy=a[4]-a[1],dr=a[5]-a[2],qx=px-a[0],qy=py-a[1],
+      A=cx*cx+cy*cy-dr*dr,B=qx*cx+qy*cy+a[2]*dr,C=qx*qx+qy*qy-a[2]*a[2],w;
+    if(Math.abs(A)<1e-9){if(Math.abs(B)<1e-9)return null;w=C/(2*B);return a[2]+w*dr>=0?w:null;}
+    var D=B*B-A*C;if(D<0)return null;D=Math.sqrt(D);var w1=(B+D)/A,w2=(B-D)/A,hi=Math.max(w1,w2),lo=Math.min(w1,w2);
+    return a[2]+hi*dr>=0?hi:a[2]+lo*dr>=0?lo:null;}
+  function colorAt(st,t,out){var n=st.length,i;if(!n){out[3]=0;return;}
+    if(t<=st[0][0]){i=0;}else if(t>=st[n-1][0]){i=n-1;}else {for(i=0;i<n-1&&st[i+1][0]<t;i++);var s0=st[i],s1=st[i+1],k=s1[0]>s0[0]?(t-s0[0])/(s1[0]-s0[0]):1;
+      for(var j=0;j<4;j++)out[j]=s0[1][j]+(s1[1][j]-s0[1][j])*k;return;}
+    for(var q=0;q<4;q++)out[q]=st[i][1][q];}
+  // 整張 canvas 每一個像素算一次（先照現在的變換換回漸層的座標），做成 pattern，pattern 的變換設成「現在變換的反矩陣」＝一個像素對一個像素；
+  //   圖四邊多算一圈（反矩陣有一點點誤差時，邊上的像素取樣才不會混到圖外面的透明）
+  function toPattern(ctx,g){var W=ctx.canvas.width+2,H=ctx.canvas.height+2,inv=ctx.getTransform().inverse(),c=document.createElement('canvas');c.width=W;c.height=H;
+    var x2=c.getContext('2d'),im=x2.createImageData(W,H),D=im.data,col=[0,0,0,0],x,y;
+    for(y=0;y<H;y++)for(x=0;x<W;x++){var X=x-0.5,Y=y-0.5,px=inv.a*X+inv.c*Y+inv.e,py=inv.b*X+inv.d*Y+inv.f,w=omega(g,px,py),i=(y*W+x)*4;
+      if(w===null){D[i+3]=0;continue;}colorAt(g.stops,Math.min(1,Math.max(0,w)),col);
+      D[i]=Math.round(col[0]);D[i+1]=Math.round(col[1]);D[i+2]=Math.round(col[2]);D[i+3]=Math.round(col[3]*255);}
+    x2.putImageData(im,0,0);var pt=ctx.createPattern(c,'no-repeat');pt.setTransform(inv.multiply(new DOMMatrix([1,0,0,1,-1,-1])));return pt;}
+  Object.defineProperty(P,'fillStyle',{configurable:true,enumerable:fs.enumerable,get:fs.get,set:function(v){fs.set.call(this,v instanceof Smooth?toPattern(this,v):v);}});
+})();
 function canvasTex(w,h,draw){var c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);var t=new THREE.CanvasTexture(c);t.needsUpdate=true;return t;}
 var gradMap=new THREE.DataTexture(new Uint8Array([95,172,255]),3,1,THREE.LuminanceFormat);
 gradMap.minFilter=THREE.NearestFilter;gradMap.magFilter=THREE.NearestFilter;gradMap.generateMipmaps=false;gradMap.needsUpdate=true;
