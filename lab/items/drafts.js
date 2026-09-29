@@ -5,7 +5,8 @@ window.ITEM_LAB_DRAFTS = [
     note: '三朵錯落桃花與兩片綠葉，留空隙圍著尾尖。',
     build: function (anchor, L) {
       var T = L.THREE, r = anchor.userData.tailR || 0.12;
-      var g = new T.Group(), front = new T.Group(); g.add(front);
+      var g = new T.Group(), front = new T.Group(), sway = new T.Group();
+      g.add(front); front.add(sway); g.userData.sway = sway;
       if (!anchor.userData.thumb) {
         var d = new T.Vector3(L.BOW_DIR[0], L.BOW_DIR[1], L.BOW_DIR[2]).normalize();
         var flat = new T.Vector3(d.x, 0, d.z).normalize();
@@ -13,12 +14,12 @@ window.ITEM_LAB_DRAFTS = [
         front.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
         front.rotateX(-0.4);
       }
-      var flowerGeo = L.peachBlossomGeo(0xe9729f, 0xfbd6e3, 0xe9c47c, 0.1, 1.05, 0);
+      var flowerGeo = L.peachBlossomGeo(0xe9729f, 0xfbd6e3, 0xa43861, 0.14, 1.05, 0);
       var flowerMat = new T.MeshBasicMaterial({ vertexColors: true, side: T.DoubleSide });
       var blooms = [[-0.105, -0.012, 0.056, -0.25], [0.005, 0.055, 0.066, 0.14], [0.115, -0.03, 0.054, 0.35]];
       blooms.forEach(function (p) {
         var f = new T.Mesh(flowerGeo, flowerMat);
-        f.position.set(p[0], p[1], 0.018); f.rotation.z = p[3]; f.scale.setScalar(p[2]); front.add(f);
+        f.position.set(p[0], p[1], 0.018); f.rotation.z = p[3]; f.scale.setScalar(p[2]); sway.add(f);
       });
       var gold = L.toon(0xf2d16e, { emissive: 0x62420e }), dots = [];
       blooms.forEach(function (p) {
@@ -26,32 +27,35 @@ window.ITEM_LAB_DRAFTS = [
         geo.applyMatrix4(new T.Matrix4().makeScale(0.012, 0.012, 0.006));
         geo.translate(p[0], p[1], 0.029); dots.push(geo);
       });
-      front.add(new T.Mesh(L.mergeGeos(dots), gold));
-      var leafMat = L.toon(0x5c9c69, { emissive: 0x142d1c });
+      sway.add(new T.Mesh(L.mergeGeos(dots), gold));
+      var leafMat = L.toon(0x2f7650, { emissive: 0x0d2718 });
+      var leafOutline = L.outlineMat(0x17442f, 0.006);
       [[-0.045, -0.07, -0.48], [0.072, 0.09, 0.65]].forEach(function (p) {
-        var leaf = L.itemPart(L.SPH_LO, leafMat);
+        var leaf = L.itemPart(L.SPH_LO, leafMat, leafOutline);
         leaf.position.set(p[0], p[1], 0.012);
-        leaf.scale.set(0.018, 0.043, 0.009); leaf.rotation.z = p[2]; front.add(leaf);
+        leaf.scale.set(0.018, 0.043, 0.009); leaf.rotation.z = p[2]; sway.add(leaf);
       });
       return g;
     },
-    upd: function (obj, t) { obj.children[0].rotation.z = 0.055 * Math.sin(t * 1.7); } },
+    upd: function (obj, t) { obj.userData.sway.rotation.z = 0.055 * Math.sin(t * 1.7); } },
 
   { id: 'longevity-lock', slot: 'neck', name: '長命鎖',
     desc: '給小孩子戴的長命鎖。塗山說，這是有人拜託她保管的。',
-    note: '凹槽銀鎖與橫桿，下緣像雲；三條銀鍊各帶一顆小珠。',
+    note: '銀色雲形鎖與橫桿，下方三條珠鍊輕晃。',
     build: function (anchor, L) {
       var T = L.THREE, g = new T.Group(), sh = new T.Shape();
-      sh.moveTo(-0.074, 0.05); sh.quadraticCurveTo(-0.06, 0.076, -0.036, 0.068);
-      sh.lineTo(-0.036, 0.043); sh.quadraticCurveTo(0, 0.004, 0.036, 0.043);
-      sh.lineTo(0.036, 0.068); sh.quadraticCurveTo(0.06, 0.076, 0.074, 0.05);
-      sh.lineTo(0.081, -0.007); sh.quadraticCurveTo(0.105, -0.023, 0.088, -0.044);
-      sh.quadraticCurveTo(0.098, -0.073, 0.065, -0.075);
-      sh.quadraticCurveTo(0.051, -0.096, 0.023, -0.085);
-      sh.quadraticCurveTo(0, -0.108, -0.023, -0.085);
-      sh.quadraticCurveTo(-0.051, -0.096, -0.065, -0.075);
-      sh.quadraticCurveTo(-0.098, -0.073, -0.088, -0.044);
-      sh.quadraticCurveTo(-0.105, -0.023, -0.081, -0.007); sh.closePath();
+      sh.moveTo(-0.045, 0.059); sh.quadraticCurveTo(-0.069, 0.075, -0.084, 0.042);
+      sh.quadraticCurveTo(-0.111, 0.038, -0.098, 0.008);
+      sh.quadraticCurveTo(-0.111, -0.018, -0.087, -0.034);
+      sh.quadraticCurveTo(-0.086, -0.056, -0.061, -0.055);
+      sh.quadraticCurveTo(-0.045, -0.071, -0.025, -0.058);
+      sh.quadraticCurveTo(0, -0.076, 0.025, -0.058);
+      sh.quadraticCurveTo(0.045, -0.071, 0.061, -0.055);
+      sh.quadraticCurveTo(0.086, -0.056, 0.087, -0.034);
+      sh.quadraticCurveTo(0.111, -0.018, 0.098, 0.008);
+      sh.quadraticCurveTo(0.111, 0.038, 0.084, 0.042);
+      sh.quadraticCurveTo(0.069, 0.075, 0.045, 0.059);
+      sh.lineTo(0.045, 0.035); sh.quadraticCurveTo(0, 0.009, -0.045, 0.035); sh.closePath();
       var silver = L.toon(0xaebfcc, { emissive: 0x213346 });
       var plateGeo = new T.ExtrudeGeometry(sh, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2 });
       var plate = L.itemPart(plateGeo, silver); g.add(plate);
