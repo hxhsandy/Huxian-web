@@ -166,7 +166,7 @@ window.ITEM_LAB_DRAFTS = [
         loops.push(geo);
       });
       g.add(L.itemPart(L.mergeGeos(loops), red, L.outlineMat(0x8f1c2e, 0.004)));
-      var knot = L.itemPart(L.SPH_LO, red, L.outlineMat(0xe5633c, 0.006));
+      var knot = L.itemPart(L.SPH_LO, red, L.outlineMat(0x8f1c2e, 0.004));
       knot.scale.set(0.028, 0.027, 0.018); knot.position.z = 0.012; g.add(knot);
       var gold = L.toon(0xf2c65a, { emissive: 0x6a4a10 });
       var bead = L.itemPart(L.SPH_LO, gold);
