@@ -217,37 +217,43 @@ window.ITEM_LAB_DRAFTS = [
 
   { id: 'maple-collar', slot: 'neck', name: '楓葉胸針',
     desc: '背面用金線繡了一個小小的字，已經磨得看不清了。',
-    note: '五枚尖瓣與長葉柄的橘紅楓葉，胸前可辨的葉脈。',
+    note: '第二關封面同輪廓的厚楓葉：五尖角、細鋸齒與亮橘葉面。',
     build: function (anchor, L) {
-      var T = L.THREE, g = new T.Group(), sh = new T.Shape();
-      var edge = [[0, 0.099], [0.019, 0.047], [0.065, 0.071], [0.048, 0.026],
-        [0.09, 0.02], [0.051, -0.006], [0.064, -0.053], [0.018, -0.034],
-        [0.01, -0.06], [0.007, -0.104], [0, -0.109]];
-      sh.moveTo(edge[0][0], edge[0][1]);
-      for (var i = 1; i < edge.length; i++) sh.lineTo(edge[i][0], edge[i][1]);
-      for (i = edge.length - 2; i > 0; i--) sh.lineTo(-edge[i][0], edge[i][1]);
+      var T = L.THREE, g = new T.Group(), sh = new T.Shape(), radius = 0.105, pts = [];
+      var lobes = [[-2, 0.62, 0], [-1, 0.9, 1], [0, 1, 1], [1, 0.9, 1], [2, 0.62, 0]];
+      function point(a, r) { return [Math.cos(a) * r * radius, Math.sin(a) * r * radius]; }
+      lobes.forEach(function (l) {
+        var a = Math.PI / 2 + l[0] * 0.96, len = l[1];
+        pts.push(point(a - 0.48, 0.34));
+        if (l[2]) {
+          pts.push(point(a - 0.27, 0.6 * len), point(a - 0.23, 0.76 * len), point(a - 0.1, 0.66 * len));
+        } else pts.push(point(a - 0.16, 0.62 * len));
+        pts.push(point(a, len));
+        if (l[2]) {
+          pts.push(point(a + 0.1, 0.66 * len), point(a + 0.23, 0.76 * len), point(a + 0.27, 0.6 * len));
+        } else pts.push(point(a + 0.16, 0.62 * len));
+      });
+      pts.push(point(-Math.PI / 2 + 0.2, 0.16), point(-Math.PI / 2 - 0.2, 0.16));
+      pts.forEach(function (p, i) { if (i) sh.lineTo(p[0], p[1]); else sh.moveTo(p[0], p[1]); });
       sh.closePath();
       var leaf = L.itemPart(
-        new T.ExtrudeGeometry(sh, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 2 }),
-        L.toon(0xeb7038, { emissive: 0x59210d }), L.outlineMat(0x783323, 0.005));
+        new T.ExtrudeGeometry(sh, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 2 }),
+        L.toon(0xd35b25, { emissive: 0x4c1b0a }), L.outlineMat(0xe4a05e, 0.004));
       g.add(leaf);
-      var veins = [], paths = [[[0, -0.052], [0, 0.068]], [[0, -0.024], [-0.058, 0.045]],
-        [[0, -0.024], [0.058, 0.045]], [[0, -0.046], [-0.049, -0.025]], [[0, -0.046], [0.049, -0.025]]];
-      paths.forEach(function (p) {
-        var dx = p[1][0] - p[0][0], dy = p[1][1] - p[0][1];
-        var v = new T.CylinderGeometry(0.0024, 0.0024, Math.hypot(dx, dy), 5);
-        v.rotateZ(-Math.atan2(dx, dy));
-        v.translate((p[0][0] + p[1][0]) / 2, (p[0][1] + p[1][1]) / 2, 0.02);
-        veins.push(v);
-      });
-      g.add(new T.Mesh(L.mergeGeos(veins), L.toon(0xffbf6c, { emissive: 0x5a2810 })));
+      var stem = L.itemPart(new T.CylinderGeometry(0.004, 0.0045, 0.07, 6),
+        L.toon(0xb85c29, { emissive: 0x371508 }), false);
+      stem.position.set(0, -0.038, 0.012); g.add(stem);
+      var size = radius / 0.46;
+      var face = new T.Mesh(new T.PlaneGeometry(size, size),
+        new T.MeshBasicMaterial({ map: L.MAPLE_TEX, color: L.MAPLE_COL[0], transparent: true, depthWrite: false, side: T.DoubleSide }));
+      face.position.set(0, size * 0.08, 0.022); g.add(face);
       g.position.set(0, -0.05, 0.035);
       return g;
     } },
 
   { id: 'tail-tassel', slot: 'tail', name: '流蘇尾飾',
     desc: '桂花樹上掛的那串流蘇，不知道什麼時候掉下來的。',
-    note: '尾尖旁漂浮的暖黃色小燈籠，紙面微亮、短穗輕晃。',
+    note: '妲己封面同款六角深木框黃燈，縮小後漂在尾尖旁。',
     build: function (anchor, L) {
       var T = L.THREE, r = anchor.userData.tailR || 0.12;
       var g = new T.Group(), face = new T.Group(), bob = new T.Group();
@@ -259,25 +265,25 @@ window.ITEM_LAB_DRAFTS = [
         face.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
       }
       bob.position.set(anchor.userData.thumb ? 0 : -0.075, 0.045, 0.025);
-      var gold = L.toon(0xeaa94d, { emissive: 0x724011 });
-      var body = L.itemPart(L.SPH_LO, L.toon(0xffd867, { emissive: 0x8a5410 }), L.outlineMat(0xa25c22, 0.005));
-      body.scale.set(0.052, 0.061, 0.039); bob.add(body);
-      var paper = new T.Mesh(L.SPH_LO, L.toon(0xffeda0, { emissive: 0x8f6d26 }));
-      paper.scale.set(0.033, 0.049, 0.005); paper.position.z = 0.037; bob.add(paper);
+      var wood = L.toon(0x3e171a, { emissive: 0x160708 });
+      var woodEdge = L.outlineMat(0xd9b46a, 0.004);
+      var paper = new T.Mesh(new T.CylinderGeometry(0.052, 0.052, 0.095, 6),
+        L.toon(0xffd186, { emissive: 0xe07020 }));
+      bob.add(paper);
+      var caps = [L.xf(new T.CylinderGeometry(0.032, 0.055, 0.018, 6), 0, 0.056, 0, 1),
+        L.xf(new T.CylinderGeometry(0.055, 0.032, 0.018, 6), 0, -0.056, 0, 1)];
+      bob.add(L.itemPart(L.mergeGeos(caps), wood, woodEdge));
       var ribs = [];
-      [-0.023, 0.023].forEach(function (x) {
-        var rib = new T.CylinderGeometry(0.0026, 0.0026, 0.085, 5);
-        rib.translate(x, 0, 0.04); ribs.push(rib);
-      });
-      bob.add(new T.Mesh(L.mergeGeos(ribs), gold));
-      var caps = [];
-      var top = new T.ConeGeometry(0.046, 0.023, 10); top.translate(0, 0.074, 0); caps.push(top);
-      var bottom = new T.CylinderGeometry(0.032, 0.027, 0.012, 10); bottom.translate(0, -0.064, 0); caps.push(bottom);
-      bob.add(L.itemPart(L.mergeGeos(caps), gold, L.outlineMat(0x9a541e, 0.003)));
-      var ring = L.itemPart(new T.TorusGeometry(0.013, 0.0035, 6, 16), gold, false);
-      ring.position.y = 0.091; bob.add(ring);
-      var tassel = L.itemPart(new T.ConeGeometry(0.01, 0.041, 8), gold, false);
-      tassel.rotation.z = Math.PI; tassel.position.y = -0.089; bob.add(tassel);
+      for (var q = 0; q < 6; q++) {
+        var a = q / 6 * Math.PI * 2;
+        ribs.push(L.xf(new T.BoxGeometry(0.008, 0.101, 0.008),
+          Math.sin(a) * 0.052, 0, Math.cos(a) * 0.052, 1));
+      }
+      bob.add(L.itemPart(L.mergeGeos(ribs), wood, woodEdge));
+      var loop = L.itemPart(new T.TorusGeometry(0.011, 0.003, 6, 12), wood, false);
+      loop.position.y = 0.073; bob.add(loop);
+      var glow = L.sprite(bob, L.glowTex, 0xffa050, 0.25, true);
+      glow.scale.set(0.23, 0.23, 1);
       g.userData.bob = bob;
       return g;
     },
