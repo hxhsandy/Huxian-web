@@ -44,23 +44,20 @@ window.ITEM_LAB_DRAFTS = [
     note: '銀色雲形鎖與橫桿，下方三條珠鍊輕晃。',
     build: function (anchor, L) {
       var T = L.THREE, g = new T.Group(), sh = new T.Shape();
-      sh.moveTo(-0.045, 0.059); sh.quadraticCurveTo(-0.069, 0.075, -0.084, 0.042);
-      sh.quadraticCurveTo(-0.111, 0.038, -0.098, 0.008);
-      sh.quadraticCurveTo(-0.111, -0.018, -0.087, -0.034);
-      sh.quadraticCurveTo(-0.086, -0.056, -0.061, -0.055);
-      sh.quadraticCurveTo(-0.045, -0.071, -0.025, -0.058);
-      sh.quadraticCurveTo(0, -0.076, 0.025, -0.058);
-      sh.quadraticCurveTo(0.045, -0.071, 0.061, -0.055);
-      sh.quadraticCurveTo(0.086, -0.056, 0.087, -0.034);
-      sh.quadraticCurveTo(0.111, -0.018, 0.098, 0.008);
-      sh.quadraticCurveTo(0.111, 0.038, 0.084, 0.042);
-      sh.quadraticCurveTo(0.069, 0.075, 0.045, 0.059);
-      sh.lineTo(0.045, 0.035); sh.quadraticCurveTo(0, 0.009, -0.045, 0.035); sh.closePath();
+      sh.moveTo(-0.045, 0.055);
+      sh.quadraticCurveTo(-0.11, 0.08, -0.094, 0.022);
+      sh.quadraticCurveTo(-0.124, -0.014, -0.087, -0.034);
+      sh.quadraticCurveTo(-0.092, -0.069, -0.045, -0.052);
+      sh.quadraticCurveTo(0, -0.095, 0.045, -0.052);
+      sh.quadraticCurveTo(0.092, -0.069, 0.087, -0.034);
+      sh.quadraticCurveTo(0.124, -0.014, 0.094, 0.022);
+      sh.quadraticCurveTo(0.11, 0.08, 0.045, 0.055);
+      sh.lineTo(0.045, 0.032); sh.quadraticCurveTo(0, 0.009, -0.045, 0.032); sh.closePath();
       var silver = L.toon(0xaebfcc, { emissive: 0x213346 });
       var plateGeo = new T.ExtrudeGeometry(sh, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2 });
       var plate = L.itemPart(plateGeo, silver); g.add(plate);
       var bar = L.itemPart(new T.CylinderGeometry(0.008, 0.008, 0.09, 10), silver);
-      bar.rotation.z = Math.PI / 2; bar.position.set(0, 0.064, 0.026); g.add(bar);
+      bar.rotation.z = Math.PI / 2; bar.position.set(0, 0.064, 0.015); g.add(bar);
       var hole = L.SPH_LO.clone(); hole.applyMatrix4(new T.Matrix4().makeScale(0.012, 0.012, 0.003));
       hole.translate(0, 0.01, 0.031);
       var key = new T.BoxGeometry(0.009, 0.025, 0.004); key.translate(0, -0.009, 0.031);
@@ -68,7 +65,7 @@ window.ITEM_LAB_DRAFTS = [
       var chainGeo = new T.CylinderGeometry(0.003, 0.003, 0.055, 6);
       var chains = [];
       [-0.053, 0, 0.053].forEach(function (x) {
-        var swing = new T.Group(); swing.position.set(x, -0.053, 0.024);
+        var swing = new T.Group(); swing.position.set(x, -0.053, 0.012);
         var rod = chainGeo.clone(); rod.translate(0, -0.031, 0);
         var bead = L.SPH_LO.clone(); bead.applyMatrix4(new T.Matrix4().makeScale(0.013, 0.013, 0.012));
         bead.translate(0, -0.067, 0);
