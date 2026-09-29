@@ -4817,8 +4817,8 @@ var parts=[];for(var pi=0;pi<PCAP;pi++)parts.push({on:false,x:0,y:0,vx:0,vy:0,li
 var partHead=0;
 function emit(x,y,vx,vy,life,size,color,grav){for(var k=0;k<PCAP;k++){var p=parts[(partHead+k)%PCAP];if(!p.on){partHead=(partHead+k+1)%PCAP;
   p.on=true;p.x=x;p.y=y;p.vx=vx;p.vy=vy;p.life=p.max=life;p.size=size;p.g=grav||0;p.col.copy(color);return;}}}
-var GOLD=new THREE.Color(0xffd98a),WHITE=new THREE.Color(0xffffff);
-function typeColor(t){return t>=0?ORB[t].color.clone().lerp(WHITE,0.3):GOLD.clone();}
+var GOLD=new THREE.Color(0xffd98a),WHITE$1=new THREE.Color(0xffffff);
+function typeColor(t){return t>=0?ORB[t].color.clone().lerp(WHITE$1,0.3):GOLD.clone();}
 function burst(x,y,type,big){var cs=L.cs,lc=typeColor(type),n=big?12:8;
   emit(x,y,0,0,0.22,cs*1.7,lc,0);
   for(var k=0;k<n;k++){var a=rand(0,TAU),sp=rand(1.2,3.2)*cs;emit(x,y,Math.cos(a)*sp,Math.sin(a)*sp-cs*1.2,rand(.3,.55),rand(.2,.34)*cs,lc,cs*7);}
@@ -5191,7 +5191,7 @@ PTINT[4]=new THREE.Color(0.31,0.21,1);
 PTINT[0]=new THREE.Color(1,0.32,0.12);PTINT[2]=new THREE.Color(0,0.62,0.38);   // 火珠的花更紅（2026-09-27 使用者：原本火的花太淡）；木珠的花：使用者指定 40bda6，實際畫出來約 5ab9a4～67cab2（shader 會往灰混、再打光，紅色壓不到更低）   // 暗珠上的花：偏藍的紫，才跟心珠的粉拉得開（2026-09-27 使用者：畫出來要接近 b48bff；粉色不動）
 // 花要染的顏色：那顆珠的顏色、最亮的分量拉到 1（shader 再往白色混，所以是淡淡的）；PEACHBASE 是還沒落地時的桃紅
 function petalTint(type){return type>=0&&PTINT[type]?PTINT[type]:PEACHBASE;}
-function petalSpark(type){return petalTint(type).clone().lerp(WHITE,0.45);}   // PFL：飛行中的桃花（mode 'in' 飄下來、'out' 被吹走），syncOrbs 畫
+function petalSpark(type){return petalTint(type).clone().lerp(WHITE$1,0.45);}   // PFL：飛行中的桃花（mode 'in' 飄下來、'out' 被吹走），syncOrbs 畫
 function petalFlight(mode,x0,y0,x1,y1,dur,delay,tc){var f={on:false,x:x0,y:y0,s:mode==='in'?0.5:1,rx:0,ry:0,rz:0,br:1,c:new THREE.Color().copy(mode==='in'?PEACHBASE:tc)},sd=Math.random()<0.5?-1:1,
     cx=(x0+x1)/2+sd*rand(0.6,1.4)*L.cs,cy=mode==='in'?Math.min(y0,y1)+rand(-0.2,0.6)*L.cs:(y0+y1)/2,spin=rand(4,7)*sd,ph=rand(0,TAU);
   function go(){f.on=true;PFL.push(f);
@@ -5405,7 +5405,7 @@ function onShotHit(res,type,label){if(!fighting())return;
   updateBars();if(r.enraged)onEnrage();if(r.killed)onBossDown();}
 function teamBarPoint(){return {x:L.W/2+rand(-L.W*0.2,L.W*0.2),y:L.teamY+L.teamH*0.88};}
 function healFx(healed){var f=BS.foxes[HEART];f.attack();AudioFX.heal();var to=teamBarPoint();
-  fireShot(foxScreen(HEART),to,ORB[HEART].color.clone().lerp(WHITE,0.35),0,function(){if(healed>0)popNum(to.x,to.y-12,'+'+healed,'heal','');updateBars();});}
+  fireShot(foxScreen(HEART),to,ORB[HEART].color.clone().lerp(WHITE$1,0.35),0,function(){if(healed>0)popNum(to.x,to.y-12,'+'+healed,'heal','');updateBars();});}
 var BOSSCOL=new THREE.Color(0xc9a0ff);
 var sealT=0,ULT_KEYS=['fire','water','wood','light','dark','heart'],VT=0,
     CAM={pos:new THREE.Vector3(0,0,14),look:new THREE.Vector3(0,0,0)},ultBannerEl=document.getElementById('ultBanner'),chipsEl=document.getElementById('chips');
@@ -5425,8 +5425,8 @@ function tryUlt(i){if(G.mode!=='playing'||battle.energy[i]<CONFIG.ult.max)return
   fox.jump(false);fox.setReady(false);fox.ult();AudioFX.ult();if(navigator.vibrate){try{navigator.vibrate(30);}catch(_){}}
   SES.U={i:i,t:0,dur:CONFIG.ult.closeup,fx:fp.x,fy:fox.group.userData.baseY,fz:fp.z,s:fox.scale||0.6};
   ultBannerEl.querySelector('small').textContent=cfg.fox;ultBannerEl.querySelector('b').textContent=ultName(ULT_KEYS[i],SES.ULT_SEL[i]);ultBannerEl.classList.add('show');
-  var uf=BS.ultFx,tc=new THREE.Color(CONFIG.orbs[i].color).lerp(WHITE,0.3);uf.group.visible=true;uf.group.position.set(fp.x,SES.U.fy,fp.z);
-  uf.back.material.color.copy(tc);uf.ground.material.color.copy(tc);uf.glow.material.color.copy(tc);uf.motes.forEach(function(m){m.material.color.copy(tc).lerp(WHITE,0.45);});veil.visible=true;addShake(4);return true;}
+  var uf=BS.ultFx,tc=new THREE.Color(CONFIG.orbs[i].color).lerp(WHITE$1,0.3);uf.group.visible=true;uf.group.position.set(fp.x,SES.U.fy,fp.z);
+  uf.back.material.color.copy(tc);uf.ground.material.color.copy(tc);uf.glow.material.color.copy(tc);uf.motes.forEach(function(m){m.material.color.copy(tc).lerp(WHITE$1,0.45);});veil.visible=true;addShake(4);return true;}
 function updateUlt(rdt){var u=SES.U,d=u.dur,inT=0.28,outT=0.22,e;u.t+=rdt;
   if(u.t<inT)e=easeOut(u.t/inT);else if(u.t>d-outT)e=1-easeInOut(Math.min(1,(u.t-(d-outT))/outT));else e=1;
   CAM.pos.set(u.fx*0.8*e,(u.fy+0.55)*e,14+(u.fz+3.4-14)*e);CAM.look.set(u.fx*e,(u.fy-0.37)*e,u.fz*e);
@@ -5513,15 +5513,15 @@ function animSwap(va,vb){var ar=va.row,ac=va.col,br=vb.row,bc=vb.col;
   return tween(A.swap,function(k){va.row=ar+(br-ar)*k;va.col=ac+(bc-ac)*k;vb.row=br+(ar-br)*k;vb.col=bc+(ac-bc)*k;va.z=Math.sin(k*Math.PI)*0.6;},easeInOut).then(function(){va.z=0;});}
 function blastFx(b){
   var cs=L.cs,p=cellXY(b.r,b.c),col=typeColor(b.type),x0=L.bx-cs*0.4,x1=L.bx+cs*(COLS+0.4),y0=L.by-cs*0.4,y1=L.by+cs*(ROWS+0.4),k;
-  function rowBeam(r,w){var y=L.by+(r+0.5)*cs;beam(x0,y,x1,y,w,col,0.34);beam(x0,y,x1,y,w*0.35,WHITE,0.26);}
-  function colBeam(c,w){var x=L.bx+(c+0.5)*cs;beam(x,y0,x,y1,w,col,0.34);beam(x,y0,x,y1,w*0.35,WHITE,0.26);}
+  function rowBeam(r,w){var y=L.by+(r+0.5)*cs;beam(x0,y,x1,y,w,col,0.34);beam(x0,y,x1,y,w*0.35,WHITE$1,0.26);}
+  function colBeam(c,w){var x=L.bx+(c+0.5)*cs;beam(x,y0,x,y1,w,col,0.34);beam(x,y0,x,y1,w*0.35,WHITE$1,0.26);}
   function rays(){b.cells.forEach(function(ci){var q=ciXY(ci);beam(p.x,p.y,q.x,q.y,cs*0.22,GOLD,0.4);});ringFx(p.x,p.y,cs*0.4,cs*1.8,GOLD,0.45);}
   if(b.kind==='bomb'||b.kind==='bigbomb')AudioFX.bomb();else if(b.kind.indexOf('taiji')===0)AudioFX.taiji();else AudioFX.sword();
   switch(b.kind){
     case 'sword':if(b.dir==='h')rowBeam(b.r,cs*0.9);else colBeam(b.c,cs*0.9);addShake(4);break;
     case 'bomb':ringFx(p.x,p.y,cs*0.4,cs*1.9,col,0.36);ringFx(p.x,p.y,cs*0.2,cs*1.3,GOLD,0.28);burst(p.x,p.y,b.type,true);addShake(6);break;
     case 'taiji':case 'taiji_color':case 'taiji_sword':case 'taiji_bomb':rays();addShake(7);break;
-    case 'taiji2':ringFx(p.x,p.y,cs*0.5,cs*6,GOLD,0.6);ringFx(p.x,p.y,cs*0.3,cs*4,WHITE,0.45);for(k=0;k<ROWS;k++)rowBeam(k,cs*0.7);addShake(12);break;
+    case 'taiji2':ringFx(p.x,p.y,cs*0.5,cs*6,GOLD,0.6);ringFx(p.x,p.y,cs*0.3,cs*4,WHITE$1,0.45);for(k=0;k<ROWS;k++)rowBeam(k,cs*0.7);addShake(12);break;
     case 'cross':rowBeam(b.r,cs*1.1);colBeam(b.c,cs*1.1);addShake(8);break;
     case 'swordbomb':for(k=-1;k<=1;k++){if(b.r+k>=0&&b.r+k<ROWS)rowBeam(b.r+k,cs*1.0);if(b.c+k>=0&&b.c+k<COLS)colBeam(b.c+k,cs*1.0);}addShake(10);break;
     case 'bigbomb':ringFx(p.x,p.y,cs*0.5,cs*3.2,col,0.45);ringFx(p.x,p.y,cs*0.3,cs*2.4,GOLD,0.35);burst(p.x,p.y,b.type,true);addShake(10);break;
@@ -6186,6 +6186,7 @@ var WISP = {
   onEvent: function (e, s) { if (e.type === 'wisp') s.pending.push({ count: e.count, fuse: e.fuse }); },
   place: function (bd, s, cfg) {
     if (!s.pending.length) return null;
+    if (!cfg) { s.pending = []; return null; }   // 最終戰換段後這一關沒有鬼火了：還沒附上去的就不附
     var got = [], taken = {}, fair = cfg.fair ? matchable(bd) : null;
     s.list.forEach(function (w) { taken[w.id] = 1; });
     s.pending.forEach(function (p) {
@@ -6260,9 +6261,83 @@ var WISP_VIEW = {
   coverSkill: function (c) { return '每 ' + c.interval + ' 秒丟 ' + c.count + ' 團鬼火附在珠上，倒數 ' + c.fuse + ' 秒；把那顆珠消掉就滅，沒消掉鬼火狐會衝出來撞隊伍。狂暴後每 ' + c.enrageInterval + ' 秒 ' + c.enrageCount + ' 團、倒數 ' + c.enrageFuse + ' 秒。'; }
 };
 
+// 最終戰（第九關 九尾）三段的素版——機制試玩場（2026-09-29 遊星）。規則見 docs/03_design_story.md「最終戰與結局」。
+// 三條血、時限共用；打空一條就換段（頓一下、BOSS 震、血刷滿），倒著走回記憶：
+//   第一段「冥」：鬼火＋忘川（比單關少）　第二段「丘」：落英＋天鏡（比單關少）　第三段「月」：媚惑，而且一開始就狂暴
+// 換段時前一段留在盤面上的東西（灰珠、鬼火、花瓣、鏡片）：clear＝0 不清（CK 2026-09-29 想先試，比較難）／1 清掉（遊星推）。
+//   不清時，留下來的鬼火會照樣倒數、炸開（鬼火那包保持開著、只是不再丟新的）；鏡片清不掉（佔格子），兩種模式都留著。
+// 這裡改的是關卡設定（CONFIG.stages 那一關）和 battle 的兩個方法（reset、hitBoss），遊戲本體不動。信、金鈴、對白、背景換段先不做。
+
+var KEYS = ['lock', 'petal', 'cord', 'shard', 'charm', 'lethe', 'wisp'], NAMES = ['冥', '丘', '月'], WHITE = new THREE.Color(0xffffff);
+// 各段的招（頻率比單關低；單關的數字見 CONFIG 和試玩場的 CK 定案）
+var SEGS = [
+  { wisp: { first: 4, interval: 16, enrageInterval: 16, count: 2, enrageCount: 2, fuse: 10, enrageFuse: 10, dmg: 50, max: 4, fair: true },
+    lethe: { first: 9, interval: 20, enrageInterval: 20, cols: 1, enrageCols: 1, warn: 1, max: 8 } },
+  { petal: { interval: 14, enrageInterval: 14, count: 2, enrageCount: 2, max: 6 },
+    shard: { first: 3, interval: 16, enrageInterval: 16, count: 2, enrageCount: 2, max: 4, hits: 2, bonus: 100, glare: 6, glareMul: 2 } },
+  { charm: { interval: 10, enrageInterval: 10, dur: 6, count: 2 } }
+];
+var byKey = {}; MECHS.forEach(function (m) { byKey[m.key] = m; });
+function setupFinal(st, P) {
+  var seg = 0;
+  st.time = P.time; st.hp = P.hp; st.enrageAt = 0;   // 前兩段不會半血狂暴；第三段一開始就狂暴
+  function apply(k, first) {   // 把第 k 段的招掛上關卡設定；first＝開場（Battle.reset 會自己 init）
+    KEYS.forEach(function (key) {
+      var cfg = SEGS[k][key] || null;
+      // 鬼火：第一段之後保持開著但不再丟（留下來的照樣倒數、炸開）
+      if (!cfg && key === 'wisp' && k > 0) cfg = Object.assign({}, SEGS[0].wisp, { interval: Infinity, enrageInterval: Infinity });
+      st[key] = cfg;
+      if (!first && SEGS[k][key]) byKey[key].battle.init(battle, cfg);   // 這一段新開的招：從頭計時
+    });
+    if (!first && !SEGS[k].wisp) battle.wispT = Infinity;
+    st.name = '九尾（試玩）・' + NAMES[k] + ' ' + (k + 1) + '／3';
+  }
+  // 預告了、還沒沖／還沒放上去的，換段時一律取消（不然預告會一直閃）
+  function cancelPending() {
+    var s = SES.mech;
+    if (s.lethe) { s.lethe.cols = null; s.lethe.pending = false; } if (s.wisp) s.wisp.pending = [];
+    if (s.petal) s.petal.pending = 0; if (s.shard) s.shard.pending = 0; if (s.lock) s.lock.pending = 0;
+    MECH_VIEWS.lethe.reset();
+  }
+  // 換段清掉前一段留下的（clear=1）
+  function clearLeft() {
+    var s = SES.mech;
+    if (s.lethe) s.lethe.gray.clear();
+    views.forEach(function (v) { if (v.gray) { v.gray = 0; v.f = 1.8; tween(0.4, function (k) { v.f = 1.8 - 0.8 * k; }); } });
+    if (s.wisp) s.wisp.list.length = 0;
+    board.clearPetals().forEach(function (u) { MECH_VIEWS.petal.blow(u.id); });
+  }
+  var busy = false;   // 換段中（到血條刷滿為止）：BOSS 不吃傷害，連鎖還在飛的攻擊打不到下一段
+  function nextSeg() {
+    seg++; busy = true; var was = G.mode; G.mode = 'intro';   // 換段：盤面暫停操作、BOSS 不出手、時間停
+    cancelPending();
+    var bp = bossScreen(); BS.boss.attack(); addShake(12); AudioFX.enrage(); ringFx(bp.x, bp.y, L.cs * 0.6, L.cs * 4, WHITE, 0.6);
+    showBanner('第 ' + (seg + 1) + ' 段「' + NAMES[seg] + '」');
+    wait(1.3).then(function () {
+      if (P.clear) clearLeft();
+      apply(seg, false);
+      document.querySelector('#bossbar .name').textContent = st.name;
+      return tween(0.5, function (k) { battle.bossHp = Math.round(battle.bossMax * k); updateBars(); });   // 血條刷滿
+    }).then(function () {
+      busy = false;
+      if (seg === 2) { battle.enraged = true; if (battle.atk > st.enrageInterval) battle.atk = st.enrageInterval; onEnrage(); }
+      if (G.mode === 'intro') G.mode = was === 'intro' ? 'playing' : was;
+    });
+  }
+  apply(0, true);
+  var reset0 = battle.reset, hit0 = battle.hitBoss;
+  battle.reset = function (stage, sigil) { if (stage === st) { seg = 0; busy = false; apply(0, true); } return reset0.call(this, stage, sigil); };
+  // 前兩段打空：不算打倒，換下一段
+  battle.hitBoss = function (d) {
+    if (this.boss === st && busy) return { killed: false, enraged: false, dealt: 0 };
+    if (this.boss === st && seg < 2 && this.bossHp > 0 && d >= this.bossHp) { var dealt = this.bossHp; this.bossHp = 0; this.total += dealt; nextSeg(); return { killed: false, enraged: false, dealt: dealt }; }
+    return hit0.call(this, d);
+  };
+}
+
 // 機制試玩場（3／3）：遊戲載入好之後，把新機制放進機制清單、換到指定的關卡開戰，加一個小面板（換數字、換場景、換機制）。
 // 網址參數（都可以不給）：
-//   ?m=lethe｜wisp   試哪一個機制（預設 lethe＝第八關夢婆・忘川；wisp＝第七關青燐・鬼火）
+//   ?m=lethe｜wisp｜final   試哪一個機制（預設 lethe＝第八關夢婆・忘川；wisp＝第七關青燐・鬼火；final＝第九關最終戰三段，見 final.js）
 //   &stage=1～6   用哪一關的場景、BOSS 模型、血量、時限（預設 1）；那一關原本的招會關掉（&keep=1 留著，看兩招一起）
 //   &shot=1   不顯示面板（截圖用）
 //   各機制自己的數字見下面 MECH 表（例如忘川 &every=15&enrage=12&cols=1&ecols=1&max=12&warn=1&first=4&allgray=1）
@@ -6290,18 +6365,28 @@ var MECH = {
       ['一次幾團', [[{ count: 3, ecount: 4 }, 'CK 選的 3／狂暴 4'], [{ count: 2, ecount: 3 }, '2／狂暴 3'], [{ count: 1, ecount: 2 }, '1／狂暴 2']]],
       ['倒數幾秒', [[{ fuse: 10, efuse: 8 }, '10／狂暴 8'], [{ fuse: 12, efuse: 10 }, '12／10'], [{ fuse: 8, efuse: 6 }, '8／6']]],
       ['附在哪', [[{ fair: 1 }, '換一步就消得到的珠（不怕運氣差）'], [{ fair: 0 }, '隨便一顆']]],
-      ['炸一次扣多少', [[{ dmg: 50 }, '50（5%）'], [{ dmg: 80 }, '80'], [{ dmg: 30 }, '30']]]] }
+      ['炸一次扣多少', [[{ dmg: 50 }, '50（5%）'], [{ dmg: 80 }, '80'], [{ dmg: 30 }, '30']]]] },
+  // 最終戰：三段各自的招寫在 final.js；這裡只調血量、時限、換段清不清
+  final: { name: '第九關 九尾・最終戰', icon: '🌙', final: true, stage: 3,
+    params: { hp: [10000, 2000, 30000], time: [120, 30, 300], clear: [0, 0, 1] },
+    info: function (P) { return '三段各 ' + P.hp + ' 血、共用 ' + P.time + ' 秒：冥（鬼火＋忘川）→ 丘（落英＋天鏡）→ 月（媚惑、一開始就狂暴）。換段時前一段留下的東西' + (P.clear ? '清掉' : '不清（鬼火照樣倒數、會炸）') + '。'; },
+    menu: [['換段時，前一段留下的灰珠、鬼火、花瓣', [[{ clear: 0 }, '不清（CK 想試）'], [{ clear: 1 }, '清掉']]],
+      ['每段血量', [[{ hp: 10000 }, '10000'], [{ hp: 8000 }, '8000'], [{ hp: 12000 }, '12000']]],
+      ['時限', [[{ time: 120 }, '120 秒'], [{ time: 150 }, '150 秒'], [{ time: 100 }, '100 秒']]]] }
 };
-var KEY = MECH[Q.get('m')] ? Q.get('m') : 'lethe', M = MECH[KEY], P = { stage: num('stage', 1, 1, 6) | 0, allgray: Q.get('allgray') === '1', keep: Q.get('keep') === '1' };
+var KEY = MECH[Q.get('m')] ? Q.get('m') : 'lethe', M = MECH[KEY], P = { stage: num('stage', M.stage || 1, 1, 6) | 0, allgray: Q.get('allgray') === '1', keep: Q.get('keep') === '1' };
 Object.keys(M.params).forEach(function (k) { var d = M.params[k]; P[k] = num(k, d[0], d[1], d[2]); if (Number.isInteger(d[0]) && Number.isInteger(d[1])) P[k] = Math.round(P[k]); });
 
 // 1. 放進機制清單（邏輯、畫法各一份；清單是同一個陣列，遊戲的主迴圈、Battle 會照著跑）
-MECHS.push(M.logic); MECH_VIEW_LIST.push(M.view); MECH_VIEWS[M.logic.key] = M.view;
-// 2. 那一關換成試玩的 BOSS：原本的招關掉（除非 keep）、掛上新機制
+(M.final ? [MECH.lethe, MECH.wisp] : [M]).forEach(function (x) { MECHS.push(x.logic); MECH_VIEW_LIST.push(x.view); MECH_VIEWS[x.logic.key] = x.view; });
+// 2. 那一關換成試玩的 BOSS：原本的招關掉（除非 keep）、掛上新機制；最終戰由 final.js 一段一段換
 var st = CONFIG.stages[P.stage - 1];
-if (!P.keep) ['lock', 'petal', 'cord', 'shard', 'charm'].forEach(function (k) { st[k] = null; });
-st[M.logic.key] = M.cfg(P);
-st.name = M.name.split(' ')[1].split('・')[0] + '（試玩）';
+if (M.final) setupFinal(st, P);
+else {
+  if (!P.keep) ['lock', 'petal', 'cord', 'shard', 'charm'].forEach(function (k) { st[k] = null; });
+  st[M.logic.key] = M.cfg(P);
+  st.name = M.name.split(' ')[1].split('・')[0] + '（試玩）';
+}
 window.__labSES = function () { return SES; };   // 測試用：拿這一場的機制狀態（鬼火在哪幾顆珠上）
 // 3. 開戰（試玩場的存檔是分開的，隨便打）
 g.APP.stage = P.stage - 1; g.startTrial();
@@ -6327,7 +6412,7 @@ if (!Q.get('shot')) {
   var h = '<h4>' + M.icon + ' ' + M.name + '（素版）</h4><small>現在：' + M.info(P) + '</small>';
   M.menu.forEach(function (sec) { h += '<h4>' + sec[0] + '</h4>' + sec[1].map(function (it) { return link(it[0], it[1]); }).join(''); });
   h += '<h4>場景（BOSS 模型、血量、時限跟著那一關）</h4>' + [1, 2, 3, 4, 5, 6].map(function (k) { return link({ stage: k }, '第 ' + k + ' 關'); }).join('');
-  h += '<h4>換機制</h4>' + Object.keys(MECH).map(function (k) { return k === KEY ? '<a class="on">' + MECH[k].icon + ' ' + MECH[k].name + '</a>' : link({}, MECH[k].icon + ' ' + MECH[k].name, { m: k, stage: P.stage }); }).join('');
+  h += '<h4>換機制</h4>' + Object.keys(MECH).map(function (k) { return k === KEY ? '<a class="on">' + MECH[k].icon + ' ' + MECH[k].name + '</a>' : link({}, MECH[k].icon + ' ' + MECH[k].name, { m: k, stage: MECH[k].stage || P.stage }); }).join('');
   box.innerHTML = h;
   btn.addEventListener('click', function (e) { e.stopPropagation(); box.classList.toggle('show'); });
   box.addEventListener('click', function (e) { e.stopPropagation(); });
