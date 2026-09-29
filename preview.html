@@ -195,6 +195,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .lLine{display:block;letter-spacing:.3em}
 .lLine i{display:inline-block;font-style:normal;opacity:0}
 .lFlower{position:absolute;left:7%;bottom:5%;width:15%}
+.lRing{position:absolute;left:0;top:0;width:96px;height:96px;border-radius:50%;opacity:0;pointer-events:none;
+  border:3px solid rgba(255,184,70,1);box-shadow:0 0 18px rgba(255,166,50,.9),0 0 4px rgba(190,110,20,.8),inset 0 0 14px rgba(255,170,60,.6)}   /* 信封停在中間時「點這裡」的光環（暖金色，一收一放往外擴散） */
 .lTap{position:absolute;left:0;right:0;bottom:12%;text-align:center;font-size:12.5px;letter-spacing:.3em;text-indent:.3em;color:rgba(244,236,216,.75);opacity:0}
 #overlay{position:absolute;inset:0;top:calc(-1 * var(--safe-top));bottom:calc(-1 * var(--safe-bottom));padding-top:calc(64px + var(--safe-top))!important;padding-bottom:calc(24px + var(--safe-bottom))!important;display:none;align-items:center;justify-content:center;background:rgba(6,9,26,.55);
   backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);padding:24px}
@@ -5663,7 +5665,7 @@ function newSession(){SES=freshSession();}
 // CH：每個字幾秒；DOT：刪節號每一點幾秒（「…」拆成三點一點一點出來，2026-09-29 CK）；SLOW：這個字後面多停幾秒（刪節號、標點）；
 // GUARD：剛出現的這幾秒內點了不算（打倒 BOSS 那一下手還在盤面上點，免得一下就跳過；換下一句也擋一小段，免得連點跳兩句）；FADE：收起來的淡出秒數（要跟 CSS 的一樣）
 // 2026-09-29 CK：逐字要慢、有「一個字一個字出現」的感覺 → 每字 0.075 → 0.15 秒，標點多停久一點
-var CH=0.15,DOT=0.16,SLOW={'…':0.12,'，':0.35,'、':0.3,'。':0.45,'？':0.45,'！':0.45},GUARD$1=0.45,GUARD_NEXT=0.2,FADE=0.3;
+var CH=0.15,DOT=0.16,SLOW={'…':0.12,'，':0.35,'、':0.3,'。':0.45,'？':0.45,'！':0.45},GUARD=0.45,GUARD_NEXT=0.2,FADE=0.3;
 var boxEl=document.getElementById('dlg'),whoEl=boxEl.querySelector('.dlgWho'),textEl$1=boxEl.querySelector('.dlgText'),floatsEl=document.getElementById('dlgFloats');
 var cur$1=null,floats=[];   // cur：擋住畫面的那一段；floats：浮著的短句
 // 一句拆成一格一格：一般的字一格；「…」拆成三格（三個點）。n：已經出現幾格
@@ -5686,7 +5688,7 @@ boxEl.addEventListener('click',tap$1);
 document.addEventListener('keydown',function(e){if(cur$1&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tap$1();}});   // 電腦上按 Enter／空白鍵也可以
 var DLG={
   say:function(who,lines){return new Promise(function(res){
-    cur$1={lines:lines.slice(),i:0,o:line(lines[0]),age:0,guard:GUARD$1,closing:-1,res:res};
+    cur$1={lines:lines.slice(),i:0,o:line(lines[0]),age:0,guard:GUARD,closing:-1,res:res};
     whoEl.textContent=who||'';whoEl.hidden=!who;boxEl.classList.remove('out','done');boxEl.classList.add('show');render$1();});},
   float:function(who,text,opt){opt=opt||{};return new Promise(function(res){
     var el=document.createElement('div');el.className='dlgFloat';
@@ -6425,17 +6427,18 @@ document.addEventListener('visibilitychange',function(){
 // 企劃：docs/06_drops.md「信」、03_design_story.md「劇情」第 5 條。字在 config.js 的 CONFIG.letter。
 // 樣子是遊星的草案（待 CK／繪星定）：米白信封綁一小段紅繩、信封上不寫字；信紙淡淡的桂花黃，直書三行、字有點歪，角落一朵小桂花。
 //   LETTER.show(from)   擋住畫面的演出：信從 from（安全框座標，例如 BOSS 平台 bossScreen()；不給就是畫面中上）飄到畫面正中央 →
-//                       紅繩鬆開、封口掀開、信紙抽出來展開 → 字一行一行浮出 → 點一下收起來，收完才 resolve。
+//                       停住、輕輕浮著，信封上一圈暖金色的光環一收一放、往外擴散，提示「點這裡」（2026-09-29 CK）→
+//                       點信封才打開（點到信封外面不算）：紅繩鬆開、封口掀開、信紙抽出來展開 → 字一行一行浮出 → 點一下收起來，收完才 resolve。
 //                       一開始就記進存檔（story.letter＝1，換裝頁多一格「信」；fresh.letter＝換裝按鈕的小紅點）。
-//                       演出途中點一下＝直接跳到字都出現（剛出現的 0.6 秒內不算）。
+//                       打開之後點一下＝直接跳到字都出現。
 //   LETTER.model()      換裝頁台子上的「打開的信」（three.js 的 Group，第一次叫才建，之後共用）
 //   LETTER.thumb()      換裝頁那一格的小圖（信封）
 // 動畫跟著主迴圈走：flow.js 的 frame() 每格叫 LETTER.tick(now)（不另開 requestAnimationFrame：測試的虛擬時鐘只接得住一個迴圈）。
 // 畫法全在這個檔和 index.html 的 #letter 樣式：之後改樣子只動這兩個地方。
 var el$1=document.getElementById('letter'),envEl=el$1.querySelector('.lEnv'),flapEl=el$1.querySelector('.lFlap'),cordEl=el$1.querySelector('.lCord'),innerEl=el$1.querySelector('.lInner'),
-    paperEl=el$1.querySelector('.lPaper'),textEl=el$1.querySelector('.lText'),tapEl=el$1.querySelector('.lTap');
+    paperEl=el$1.querySelector('.lPaper'),textEl=el$1.querySelector('.lText'),tapEl=el$1.querySelector('.lTap'),ringEls=el$1.querySelectorAll('.lRing');
 // 時間表（秒）：飄過來、繩子鬆開、封口掀開、信紙抽出、展開、每一行開始、每個字間隔、字浮出的時間
-var T_FLY=1.5,T_CORD=2.0,T_FLAP=2.5,T_PULL=3.1,T_OPEN=3.8,T_LINE0=4.0,T_LINE=1.3,T_CH=0.13,T_FADE=0.35,T_CLOSE=0.6,GUARD=0.6;
+var T_FLY=1.5,T_CORD=2.0,T_FLAP=2.5,T_PULL=3.1,T_OPEN=3.8,T_LINE0=4.0,T_LINE=1.3,T_CH=0.13,T_FADE=0.35,T_CLOSE=0.6;
 var cur=null,last$1=-1;
 function clamp01(x){return x<0?0:x>1?1:x;}
 function ease$1(k){k=clamp01(k);return k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;}
@@ -6453,6 +6456,11 @@ function render(){var t=cur.t,W=el$1.clientWidth,H=el$1.clientHeight,cx=W/2,cy=H
   // 信封：從 from 飄到畫面中間（中間拱起一點、左右輕輕晃）、慢慢變大；信紙展開時往下沉、淡掉
   var k=ease$1(seg(t,0,T_FLY)),x=f.x+(cx-f.x)*k,y=f.y+(cy-f.y)*k-Math.sin(Math.PI*k)*H*0.06,rot=Math.sin(seg(t,0,T_FLY)*TAU)*7*(1-k),sc=0.3+0.7*k,
       out=ease$1(seg(t,T_PULL,T_OPEN));
+  // 停在中間等點：信封輕輕上下浮；光環（兩圈錯開）從信封中間一收一放、往外擴散、淡掉；打開時光環很快收掉
+  var w=cur.wt,wa=cur.stage==='wait'?Math.min(1,w/0.4):Math.max(0,1-cur.ot/0.25);
+  y+=Math.sin(w*2.2)*4*Math.min(1,w/0.5);
+  Array.prototype.forEach.call(ringEls,function(r,i){var p=((w*0.62+i*0.5)%1),s=0.55+p*0.95,o=wa*(1-p)*0.9;
+    r.style.transform='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) translate(-50%,-50%) scale('+s.toFixed(3)+')';r.style.opacity=o.toFixed(3);});
   envEl.style.transform='translate('+x.toFixed(1)+'px,'+(y+out*40).toFixed(1)+'px) translate(-50%,-50%) rotate('+rot.toFixed(2)+'deg) scale('+sc.toFixed(3)+')';
   envEl.style.opacity=(1-out).toFixed(3);
   // 紅繩鬆開往下掉
@@ -6469,14 +6477,20 @@ function render(){var t=cur.t,W=el$1.clientWidth,H=el$1.clientHeight,cx=W/2,cy=H
   Array.prototype.forEach.call(textEl.children,function(ln,i){Array.prototype.forEach.call(ln.children,function(ch,j){
     var a=seg(t,T_LINE0+i*T_LINE+j*T_CH,T_LINE0+i*T_LINE+j*T_CH+T_FADE);ch.style.opacity=a.toFixed(3);ch.style.filter=a<1?'blur('+((1-a)*2).toFixed(2)+'px)':'';});});
   tapEl.style.opacity=(cur.closing<0?ease$1(seg(t,cur.end+0.4,cur.end+1.2)):0).toFixed(3);}
-function tick(now){if(!cur)return;var dt=last$1<0?0:Math.min(0.05,Math.max(0,(now-last$1)/1000));last$1=now;cur.t+=dt;
+function tick(now){if(!cur)return;var dt=last$1<0?0:Math.min(0.05,Math.max(0,(now-last$1)/1000));last$1=now;
+  if(cur.stage==='fly'){cur.t+=dt;if(cur.t>=T_FLY){cur.t=T_FLY;cur.stage='wait';}}   // 飄到中間就停住，等點信封
+  else if(cur.stage==='wait')cur.wt+=dt;
+  else {cur.t+=dt;cur.ot+=dt;cur.wt+=dt;}
   if(cur.closing>=0){cur.closing+=dt;if(cur.closing>=T_CLOSE){var r=cur.res;cur=null;el$1.classList.remove('show');r();return;}}
   render();}
-function tap(){if(!cur||cur.closing>=0||cur.t<GUARD)return;
+function tap(e){if(!cur||cur.closing>=0||cur.stage==='fly')return;
+  if(cur.stage==='wait'){   // 點信封才打開（點到信封外面不算；鍵盤 Enter／空白鍵沒有位置，算點到）
+    if(e&&e.clientX!=null){var r=envEl.getBoundingClientRect(),m=6;if(e.clientX<r.left-m||e.clientX>r.right+m||e.clientY<r.top-m||e.clientY>r.bottom+m)return;}
+    cur.stage='open';cur.ot=0;AudioFX.select();return;}
   if(cur.t<cur.end){cur.t=cur.end;render();return;}   // 還在演：直接跳到字都出現
   cur.closing=0;}   // 收起來
 el$1.addEventListener('click',tap);
-document.addEventListener('keydown',function(e){if(cur&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tap();}});
+document.addEventListener('keydown',function(e){if(cur&&(e.key==='Enter'||e.key===' ')){e.preventDefault();tap(null);}});
 var MODEL=null,THUMB=null;
 // 信紙（桂花黃、直書三行、角落一朵小桂花）畫在 canvas 上：換裝頁 3D 那張的貼圖
 function paperCanvas(){var c=document.createElement('canvas'),w=512,h=680;c.width=w;c.height=h;var g=c.getContext('2d');
@@ -6493,7 +6507,7 @@ var LETTER={
   show:function(from){var d=Save.data(),first=!d.story.letter;d.story.letter=1;if(first)d.fresh.letter=1;Save.save();   // 第一次拿到：換裝按鈕、「信」分頁亮小紅點
     if(cur)return Promise.resolve();build();
     return new Promise(function(res){var W=el$1.parentNode.clientWidth,H=el$1.parentNode.clientHeight;
-      cur={t:0,closing:-1,from:from||{x:W/2,y:H*0.36},end:lineEnd(),res:res};el$1.classList.add('show');last$1=-1;render();});},
+      cur={t:0,stage:'fly',wt:0,ot:0,closing:-1,from:from||{x:W/2,y:H*0.36},end:lineEnd(),res:res};   /* stage：fly 飄過來 → wait 停著等點 → open 打開 */el$1.classList.add('show');last$1=-1;render();});},
   tick:tick,
   busy:function(){return !!cur;},
   thumb:function(){if(THUMB)return THUMB;var c=document.createElement('canvas');c.width=c.height=128;var g=c.getContext('2d');
@@ -6647,7 +6661,7 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   <div id="ending" aria-hidden="true"><div class="enCred"></div></div>
   <div id="letter" role="dialog" aria-label="信"><div class="lEnv" aria-hidden="true"><i class="lBack"></i><i class="lInner"></i><i class="lPocket"></i><i class="lFlap"></i><i class="lCord"><i class="lKnot"></i></i></div>
     <div class="lPaper"><p class="lText"></p><svg class="lFlower" viewBox="0 0 40 34" aria-hidden="true"><g fill="#f2a743"><circle cx="12" cy="20" r="4"/><circle cx="20" cy="13" r="4"/><circle cx="27" cy="21" r="3.6"/><circle cx="18" cy="25" r="3.4"/></g><g fill="#d9781f"><circle cx="12" cy="20" r="1.4"/><circle cx="20" cy="13" r="1.4"/><circle cx="27" cy="21" r="1.3"/><circle cx="18" cy="25" r="1.2"/></g><path d="M4 31 Q16 26 34 30" stroke="#8a6a3a" stroke-width="1.4" fill="none"/></svg></div>
-    <small class="lTap">點一下收起來</small></div>
+    <i class="lRing"></i><i class="lRing"></i><small class="lTap">點一下收起來</small></div>
   <div id="overlay">
     <div class="panel" id="pStart"><h2>狐仙三消</h2><p>在 60 秒內用三消打倒三尾狐。<br>每消一組珠，同屬性的狐狸就會出手。</p>
       <button class="btn" id="startBtn" type="button">開始</button><p class="tip">滑動相鄰的兩顆珠交換，連成三顆以上就消除。<br>能量集滿的狐狸會跳起來，點牠放大招。<br>火屬性剋三尾狐，水屬性打牠只有一半傷害。</p></div>
