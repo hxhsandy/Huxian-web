@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>/* 預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
-   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
+   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（?test9&ending=nobell 有信沒戴鈴）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -75,6 +75,12 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   background:rgba(134,201,160,.22);border:1px solid #86c9a0;color:#bfe8cc}
 .brow .rage{font-size:12px;letter-spacing:.1em;color:#ffb3c8;opacity:0;transition:opacity .4s}
 #bossbar.enraged .rage{opacity:1}
+/* 最終戰的血量寶石（src/final.js）：剩幾條血就幾顆，打空一條碎一顆（縮小淡掉＋光點） */
+.brow .gems{display:none;gap:6px;align-items:center;padding:0 2px}
+#bossbar.segs .gems{display:flex}
+.brow .gems i{display:block;width:8px;height:8px;transform:rotate(45deg);background:#eadcff;border:1px solid #f2d68a;box-shadow:0 0 6px rgba(206,168,255,.95);
+  transition:transform .35s ease-in,opacity .35s ease-in}
+.brow .gems i.gone{transform:rotate(45deg) scale(.1);opacity:0}
 .brow .num{margin-left:auto;font-size:12px;opacity:.85;font-variant-numeric:tabular-nums}
 .bar{position:relative;height:10px;border-radius:6px;background:rgba(8,12,32,.78);border:1px solid rgba(232,198,126,.6);overflow:hidden}
 .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;width:100%}
@@ -642,7 +648,24 @@ var CONFIG={
      weak:'無',lore:'守在渡口替人盛湯的狐狸。每個喝下湯的都笑著走了，只有一個，喝的時候一直回頭。',
      skill:'忘川：開場 4 秒第一次，之後每 15 秒一道忘川水沖過一直排（狂暴後每 12 秒），盤面最多 12 顆灰珠。被沖到的珠子褪成灰白、形狀還在，照樣能消、照樣打得到她、照樣集能量。',
      lethe:{first:4,interval:15,enrageInterval:12,cols:1,enrageCols:1,warn:1,max:12},
-     cover:{deck:'忘川渡口',head:'喝一口<br>就不痛了',tag:'橋那頭　有人在等你嗎',skill:'忘川',lore:'守在渡口替人盛湯，只有一個喝的時候一直回頭。',brief:'忘川水沖過一排，珠子褪成灰白、形狀還在，照樣能消。'}}
+     cover:{deck:'忘川渡口',head:'喝一口<br>就不痛了',tag:'橋那頭　有人在等你嗎',skill:'忘川',lore:'守在渡口替人盛湯，只有一個喝的時候一直回頭。',brief:'忘川水沖過一排，珠子褪成灰白、形狀還在，照樣能消。'}},
+    // 第九關（最終戰）：九尾。docs/03「最終戰與結局」；數字是 CK 2026-09-29 在試玩場（lab/mech/final.js）打完定的：
+    //   血量分三段、每段 hp（10000），三段共用 time（150 秒）；BOSS 普攻打掉隊伍 10%（單關 20% 太痛、連第三段都到不了）；換段不清前一段留下的東西。
+    //   segs：三段各自的招（頻率比單關低），倒著走回她的記憶——冥：鬼火＋忘川　丘：落英＋天鏡　月：媚惑，而且一開始就狂暴（前兩段不會半血狂暴：enrageAt 0）。
+    //   換段的規則在 battle.js（segStage、nextSeg），演出在 src/final.js。外觀、場景（先借第三關妲己的紫藤血月：style 'daji'）、封面都是暫時的
+    {title:'第九關',name:'九尾',style:'daji',attr:'none',attrName:'無',hp:10000,time:150,interval:8,enrageAt:0,enrageInterval:6,hitPct:0.1,charge:0.6,final:true,
+     weak:'無',lore:'她什麼都不記得了，只記得要等。',
+     skill:'血量分三段，打空一條就換下一段、血條慢慢補滿，三段共用時間：第一段「冥」鬼火＋忘川，第二段「丘」落英＋天鏡，第三段「月」媚惑，而且一開始就狂暴。前一段留在盤面上的灰珠、鬼火、花瓣、鏡片不會清掉。',
+     segs:[
+       {name:'冥',wisp:{first:4,interval:16,enrageInterval:16,count:2,enrageCount:2,fuse:10,enrageFuse:10,dmg:50,max:4,fair:true},
+        lethe:{first:9,interval:20,enrageInterval:20,cols:1,enrageCols:1,warn:1,max:8}},
+       {name:'丘',petal:{interval:14,enrageInterval:14,count:2,enrageCount:2,max:6},
+        shard:{first:3,interval:16,enrageInterval:16,count:2,enrageCount:2,max:4,hits:2,bonus:100,glare:6,glareMul:2}},
+       {name:'月',charm:{interval:10,enrageInterval:10,dur:6,count:2}}],
+     // 名字會回來（docs/03）：封面和石燈的資訊框上，還沒打倒是 names.lost、打倒過是 name、真結局之後是 names.found（大標、側邊標語也換成 foundHead／foundTag）
+     names:{lost:'██',found:'妲己'},
+     cover:{deck:'紫藤冥月',head:'在等誰呢。',tag:'燈都亮了　你是來接誰的',skill:'九尾',lore:'她什麼都不記得了，只記得要等。',brief:'血量分三段，每一段換一組前面 BOSS 的招。',
+       foundHead:'……長大了呢。',foundTag:'金鈴一響　萬般心軟'}}
   ],
   // 章節：每章一座主島＋幾座關卡島。stages 是這章的關卡（CONFIG.stages 的索引，要連號）；
   //   place 是主島左上角的地名，col 是通往這章主島的傳送陣顏色。還沒做關卡的章 stages 留空，主島先放一座暫時的空島
@@ -650,9 +673,9 @@ var CONFIG={
   chapters:[
     {name:'月下',place:'月下小院',stages:[0,1,2],col:0xffd98a,look:'night'},   // place：地圖上的章名、主島左上角的字（要不一樣的話可以另外給 title）
     {name:'青丘',place:'青丘',stages:[3,4,5],col:0xffb48f,look:'day',tree:'sakura'},
-    // 冥界（2026-09-29 第三章 B 段）：第七、八關；第九關最終戰 C 段再加（先留位置）。wip：這章的關卡還沒做完，最後一關先不接往下一章的傳送陣
+    // 冥界（2026-09-29 第三章 B 段第七、八關，C 段加第九關最終戰）：最後一章，打完第九關就是結局（沒有往下一章的傳送陣）。
     //   garble：第一次進去（還沒打倒）時封面的名字、介紹、標語是缺字和亂碼（docs/03「劇情」第 3 條；flow.js 的 coverGarbled）
-    {name:'冥界',place:'冥界',stages:[6,7],col:0xa9e0c8,wip:true,garble:true}
+    {name:'冥界',place:'冥界',stages:[6,7,8],col:0xa9e0c8,garble:true}
   ],
   // 信（2026-09-29；docs/06_drops.md「信」、03_design_story.md 第 5 條）：第一次打倒最終 BOSS 拿到。信封上不寫字；lines＝信裡的三行（直書）。
   //   name／desc＝換裝頁「信」那一格的名字和介紹。字都是暫定，改這裡就好。演出在 src/letter.js。
@@ -688,9 +711,10 @@ var CONFIG={
   talk:{
     'daji-down':  {stage:2,when:'down',who:'妲己',lines:['……','……長大了呢。','燈，要一直點下去喔。'],mist:0xffb3dc},   // 2026-09-29 CK：前面多一句「……」，第一句才不會太突然
     'tianhu-down':{stage:5,when:'down',who:'天狐',lines:['……','她也走過這條路。','……沒有回來。'],mist:0xffc53d},   // 2026-09-29 CK：跟妲己一樣前面多一句「……」
-    // when：'ending'＝最終 BOSS 打倒時的結局台詞（src/flow.js 的 endingNormal；每次都講）。真結局那兩句還沒接（有信又戴金鈴時）
+    // when：'ending'＝最終 BOSS 打倒時的結局台詞（每次都講）：沒有信 ending-normal、有信又戴金鈴 ending-true、有信沒戴鈴 ending-nobell（src/final.js 的 endingKind）
     'ending-normal':{when:'ending',who:'九尾',lines:['……你是誰。'],mist:0xf3d2ff},
-    'ending-true':  {when:'ending',who:'九尾',lines:['……這鈴聲。','……','……長大了呢。'],mist:0xf3d2ff}   // 2026-09-29 CK：中間多一句「……」（遊星的解讀，待 CK 確認）
+    'ending-true':  {when:'ending',who:'九尾',lines:['……這鈴聲。','……','……長大了呢。'],mist:0xf3d2ff},   // 2026-09-29 CK：中間多一句「……」（遊星的解讀，待 CK 確認）
+    'ending-nobell':{when:'ending',who:'九尾',lines:['……沒有鈴聲。','……不是你。'],mist:0xf3d2ff}   // 有信、但隊伍裡沒有狐狸戴金鈴（2026-09-29 CK 加；每次都講），之後照一般通關結算
   }
 };
 window.CONFIG=CONFIG;
@@ -936,11 +960,23 @@ Board.prototype.trySwap=function(r1,c1,r2,c2){
    ===================================================================== */
 var BEATS={fire:'wood',wood:'water',water:'fire',light:'dark',dark:'light'};
 function Battle(cfg){this.cfg=cfg;this.reset();}
-Battle.prototype.reset=function(stage,sigil){var b=this.cfg.battle;stage=stage||this.cfg.stages[0];sigil=sigil||{};this.boss=stage;this.sigil=sigil;
+// 最終戰（關卡設定有 segs，第九關九尾；docs/03「最終戰與結局」）：血量分三段、時限共用，一段一組招。
+//   打空前幾條不算打倒：血停在 0、segDown＝true（主迴圈看到了播換段，src/final.js），換段中（segBusy）BOSS 不吃傷害；
+//   演完叫 nextSeg() 換成下一段的招、叫 segReady() 血補滿（最後一段：狂暴）。battle.boss 是「關卡設定＋這一段的招」合起來的物件（segStage），
+//   別段的招是 null，各機制照 cfg 有沒有值決定跑不跑（機制那一包不用改，見 mechanics/lock.js 開頭）。
+//   鬼火例外：後面幾段保持開著、但不再丟新的（interval 無限、max 0），留在盤面上的照樣倒數、炸開（換段不清，CK 2026-09-29）。
+//   沒有分段的關，Battle 上不留 seg、segDown、segBusy（session 測試比的是 Battle 的欄位）
+var SEG_KEYS=['lock','petal','cord','shard','charm','lethe','wisp'];
+function segStage(stage,k){var o=Object.assign({},stage),sg=stage.segs[k],w0=stage.segs[0].wisp;
+  SEG_KEYS.forEach(function(key){o[key]=sg[key]||null;});
+  if(!sg.wisp&&w0)o.wisp=Object.assign({},w0,{interval:Infinity,enrageInterval:Infinity,max:0});
+  o.seg=sg;return o;}
+Battle.prototype.reset=function(stage,sigil){var b=this.cfg.battle;stage=stage||this.cfg.stages[0];sigil=sigil||{};this.boss=stage.segs?segStage(stage,0):stage;this.sigil=sigil;
   this.time=stage.time||b.time;this.bossMax=this.bossHp=stage.hp;this.teamMax=this.teamHp=b.teamHp+(sigil.hp||0);
   this.atk=stage.interval;this.charging=false;this.enraged=false;this.combo=0;this.maxCombo=0;this.total=0;this.shield=false;
   var e0=sigil.energy||0;this.energy=[e0,e0,e0,e0,e0,e0];this.buff=0;this.dmgMul=1+(sigil.dmg||0);
-  var self=this;MECHS.forEach(function(m){m.battle.init(self,stage[m.key]||null);});};   // BOSS 機制（mechanics/）各自設好計時器和計數：鎖鏈、落英、紅繩、天鏡、媚惑
+  if(stage.segs){this.seg=0;this.segDown=false;this.segBusy=false;}else {delete this.seg;delete this.segDown;delete this.segBusy;}
+  var self=this,bb=this.boss;MECHS.forEach(function(m){m.battle.init(self,bb[m.key]||null);});};   // BOSS 機制（mechanics/）各自設好計時器和計數：鎖鏈、落英、紅繩、天鏡、媚惑
 Battle.prototype.advMul=function(type){var b=this.cfg.battle,key=this.cfg.orbs[type].key,boss=this.boss.attr;
   if(BEATS[key]===boss)return b.advUp;if(BEATS[boss]===key)return b.advDown;return 1;};
 // 單發傷害 D = B × (1 + 0.25 × (n − 3)) × (1 + 0.1 × c) × A × S
@@ -948,10 +984,19 @@ Battle.prototype.shot=function(type,n,S){var b=this.cfg.battle,A=this.advMul(typ
   var d=b.baseAtk*Math.max(0.25,1+b.nBonus*(n-3))*(1+b.comboBonus*this.combo)*A*(S||1)*this.buffMul()*this.glareMul()*this.dmgMul;
   return {dmg:Math.max(1,Math.round(d)),adv:A>1?'up':A<1?'down':null,A:A};};
 Battle.prototype.addCombo=function(){this.combo++;if(this.combo>this.maxCombo)this.maxCombo=this.combo;return this.combo;};
-Battle.prototype.hitBoss=function(d){if(this.bossHp<=0)return {killed:false,enraged:false,dealt:0};
+Battle.prototype.hitBoss=function(d){if(this.bossHp<=0||this.segBusy)return {killed:false,enraged:false,dealt:0};
   var bb=this.boss,dealt=Math.min(d,this.bossHp),en=false;this.bossHp-=dealt;this.total+=dealt;
+  if(bb.segs&&this.bossHp<=0&&this.seg<bb.segs.length-1){this.segBusy=true;this.segDown=true;return {killed:false,enraged:false,dealt:dealt};}   // 最終戰：前面幾條打空＝換段
   if(!this.enraged&&this.bossHp>0&&this.bossHp<=this.bossMax*bb.enrageAt){this.enraged=true;en=true;if(this.atk>bb.enrageInterval)this.atk=bb.enrageInterval;}
   return {killed:this.bossHp<=0,enraged:en,dealt:dealt};};
+// 換到下一段的招（血條還是空的，由畫面慢慢補）：這一段有的招從頭計時；反照（天鏡）結束——下一段沒有天鏡時，反照的倒數和標籤還讀 boss.shard 會出錯
+//   （試玩場 2026-09-29 CK 打到第三段瞬間卡死就是這個）
+//   回傳要給畫面的事件（反照中換段：glareEnd）
+Battle.prototype.nextSeg=function(){var self=this,k=++this.seg,bb=this.boss=segStage(this.boss,k),sg=bb.segs[k],ev=[];
+  MECHS.forEach(function(m){if(sg[m.key])m.battle.init(self,bb[m.key]);});if(this.glare>0){this.glare=0;ev.push({type:'glareEnd'});}return ev;};
+// 血補滿、可以打了；最後一段一補滿就狂暴（回傳 true＝這一下狂暴了）
+Battle.prototype.segReady=function(){var bb=this.boss;this.bossHp=this.bossMax;this.segBusy=false;
+  if(this.seg<bb.segs.length-1||this.enraged)return false;this.enraged=true;if(this.atk>bb.enrageInterval)this.atk=bb.enrageInterval;return true;};
 Battle.prototype.heal=function(hearts){var h=Math.round(this.teamMax*this.cfg.battle.heartHeal*hearts),before=this.teamHp;
   this.teamHp=Math.min(this.teamMax,this.teamHp+h);return this.teamHp-before;};
 Battle.prototype.buffMul=function(){return this.buff>0?this.cfg.ult.light.mult:1;};
@@ -987,7 +1032,8 @@ Battle.prototype.tick=function(dt){var ev=[],bb=this.boss,self=this;
 //                             （選填，2026-09-29 加：鬼火倒數到 0 要知道那顆珠還在不在盤面上才炸）
 //   要隨機的用 config.js 的 prng（固定種子，放在 session 裡），不要用 Math.random：才不會把開場那一串亂數往後推。
 // 選填：session／onEvent／place 只有會在盤面上卡東西的機制才要（媚惑作用在狐狸身上，沒有）。
-// cfg 一律由呼叫的一方給（現在是這一關的設定），之後最終戰分段換招時，換的是 cfg，這一包不用改。
+// cfg 一律由呼叫的一方給：一般關卡是那一關的設定；最終戰（battle.js 的 segStage）是「這一段」的設定，換段時換的是 cfg，這一包不用改。
+//   place 收到 cfg 是 null（換段後這一段沒有這招）：卡著還沒放上去的就丟掉、回傳 null（2026-09-29 C 段，每一包都照這樣）。
 var MAX=8;   // 盤面上最多幾顆被鎖（原本寫在主迴圈裡）
 function lockedCount(board){var n=0;board.g.forEach(function(row){row.forEach(function(o){if(o&&o.locked)n++;});});return n;}
 var LOCK={
@@ -997,7 +1043,7 @@ var LOCK={
     tick:function(b,dt,cfg,ev){b.lockT-=dt;if(b.lockT<=0){ev.push({type:'lock',count:b.enraged?cfg.enrageCount:cfg.count});b.lockT+=b.enraged?cfg.enrageInterval:cfg.interval;}}},
   session:function(){return {pending:0};},   // pending：盤面忙的時候 BOSS 丟過來、還沒鎖上的顆數
   onEvent:function(e,s){if(e.type==='lock')s.pending+=e.count;},
-  place:function(board,s){if(s.pending<=0)return null;var n=Math.min(s.pending,Math.max(0,MAX-lockedCount(board)));s.pending=0;
+  place:function(board,s,cfg){if(s.pending<=0)return null;if(!cfg){s.pending=0;return null;}   /* 最終戰換段後這一段沒有這招：還沒放上去的就不放 */var n=Math.min(s.pending,Math.max(0,MAX-lockedCount(board)));s.pending=0;
     return n>0?board.lockRandom(n):null;}   // 回傳被鎖上的格子（可能是空的：盤面上找不到能鎖的珠）
 };
 
@@ -1011,7 +1057,7 @@ var PETAL={
     tick:function(b,dt,cfg,ev){b.petalT-=dt;if(b.petalT<=0){ev.push({type:'petal',count:b.enraged?cfg.enrageCount:cfg.count});b.petalT+=b.enraged?cfg.enrageInterval:cfg.interval;}}},
   session:function(){return {pending:0};},   // pending：盤面忙的時候飄過來、還沒蓋上的片數
   onEvent:function(e,s){if(e.type==='petal')s.pending+=e.count;},
-  place:function(board,s,cfg){if(s.pending<=0)return null;var n=Math.min(s.pending,Math.max(0,(cfg?cfg.max:10)-board.petalCount()));s.pending=0;
+  place:function(board,s,cfg){if(s.pending<=0)return null;if(!cfg){s.pending=0;return null;}   /* 最終戰換段後這一段沒有這招：還沒放上去的就不放 */var n=Math.min(s.pending,Math.max(0,(cfg?cfg.max:10)-board.petalCount()));s.pending=0;
     return n>0?board.petalRandom(n):null;},
   revealed:function(b){b.revealed++;}   // 一片花瓣被吹開：畫法播到那一刻呼叫（時機跟拆包前一樣，打到一半結束時沒播到的不算）
 };
@@ -1050,7 +1096,7 @@ var CORD={
     tick:function(b,dt,cfg,ev){var cd=cfg;b.cordT-=dt;if(b.cordT<=0){ev.push({type:'cord',len:b.enraged?cd.enrageLen:cd.len,bells:cd.bells});b.cordT+=b.enraged?cd.enrageInterval:cd.interval;}}},
   session:function(){return {pending:null};},   // pending：盤面忙的時候 BOSS 要拉的那一條（len、bells），停下來才拉；只記最新的一條
   onEvent:function(e,s){if(e.type==='cord')s.pending=e;},
-  place:function(board,s,cfg){var p=s.pending;if(!p)return null;s.pending=null;
+  place:function(board,s,cfg){var p=s.pending;if(!p)return null;s.pending=null;if(!cfg)return null;   /* 最終戰換段後這一段沒有這招：還沒放上去的就不放 */
     if(cfg&&board.cords.length<cfg.max){var cw=board.cordRandom(p.len,p.bells);if(cw)return cw;}return null;},   // 回傳拉好的那一條；盤面上已經滿了、或找不到位置就不拉
   onClear:function(b,st){(st.cords||[]).forEach(function(h){if(h.bells<=0)b.untied++;});}   // 消珠的這一步：鈴鐺掉光的繩子算解開一條（當下就算，跟拆包前一樣）
 };
@@ -1066,7 +1112,7 @@ var SHARD={
       if(b.glare>0){b.glare=Math.max(0,b.glare-dt);if(b.glare===0)ev.push({type:'glareEnd'});}}},   // 反照倒數：glare 只會在有天鏡的關卡大於 0（startGlare 會先檢查），所以放在這一包
   session:function(){return {pending:0,broke:false};},   // pending：還沒射上盤面的鏡片數；broke：這一步打碎了鏡片（原本的 S.shardBroke）
   onEvent:function(e,s){if(e.type==='shard')s.pending+=e.count;},
-  place:function(board,s,cfg){if(s.pending<=0)return null;var n=Math.min(s.pending,Math.max(0,(cfg?cfg.max:8)-board.shardCount()));s.pending=0;
+  place:function(board,s,cfg){if(s.pending<=0)return null;if(!cfg){s.pending=0;return null;}   /* 最終戰換段後這一段沒有這招：還沒放上去的就不放 */var n=Math.min(s.pending,Math.max(0,(cfg?cfg.max:8)-board.shardCount()));s.pending=0;
     return n>0?board.shardRandom(n,cfg&&cfg.hits):null;},
   onClear:function(b,st,s){if(st.shards&&st.shards.length){var brk=st.shards.filter(function(u){return u.left<=0;}).length;if(brk){s.broke=true;b.shattered+=brk;}}},
   // 走完一步、整串連鎖都停下來：這一步打碎了鏡片、而且盤面上一片都不剩 → 反照（回傳 true，流程再叫畫法）
@@ -1580,6 +1626,10 @@ var QINGLIN={colors:{fur:0x245242,chest:0xd6ecdc,paw:0x16362b,nose:0x0d2219,earI
   tails:7,tailFan:fanOf(7),tipFrac:0.45,glow:0xb8ff4a};
 var MENGPO={colors:{fur:0x4f6fc8,chest:0xe6ecfb,paw:0x2e4688,nose:0x1a2750,earIn:0xf3b3c0,earTip:0xd8344a,tip:0xd8344a,blush:0xf0a4b4,mark:0xd8344a},
   tails:8,tailFan:fanOf(8),tipFrac:0.62,glow:0xff6a6a};
+// 第九關九尾（最終 BOSS）：2026-09-29 C 段的暫時外觀——docs/03「名字與樣子」：妲己的模型、九條尾巴、冥界色調。
+//   妲己的丹鳳眼、紅眼影、紅紋照舊，紫毛壓暗、尾尖和耳內帶一點冥界的青綠；耳邊不掛金鈴（金鈴在小狐狸們身上）
+var NINE={colors:{fur:0x5d4f96,chest:0xe8def6,paw:0x352a5e,nose:0x221636,earIn:0xc9b4e8,earTip:0x2e1f5c,tip:0x9fe6cf,blush:0xd98fb6,mark:0xe0405a,eye:0x1d1420,outline:0xe8c27a},
+  tails:9,tailFan:fanOf(9),tipFrac:0.62,glow:0x9fe6cf};
 function createFox(o){
   o=o||{};
   var C={fur:0xe58a45,chest:0xf6ecdc,paw:0x3b2519,nose:0x3b2519,earIn:0xf3c9ab,earTip:0x3b2519,tip:0xf6ecdc,blush:0xf2a4a0,mark:0x9a78d6,outline:0xd6b56f,eye:0x1d1420};
@@ -1886,9 +1936,10 @@ var BS=(function(){
     5:function(){return makeBoss(TIANHU.colors,TIANHU.glow,{tails:TIANHU.tails,tailFan:TIANHU.tailFan,tipFrac:0.5,tipSoft:true,eyeGrad:TIANHU.eyeGrad});},
     //   第七關青燐（七尾）、第八關夢婆（八尾）：2026-09-29 第三章的暫時外觀（見 characters.js 的 QINGLIN、MENGPO）
     6:function(){return makeBoss(QINGLIN.colors,QINGLIN.glow,{tails:QINGLIN.tails,tailFan:QINGLIN.tailFan,tipFrac:QINGLIN.tipFrac,tipSoft:true});},
-    7:function(){return makeBoss(MENGPO.colors,MENGPO.glow,{tails:MENGPO.tails,tailFan:MENGPO.tailFan,tipFrac:MENGPO.tipFrac,tipSoft:true});}};
+    7:function(){return makeBoss(MENGPO.colors,MENGPO.glow,{tails:MENGPO.tails,tailFan:MENGPO.tailFan,tipFrac:MENGPO.tipFrac,tipSoft:true});},
+    8:function(){return makeBoss(NINE.colors,NINE.glow,{tails:NINE.tails,tailFan:NINE.tailFan,tipFrac:NINE.tipFrac,tipSoft:true,sly:true,shadow:0xe0455c});}};   // 第九關九尾（暫時）：妲己的丹鳳眼、九尾
   var boss=bossList[0];
-  var FIRECOL=[[0xa46cff,0xd88cff,0xb07cff],[0xff4f86,0xb04bff,0xff5f96],[0xff6fd0,0xc070ff,0xff8ee0],[0xff8fbd,0xffc2da,0xff9cc6],[0x5fd8b8,0xb8fbe6,0x7fe8cc],[0xffc44a,0xfff0b0,0xffd66e],[0x9dff3a,0xe0ffb0,0xb8ff4a],[0xff5a6a,0xffc0b8,0xff7a7a]];   // 第七關冥界綠、第八關紅
+  var FIRECOL=[[0xa46cff,0xd88cff,0xb07cff],[0xff4f86,0xb04bff,0xff5f96],[0xff6fd0,0xc070ff,0xff8ee0],[0xff8fbd,0xffc2da,0xff9cc6],[0x5fd8b8,0xb8fbe6,0x7fe8cc],[0xffc44a,0xfff0b0,0xffd66e],[0x9dff3a,0xe0ffb0,0xb8ff4a],[0xff5a6a,0xffc0b8,0xff7a7a],[0x9fe6cf,0xd9c2ff,0x7fe0c0]];   // 第七關冥界綠、第八關紅、第九關冥界青綠＋淡紫
   // 隊伍：六隻狐狸（同一個模型換毛色與小配件）
   var STYLE=FOX_STYLE;
   var ringGeo=new THREE.RingGeometry(0.315,0.335,48),discGeo=new THREE.CircleGeometry(0.315,48);
@@ -2701,7 +2752,9 @@ var ISLES=[
   // 第三章冥界（2026-09-29 B 段，暫時的島）：放在第一章第一、二關的位置、用夜晚的石台（冥界還沒有自己的 look），造景借竹林、池塘；
   //   傳送陣與燈：青燐冥界綠、夢婆忘川的青藍。CK 之後可能把整張地圖改成「一片冥界河、島浮在河上」，所以先不做細
   {isle:[-1.8,6.75,-11.2],col:0xb8ff4a,lamp:0xd2ff9a,deco:'bamboo'},
-  {isle:[3.3,2.6,-14.5],col:0x7ad8ff,ink:0x0c2238,dark:true,lamp:0xb8ecff,deco:'pond'}
+  {isle:[3.3,2.6,-14.5],col:0x7ad8ff,ink:0x0c2238,dark:true,lamp:0xb8ecff,deco:'pond'},
+  // 第九關九尾（2026-09-29 C 段，暫時的島）：第一章第三關的位置、造景借妲己的紫藤（九尾就是她）；傳送陣與燈是淡紫
+  {isle:[8.8,3.4,-16.5],col:0xd0a8ff,lamp:0xeadcff,deco:'wisteria'}
 ];
 var ISLE_S=0.82,ISLE_TY=0.95,ISLE_R=0.84,ISLE_PHI=1.27,BACK_AT=[-0.72,0.62],NEXT_AT=[0.72,0.62],HUB_AT=[1.12,0.72],HUB_BACK_AT=[-1.12,0.72];
 var stoneMat=toon(0x7483ab),stoneDk=toon(0x3f4870),olL=outlineMat(0xd9b46a,0.014),goldM=toon(0xe6c47a,{emissive:0x6a5020});
@@ -3923,7 +3976,7 @@ var TEAM=(function(){
   // 冥界封面缺字（config.js 的 chapters[].garble，flow.js 的 coverGarbled）：名字其中一個字換成□或█、另一個字淡掉；gl＞0 時每個字錯位（偶爾抖一下，見 update）
   function drawTitle(gl){var st=CONFIG.stages[cur],pal=STAGES[cur].pal,w=Math.round(TL.w*PR),h=Math.round(TL.h*PR),g=tCan.getContext('2d');
     tCan.width=w;tCan.height=h;g.clearRect(0,0,w,h);
-    var txt=st.name.split(''),al=txt.map(function(){return 1;}),gb=coverGarbled(cur);
+    var txt=stageName(cur).split(''),al=txt.map(function(){return 1;}),gb=coverGarbled(cur);   /* 第九關：名字會回來（flow.js 的 stageName） */
     if(gb){var q=cur%txt.length;txt[q]=cur%2?'█':'□';al[(q+1)%txt.length]=0.4;}
     var n=txt.length,gap=n<=2?0.62:n===3?0.2:0.06,fs=Math.min(h*0.9,w*0.98/(n+(n-1)*gap)),step=fs*(1+gap),x0=(w-(n*fs+(n-1)*gap*fs))/2+fs/2;
     g.font='900 '+fs.toFixed(1)+'px '+TITLE_FONT;g.textAlign='center';g.textBaseline='middle';
@@ -3932,7 +3985,7 @@ var TEAM=(function(){
     row();g.shadowBlur=0;row();
     tTex.needsUpdate=true;}
   var glT=2.2,glOn=0;   // 缺字標題偶爾錯位抖一下：每 2～3 秒抖 0.14 秒
-  (function(){var set={'□':1,'█':1};CONFIG.stages.forEach(function(s){var cv=s.cover||{};(s.name+(cv.deck||'')+(cv.head||'')+(cv.tag||'')+(cv.skill||'')).replace(/<br>|\s/g,'').split('').forEach(function(c){set[c]=1;});});   // □█：冥界封面缺字用
+  (function(){var set={'□':1,'█':1};CONFIG.stages.forEach(function(s){var cv=s.cover||{},nm=s.names||{};(s.name+(nm.lost||'')+(nm.found||'')+(cv.deck||'')+(cv.head||'')+(cv.tag||'')+(cv.skill||'')+(cv.foundHead||'')+(cv.foundTag||'')).replace(/<br>|\s/g,'').split('').forEach(function(c){set[c]=1;});});   // □█：冥界封面缺字用；第九關真結局之後的名字、大標也要
     var txt=Object.keys(set).join('');
     var ln=document.createElement('link');ln.rel='stylesheet';ln.href='https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@700;900&display=swap&text='+encodeURIComponent(txt);
     ln.onload=function(){if(document.fonts&&document.fonts.load)document.fonts.load('900 64px "Noto Serif HK"',txt).then(function(){drawTitle();}).catch(function(){});};
@@ -4006,8 +4059,13 @@ var TEAM=(function(){
     {pal:{title:'#eef6ff',glow:'rgba(120,200,255,.55)'},
      sky:[0x050c24,0x0d1d44,0x173058],skyBand:[-0.04,0.3],glow:0x1c2c52,fog:[0x0b1a3a,10,30],moon:{x:0.2,y:0.24,s:0.32,tex:'moon',col:0xfff6e6,halo:0x9ad8ff,halo1:0.035,halo2:0.2,big:2.4},
      light:{hemi:[0x7486c6,0x1a1f3a,.6],amb:[0x2a3566,.35],key:[0xfff0cc,.9],rim:[0x8496d8,.42,[2,4,9]]},
-     fox:{x:0.63,y:0.71,d:6,s:0.82,rot:[0,-0.3,0],headYaw:0.1},stars:[0xfff0cc,0xcfe8ff]}];
-  var FIRECOL=[[0xa46cff,0xd88cff,0xb07cff],[0xff4f86,0xb04bff,0xff5f96],[0xff6fd0,0xc070ff,0xff8ee0],[0xff8fbd,0xffc2da,0xff9cc6],[0x5fd8b8,0xb8fbe6,0x7fe8cc],[0xffc44a,0xfff0b0,0xffd66e],[0x9dff3a,0xe0ffb0,0xb8ff4a],[0xff5a6a,0xffc0b8,0xff7a7a]];
+     fox:{x:0.63,y:0.71,d:6,s:0.82,rot:[0,-0.3,0],headYaw:0.1},stars:[0xfff0cc,0xcfe8ff]},
+    // 第九關九尾（2026-09-29 第三章 C 段，暫時的封面，同第七、八關借 buildDayTemp）：紫藤冥月——深紫的天、冥界青綠的月暈
+    {pal:{title:'#f6eeff',glow:'rgba(190,150,255,.6)'},
+     sky:[0x0a0620,0x1a1038,0x2a1a4c],skyBand:[-0.04,0.3],glow:0x2a1c48,fog:[0x140c2c,10,30],moon:{x:0.8,y:0.22,s:0.32,tex:'moon',col:0xf4ecff,halo:0x9fe6cf,halo1:0.035,halo2:0.2,big:2.4},
+     light:{hemi:[0x7486c6,0x1a1f3a,.6],amb:[0x2a3566,.35],key:[0xfff0cc,.9],rim:[0x8496d8,.42,[2,4,9]]},
+     fox:{x:0.62,y:0.7,d:6,s:0.84,rot:[0,-0.32,0],headYaw:0.12},stars:[0xf0e6ff,0x9fe6cf]}];
+  var FIRECOL=[[0xa46cff,0xd88cff,0xb07cff],[0xff4f86,0xb04bff,0xff5f96],[0xff6fd0,0xc070ff,0xff8ee0],[0xff8fbd,0xffc2da,0xff9cc6],[0x5fd8b8,0xb8fbe6,0x7fe8cc],[0xffc44a,0xfff0b0,0xffd66e],[0x9dff3a,0xe0ffb0,0xb8ff4a],[0xff5a6a,0xffc0b8,0xff7a7a],[0x9fe6cf,0xd9c2ff,0x7fe0c0]];
 
   // 一隻 BOSS：外面包一層 holder 管位置、朝向與前後傾（YXZ），裡面是 createFox 做的狐狸
   function makeHolder(G,f){var h=new THREE.Group();h.rotation.order='YXZ';h.add(f.group);f.look(0,0);G.add(h);
@@ -4843,7 +4901,10 @@ var TEAM=(function(){
     6:{fox:{f:QINGLIN,head:0.12,tilt:-0.08,tipFrac:QINGLIN.tipFrac},rock:{top:0x3a4a48,edge:0x6f8a80,side:0x2c3a38,under:0x18221f,moss:[0x5aa86a,0x7cc488,0x4a9058,0x9ad8a0]},moss:0.5,
        fall:{cols:[0xb8ff4a,0xd8ffa0,0x9dff3a,0xefffd0],size:0.045},fogCol:[0x2e5a48,0x1a3a30]},
     7:{fox:{f:MENGPO,head:0.2,tilt:0.1,tipFrac:MENGPO.tipFrac},rock:{top:0x46506a,edge:0x7e8aa8,side:0x363e58,under:0x1c2236,moss:[0x6a8ab8,0x88a4cc,0x5a78a8,0xa8bcdc]},moss:0.3,
-       fall:{cols:[0x9ad8ff,0xd8f0ff,0x7ac0f0,0xf0f8ff],size:0.04},fogCol:[0x3a5a88,0x1c2c52]}};
+       fall:{cols:[0x9ad8ff,0xd8f0ff,0x7ac0f0,0xf0f8ff],size:0.04},fogCol:[0x3a5a88,0x1c2c52]},
+    // 第九關九尾（C 段）：同一個暫時封面，紫色的石台、飄紫藤色和冥界青綠的光點、深紫的霧；妲己的丹鳳眼和紅眼影
+    8:{fox:{f:NINE,head:0.16,tilt:-0.06,tipFrac:NINE.tipFrac,sly:true,shadow:0xe0455c},rock:{top:0x3e3458,edge:0x7a6ea0,side:0x2e2646,under:0x171228,moss:[0x8a6ac8,0xa488dc,0x7458b0,0xc2a8ec]},moss:0.4,
+       fall:{cols:[0xd9c2ff,0xf0e6ff,0xb89aff,0x9fe6cf],size:0.045},fogCol:[0x3a2a5a,0x1e1638]}};
   // 霧：[u, v, 距離, 寬（畫面寬的倍數）, 第幾個顏色, 不透明度]
   var DAYCV_FOG=[[0.08,0.9,5,1.3,0,1],[0.45,0.96,4.4,1.3,0,1],[0.86,0.93,5.5,1.3,0,0.95],[1.05,0.84,8.5,1.2,1,0.8],[-0.05,0.8,8.5,1.3,1,0.85],[0.3,0.86,11,1.5,0,0.9],[0.7,0.88,11,1.4,0,0.85],
     [0.55,1.0,3.4,0.9,1,0.75],[0.18,1.0,3.4,0.9,0,0.85],[0.95,0.76,14,1.1,0,0.6],[0.1,0.72,15,1.0,1,0.55],[0.02,0.97,4,0.8,0,0.9],[0.98,1.0,4,0.8,1,0.8]];
@@ -4852,7 +4913,7 @@ var TEAM=(function(){
     var CH=PEACH_DEF.rock.chunks.slice(0,5).map(function(c,i){return [c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],i===0?D.moss:0];});   // 第四關石台的前五塊（左邊遠的兩塊不要）
     var crag=cragPile(CH,D.rock,3.4);B.rock.add(crag);crag.traverse(function(m){if(m.isMesh&&m.material&&m.material.isMeshToonMaterial)m.material.emissive.setHex(0x120e20);});   // 背光那面補一點淡紫的自發光（同第四關）
     var fox=createFox({scale:1,tails:T.tails,tailLen:0.8,tailR:0.2,marks:true,glowColor:T.glow,colors:T.colors,eyeGrad:T.eyeGrad,tipFrac:F.tipFrac,tipSoft:true,
-      tailFan:T.tailFan.map(function(t){return t.slice();}),outfit:F.outfit,eyeOpen:F.eyeOpen,pose:{pivot:-0.42,head:F.head,tilt:F.tilt}});
+      tailFan:T.tailFan.map(function(t){return t.slice();}),outfit:F.outfit,eyeOpen:F.eyeOpen,sly:F.sly,shadow:F.shadow,pose:{pivot:-0.42,head:F.head,tilt:F.tilt}});
     B.boss=makeHolder(G,fox);B.fire=makeFoxFire(G,fox,FIRECOL[k],function(){return STAGES[k].fox.s;});
     B.fall=makeFall(G,{n:22,geo:peachPetal,size:D.fall.size,d:[4.5,11],colors:D.fall.cols,drift:0.04,speed:0.7});
     B.fog=DAYCV_FOG.map(function(f,i){var sp=addSprite(G,mistTexS,D.fogCol[f[4]],f[5],false);return {s:sp,f:f,ph:(i*2.39996)%TAU,sp:0.12+0.1*((i*0.618034)%1)};});
@@ -4886,7 +4947,7 @@ var TEAM=(function(){
     return B;}
   function buildTushan(G){return buildDayTemp(G,4);}
   function buildTianhu(G){return buildDayTemp(G,5);}
-  var BUILD=[buildBamboo,buildMaple,buildWisteria,buildPeach,buildTushan,buildTianhu,function(G){return buildDayTemp(G,6);},function(G){return buildDayTemp(G,7);}];
+  var BUILD=[buildBamboo,buildMaple,buildWisteria,buildPeach,buildTushan,buildTianhu,function(G){return buildDayTemp(G,6);},function(G){return buildDayTemp(G,7);},function(G){return buildDayTemp(G,8);}];
   function ensure(k){if(built[k])return built[k];var G=new THREE.Group();sc.add(G);var B=BUILD[k](G);B.G=G;built[k]=B;if(B.layout)B.layout();placeStage(k);return B;}
   function placeStage(k){var B=built[k];if(!B)return;var P=STAGES[k].fox,v=atPx(P.x*VW,P.y*VH,P.d);
     B.boss.h.position.copy(v);B.boss.h.scale.setScalar(P.s);B.boss.h.rotation.set(P.rot[0],P.rot[1],P.rot[2]);B.boss.f.look(0,P.headYaw);
@@ -5237,8 +5298,8 @@ var parts=[];for(var pi=0;pi<PCAP;pi++)parts.push({on:false,x:0,y:0,vx:0,vy:0,li
 var partHead=0;
 function emit(x,y,vx,vy,life,size,color,grav){for(var k=0;k<PCAP;k++){var p=parts[(partHead+k)%PCAP];if(!p.on){partHead=(partHead+k+1)%PCAP;
   p.on=true;p.x=x;p.y=y;p.vx=vx;p.vy=vy;p.life=p.max=life;p.size=size;p.g=grav||0;p.col.copy(color);return;}}}
-var GOLD=new THREE.Color(0xffd98a),WHITE=new THREE.Color(0xffffff);
-function typeColor(t){return t>=0?ORB[t].color.clone().lerp(WHITE,0.3):GOLD.clone();}
+var GOLD=new THREE.Color(0xffd98a),WHITE$1=new THREE.Color(0xffffff);
+function typeColor(t){return t>=0?ORB[t].color.clone().lerp(WHITE$1,0.3):GOLD.clone();}
 function burst(x,y,type,big){var cs=L.cs,lc=typeColor(type),n=big?12:8;
   emit(x,y,0,0,0.22,cs*1.7,lc,0);
   for(var k=0;k<n;k++){var a=rand(0,TAU),sp=rand(1.2,3.2)*cs;emit(x,y,Math.cos(a)*sp,Math.sin(a)*sp-cs*1.2,rand(.3,.55),rand(.2,.34)*cs,lc,cs*7);}
@@ -5678,7 +5739,7 @@ PTINT[4]=new THREE.Color(0.31,0.21,1);
 PTINT[0]=new THREE.Color(1,0.32,0.12);PTINT[2]=new THREE.Color(0,0.62,0.38);   // 火珠的花更紅（2026-09-27 使用者：原本火的花太淡）；木珠的花：使用者指定 40bda6，實際畫出來約 5ab9a4～67cab2（shader 會往灰混、再打光，紅色壓不到更低）   // 暗珠上的花：偏藍的紫，才跟心珠的粉拉得開（2026-09-27 使用者：畫出來要接近 b48bff；粉色不動）
 // 花要染的顏色：那顆珠的顏色、最亮的分量拉到 1（shader 再往白色混，所以是淡淡的）；PEACHBASE 是還沒落地時的桃紅
 function petalTint(type){return type>=0&&PTINT[type]?PTINT[type]:PEACHBASE;}
-function petalSpark(type){return petalTint(type).clone().lerp(WHITE,0.45);}   // PFL：飛行中的桃花（mode 'in' 飄下來、'out' 被吹走），syncOrbs 畫
+function petalSpark(type){return petalTint(type).clone().lerp(WHITE$1,0.45);}   // PFL：飛行中的桃花（mode 'in' 飄下來、'out' 被吹走），syncOrbs 畫
 function petalFlight(mode,x0,y0,x1,y1,dur,delay,tc){var f={on:false,x:x0,y:y0,s:mode==='in'?0.5:1,rx:0,ry:0,rz:0,br:1,c:new THREE.Color().copy(mode==='in'?PEACHBASE:tc)},sd=Math.random()<0.5?-1:1,
     cx=(x0+x1)/2+sd*rand(0.6,1.4)*L.cs,cy=mode==='in'?Math.min(y0,y1)+rand(-0.2,0.6)*L.cs:(y0+y1)/2,spin=rand(4,7)*sd,ph=rand(0,TAU);
   function go(){f.on=true;PFL.push(f);
@@ -5840,7 +5901,7 @@ var SHARD_VIEW={
   afterMove:onGlare,   // 邏輯判定反照開始之後：大鏡子染金、金光、橫幅
   onEvent:function(e){if(e.type==='glareEnd')onGlareEnd();},
   tap:function(){AudioFX.shardTap();},   // 想換鏡片：叮一聲
-  chip:function(){return (battle.glare>0?'<span class="chip glare">反照 ×'+battle.boss.shard.glareMul+'　'+Math.ceil(battle.glare)+' 秒</span>':'');},
+  chip:function(){return (battle.glare>0&&battle.boss.shard?'<span class="chip glare">反照 ×'+battle.boss.shard.glareMul+'　'+Math.ceil(battle.glare)+' 秒</span>':'');},
   drawBegin:function(){sh=0;},
   drawCover:function(v,x,y,z,K,s,rz,t){if(v.shard){if(sh<12){var ss=K*s*2.55*(v.shardS||1);setM(shardMesh,sh,x+(v.rattle||0)*K,y,z+K*0.2,rz+0.05*Math.sin(t*0.8+v.ph),ss*v.sx,ss*v.sy,1);   // 鏡片：一面小圓鏡，反光慢慢刷過去；裂開之後多幾道裂痕
         shardMesh.instanceColor.setXYZ(sh,Math.min(1.7,v.f),v.ph/TAU,v.crack?1:0);sh++;}return true;}return false;},
@@ -6073,7 +6134,7 @@ function onShotHit(res,type,label){if(!fighting())return;
   updateBars();if(r.enraged)onEnrage();if(r.killed)onBossDown();}
 function teamBarPoint(){return {x:L.W/2+rand(-L.W*0.2,L.W*0.2),y:L.teamY+L.teamH*0.88};}
 function healFx(healed){var f=BS.foxes[HEART];f.attack();AudioFX.heal();var to=teamBarPoint();
-  fireShot(foxScreen(HEART),to,ORB[HEART].color.clone().lerp(WHITE,0.35),0,function(){if(healed>0)popNum(to.x,to.y-12,'+'+healed,'heal','');updateBars();});}
+  fireShot(foxScreen(HEART),to,ORB[HEART].color.clone().lerp(WHITE$1,0.35),0,function(){if(healed>0)popNum(to.x,to.y-12,'+'+healed,'heal','');updateBars();});}
 var BOSSCOL=new THREE.Color(0xc9a0ff);
 var sealT=0,ULT_KEYS=['fire','water','wood','light','dark','heart'],VT=0,
     CAM={pos:new THREE.Vector3(0,0,14),look:new THREE.Vector3(0,0,0)},ultBannerEl=document.getElementById('ultBanner'),chipsEl=document.getElementById('chips');
@@ -6093,8 +6154,8 @@ function tryUlt(i){if(G.mode!=='playing'||battle.energy[i]<CONFIG.ult.max)return
   fox.jump(false);fox.setReady(false);fox.ult();AudioFX.ult();if(navigator.vibrate){try{navigator.vibrate(30);}catch(_){}}
   SES.U={i:i,t:0,dur:CONFIG.ult.closeup,fx:fp.x,fy:fox.group.userData.baseY,fz:fp.z,s:fox.scale||0.6};
   ultBannerEl.querySelector('small').textContent=cfg.fox;ultBannerEl.querySelector('b').textContent=ultName(ULT_KEYS[i],SES.ULT_SEL[i]);ultBannerEl.classList.add('show');
-  var uf=BS.ultFx,tc=new THREE.Color(CONFIG.orbs[i].color).lerp(WHITE,0.3);uf.group.visible=true;uf.group.position.set(fp.x,SES.U.fy,fp.z);
-  uf.back.material.color.copy(tc);uf.ground.material.color.copy(tc);uf.glow.material.color.copy(tc);uf.motes.forEach(function(m){m.material.color.copy(tc).lerp(WHITE,0.45);});veil.visible=true;addShake(4);return true;}
+  var uf=BS.ultFx,tc=new THREE.Color(CONFIG.orbs[i].color).lerp(WHITE$1,0.3);uf.group.visible=true;uf.group.position.set(fp.x,SES.U.fy,fp.z);
+  uf.back.material.color.copy(tc);uf.ground.material.color.copy(tc);uf.glow.material.color.copy(tc);uf.motes.forEach(function(m){m.material.color.copy(tc).lerp(WHITE$1,0.45);});veil.visible=true;addShake(4);return true;}
 function updateUlt(rdt){var u=SES.U,d=u.dur,inT=0.28,outT=0.22,e;u.t+=rdt;
   if(u.t<inT)e=easeOut(u.t/inT);else if(u.t>d-outT)e=1-easeInOut(Math.min(1,(u.t-(d-outT))/outT));else e=1;
   CAM.pos.set(u.fx*0.8*e,(u.fy+0.55)*e,14+(u.fz+3.4-14)*e);CAM.look.set(u.fx*e,(u.fy-0.37)*e,u.fz*e);
@@ -6152,14 +6213,14 @@ function onEnrage(){BS.boss.setGlow(1);AudioFX.enrage();bossBarEl.classList.add(
 function stageFx(){return BS.deco(APP.stage)||{};}
 // 走完一步、整串連鎖都停下來：各機制檢查要不要觸發（天鏡：鏡片全部打碎 → 反照），要的話邏輯先算、再叫畫法
 function afterMove(){MECHS.forEach(function(m){if(m.afterMove&&m.afterMove(battle,board,SES.mech[m.key],battle.boss[m.key],fighting()))MECH_VIEWS[m.key].afterMove();});}
-function onBossDown(){G.mode='won';if(APP.endTest==='true')AudioFX.farBell();   /* 真結局：倒下那一刻鈴響一聲（之後：有信又戴金鈴時） */if(!downTalk(APP.stage)&&!CONFIG.stages[APP.stage].final&&!APP.endTest)BS.boss.defeat();   /* 要講話的 BOSS 先留在台上，講完才淡出（bossVanish） */cdEl.classList.add('hidden');var p=bossScreen();
+function onBossDown(){G.mode='won';var fin=CONFIG.stages[APP.stage].final||APP.endTest?APP.endTest||FINAL.endingKind():null;   /* 最終 BOSS（或測試網址借一關演）：走哪一種結局（final.js 的 endingKind） */
+  if(fin==='true')AudioFX.farBell();   /* 真結局：倒下那一刻鈴響 */FINAL.down();if(!downTalk(APP.stage)&&!fin)BS.boss.defeat();   /* 要講話的 BOSS 先留在台上，講完才淡出（bossVanish） */cdEl.classList.add('hidden');var p=bossScreen();
   for(var k=0;k<4;k++)after(k*0.18,function(){burst(p.x+rand(-40,40),p.y+rand(-40,30),3,true);});ringFx(p.x,p.y,L.cs*0.5,L.cs*5,GOLD,0.8);addShake(12);
-  after(1.6,function(){if(CONFIG.stages[APP.stage].final||APP.endTest){(APP.endTest==='true'?endingTrue:endingNormal)();return;}   // 最終 BOSS：結局（不跳結算）；有信又戴金鈴＝真結局（判斷等最終戰做好才接，現在只有 ?ending=true）
+  after(1.6,function(){if(fin){(fin==='true'?endingTrue:fin==='nobell'?endingNoBell:endingNormal)();return;}   // 最終 BOSS：沒有信＝一般結局、有信又戴金鈴＝真結局（都不跳結算）；有信沒戴鈴＝講兩句、照一般結算
     var tk=downTalk(APP.stage);if(!tk){showResult('win');return;}
     DLG.say(tk.who,tk.lines).then(function(){return bossVanish(tk.mist);}).then(function(){Save.data().story.lines[tk.id]=1;Save.save();showResult('win');});});}   // 章末 BOSS：留在台上講完話、淡出，才結算
-// 一般結局（最終 BOSS 打倒，docs/03_design_story.md「劇情」第 4、5 條）：還停在戰鬥場景 → 她說「……你是誰。」→
-//   第一次（還沒有信）：信從 BOSS 平台飄起來、打開、三行字（LETTER.show）→ 不跳結算，直接回月下主島、跳「挑戰任務已解鎖」。
-//   真結局（有信、隊伍裡有狐狸戴金鈴）之後再接（台詞已經在 CONFIG.talk['ending-true']）。
+// 一般結局（最終 BOSS 打倒、還沒有信，docs/03_design_story.md「劇情」第 4、5 條）：還停在戰鬥場景 → 她說「……你是誰。」→
+//   信從 BOSS 平台飄起來、打開、三行字（LETTER.show）→ 不跳結算，直接回月下主島、跳「挑戰任務已解鎖」。
 function endingNormal(){var T=CONFIG.talk['ending-normal'],first=!Save.data().story.letter;
   DLG.say(T.who,T.lines).then(function(){return bossVanish(T.mist);}).then(function(){return first?LETTER.show(bossScreen()):null;}).then(function(){finishFinal('normal');});}
 // 真結局（docs/03_design_story.md「劇情」第 6 條）：倒下那一刻鈴響（onBossDown，風鈴那樣叮噹幾聲）→ 九尾「……這鈴聲。」「……」「……長大了呢。」→ 暗掉 →
@@ -6175,13 +6236,17 @@ function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait;
   .then(function(){GARDEN.ending.stop();gameEl.classList.remove('cine');GARDEN.setTreeBell(true);return W(0.8);})
   .then(function(){return ENDING.credits();}).then(function(){return W(0.6);}).then(function(){return ENDING.fadeTo(0,1.8);})
   .then(function(){if(!maybeChalNotice())showHint();});}
+// 有信、但隊伍裡沒有狐狸戴金鈴（2026-09-29 CK 加，03「最終戰與結局」）：她說「……沒有鈴聲。」「……不是你。」→ 帶霧淡出 → 照一般通關結算（沒有信、沒有結局演出）。
+//   測試網址 ?ending=nobell 借來的關不記通關（showResult 看 APP.endTest）
+function endingNoBell(){var T=CONFIG.talk['ending-nobell'];
+  DLG.say(T.who,T.lines).then(function(){return bossVanish(T.mist);}).then(function(){showResult('win');APP.endTest=false;});}
 // 章末 BOSS 講完話才消失（2026-09-29 CK）：台上冒霧（CONFIG.talk 的 mist：妲己粉、天狐黃），BOSS 慢慢淡掉（characters.js 的 fade），淡完才 resolve
 // VANISH：淡掉花幾秒（CK 看完預覽：再快一些，1.6 → 1）
 var VANISH=1;
 function bossVanish(col){BS.bossMist(col==null?0xf3d2ff:col);AudioFX.heal();return tween(VANISH,function(k){BS.boss.fade(k);},easeInOut).then(function(){BS.boss.fade(1);});}
 // 看完結局：通關、掉落、挑戰解鎖照記（跟結算一樣），回月下主島（loc −1）。
 // 測試網址 ?letter 借別關演（APP.endTest）：不記通關、不發掉落、不真的解鎖挑戰，只跳提示看樣子（信會記進存檔）。
-function finishFinal(kind){var real=!!CONFIG.stages[APP.stage].final,d=Save.data();G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
+function finishFinal(kind){var real=!!CONFIG.stages[APP.stage].final&&!APP.endTest,d=Save.data();   /* ?test9&ending=… 用真的最終關演也不記 */G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
   if(real){markCleared(APP.stage);grantDrop(APP.stage);grantUlt(APP.stage);d.story.endings[kind]=1;if(!chalOpen()){d.seen.chal=1;APP.chalNew=true;}Save.save();}   // 第一次才解鎖、才跳提示（跟 showResult 一樣）
   else if(kind!=='true')APP.chalNew=true;   /* 測試網址也照正式流程：真結局一定是第二次以後打倒（要先有信＝一般結局已經解鎖過挑戰），不再跳（2026-09-29 CK） */
   APP.endTest=false;APP.newStar=-1;APP.gardenLoc=-1;
@@ -6218,15 +6283,15 @@ function animSwap(va,vb){var ar=va.row,ac=va.col,br=vb.row,bc=vb.col;
   return tween(A.swap,function(k){va.row=ar+(br-ar)*k;va.col=ac+(bc-ac)*k;vb.row=br+(ar-br)*k;vb.col=bc+(ac-bc)*k;va.z=Math.sin(k*Math.PI)*0.6;},easeInOut).then(function(){va.z=0;});}
 function blastFx(b){
   var cs=L.cs,p=cellXY(b.r,b.c),col=typeColor(b.type),x0=L.bx-cs*0.4,x1=L.bx+cs*(COLS+0.4),y0=L.by-cs*0.4,y1=L.by+cs*(ROWS+0.4),k;
-  function rowBeam(r,w){var y=L.by+(r+0.5)*cs;beam(x0,y,x1,y,w,col,0.34);beam(x0,y,x1,y,w*0.35,WHITE,0.26);}
-  function colBeam(c,w){var x=L.bx+(c+0.5)*cs;beam(x,y0,x,y1,w,col,0.34);beam(x,y0,x,y1,w*0.35,WHITE,0.26);}
+  function rowBeam(r,w){var y=L.by+(r+0.5)*cs;beam(x0,y,x1,y,w,col,0.34);beam(x0,y,x1,y,w*0.35,WHITE$1,0.26);}
+  function colBeam(c,w){var x=L.bx+(c+0.5)*cs;beam(x,y0,x,y1,w,col,0.34);beam(x,y0,x,y1,w*0.35,WHITE$1,0.26);}
   function rays(){b.cells.forEach(function(ci){var q=ciXY(ci);beam(p.x,p.y,q.x,q.y,cs*0.22,GOLD,0.4);});ringFx(p.x,p.y,cs*0.4,cs*1.8,GOLD,0.45);}
   if(b.kind==='bomb'||b.kind==='bigbomb')AudioFX.bomb();else if(b.kind.indexOf('taiji')===0)AudioFX.taiji();else AudioFX.sword();
   switch(b.kind){
     case 'sword':if(b.dir==='h')rowBeam(b.r,cs*0.9);else colBeam(b.c,cs*0.9);addShake(4);break;
     case 'bomb':ringFx(p.x,p.y,cs*0.4,cs*1.9,col,0.36);ringFx(p.x,p.y,cs*0.2,cs*1.3,GOLD,0.28);burst(p.x,p.y,b.type,true);addShake(6);break;
     case 'taiji':case 'taiji_color':case 'taiji_sword':case 'taiji_bomb':rays();addShake(7);break;
-    case 'taiji2':ringFx(p.x,p.y,cs*0.5,cs*6,GOLD,0.6);ringFx(p.x,p.y,cs*0.3,cs*4,WHITE,0.45);for(k=0;k<ROWS;k++)rowBeam(k,cs*0.7);addShake(12);break;
+    case 'taiji2':ringFx(p.x,p.y,cs*0.5,cs*6,GOLD,0.6);ringFx(p.x,p.y,cs*0.3,cs*4,WHITE$1,0.45);for(k=0;k<ROWS;k++)rowBeam(k,cs*0.7);addShake(12);break;
     case 'cross':rowBeam(b.r,cs*1.1);colBeam(b.c,cs*1.1);addShake(8);break;
     case 'swordbomb':for(k=-1;k<=1;k++){if(b.r+k>=0&&b.r+k<ROWS)rowBeam(b.r+k,cs*1.0);if(b.c+k>=0&&b.c+k<COLS)colBeam(b.c+k,cs*1.0);}addShake(10);break;
     case 'bigbomb':ringFx(p.x,p.y,cs*0.5,cs*3.2,col,0.45);ringFx(p.x,p.y,cs*0.3,cs*2.4,GOLD,0.35);burst(p.x,p.y,b.type,true);addShake(10);break;
@@ -6343,12 +6408,12 @@ function checkChal(k){var ch=CONFIG.stages[k].chal,d=Save.data();if(!ch||!chalOp
   d.chal[k]=1;var id=ch.drop;if(id&&!d.items[id]){d.items[id]=1;d.fresh[id]=1;}Save.save();
   return '挑戰達成「'+ch.text+'」'+(id?'\n獲得飾品「'+FOX_ITEMS[id].name+'」':'');}
 // 把某隻狐狸的穿戴套到遊戲裡所有牠的模型上（庭院小狐狸、戰鬥狐狸、換裝頁）
-var WKEYS=['little','fire','water','wood','light','dark','heart'],SLOTS=['head','neck','tail'];
-function applyOutfit(f){var o=Save.outfitOf(f);SLOTS.forEach(function(s){var id=o[s]||null;
+var WKEYS=['little','fire','water','wood','light','dark','heart'],SLOTS$1=['head','neck','tail'];
+function applyOutfit(f){var o=Save.outfitOf(f);SLOTS$1.forEach(function(s){var id=o[s]||null;
   if(f==='little')GARDEN.foxModel().wear(s,id);else BS.foxes[WKEYS.indexOf(f)-1].wear(s,id);WARD.wear(f,s,id);});}
 function applyAllOutfits(){WKEYS.forEach(applyOutfit);}
 applyAllOutfits();
-function setBossHud(){var st=CONFIG.stages[APP.stage];bossBarEl.querySelector('.name').textContent=st.name;var at=bossBarEl.querySelector('.attr');at.textContent=st.attrName;at.className='attr a-'+st.attr;}
+function setBossHud(){var st=CONFIG.stages[APP.stage];FINAL.hud(st);bossBarEl.querySelector('.name').textContent=st.name;var at=bossBarEl.querySelector('.attr');at.textContent=st.attrName;at.className='attr a-'+st.attr;}
 function resetBattleFx(){FX2D.clear();DLG.clear();cdEl.classList.remove('sealed');tweens.length=0;MECH_VIEW_LIST.forEach(function(mv){if(mv.reset)mv.reset();});shotPool.forEach(function(q){q.on=false;q.m.visible=false;q.cb=null;});setInflight(0);motes.forEach(function(m){m.on=false;});parts.forEach(function(q){q.on=false;});
   [beams,rings].forEach(function(pool){pool.forEach(function(f){f.life=0;f.m.visible=false;});});setShake(0);bannerEl.classList.remove('show');toastEl.classList.remove('show');}
 // ---- 月下庭院：星星計數、關卡資訊框、傳送、第一次通關的收集動畫 ----
@@ -6405,7 +6470,7 @@ function showGToast(msg,dur){gToastEl.querySelector('span').textContent=msg;gToa
 // 關卡資訊框：長在石燈上方，把星星往上頂；點框外任何地方就收回
 var boxK=-1,boxOpen=false,boxT=0;
 function openBox(k){var st=CONFIG.stages[k];clearTimeout(boxT);boxK=k;boxOpen=true;
-  document.getElementById('lvTitle').textContent=st.title;if(coverGarbled(k))document.getElementById('lvName').innerHTML=garbleHtml(st.name);else document.getElementById('lvName').textContent=st.name;   // 冥界還沒打倒：名字缺字（技能說明照寫）
+  document.getElementById('lvTitle').textContent=st.title;if(coverGarbled(k))document.getElementById('lvName').innerHTML=garbleHtml(stageName(k));else document.getElementById('lvName').textContent=stageName(k);   // 冥界還沒打倒：名字缺字（技能說明照寫）
   var at=document.getElementById('lvAttr');at.textContent=st.attrName;at.className='a-'+st.attr;
   document.getElementById('lvWeakRow').innerHTML=weakHtml(st);document.getElementById('lvSkill').textContent=st.skill;
   lvBoxEl.classList.toggle('done',!!clearedSet()[k]);
@@ -6464,6 +6529,10 @@ function coverSkill(st){
 // 冥界封面缺字（docs/03「劇情」第 3 條）：這一章 garble（config.js 的 chapters），而且這一關還沒打倒 → 封面的名字、介紹、標語是缺字和亂碼
 //   （□、█、字淡出、偶爾錯位抖動）；打倒之後恢復完整。數字和技能說明不缺字（暫停選單的「關卡與技能介紹」也完整）。3D 大標題在 render/team.js 的 drawTitle
 function coverGarbled(k){if(!Save||!CONFIG.stages[k])return false;var ch=CONFIG.chapters[GARDEN.chapterOfStage(k)];return !!(ch&&ch.garble&&CONFIG.chapters[GARDEN.chapterOfStage(k)].stages.indexOf(k)>=0&&!Save.data().cleared[k]);}
+// 最終 BOSS 的名字會回來（docs/03，她喝了忘川水、連自己的名字都忘了）：關卡設定有 names 的（第九關），還沒打倒＝names.lost（██）、打倒過＝name（九尾）、
+//   真結局之後＝names.found（妲己），封面的大標、側邊標語也換成 cover.foundHead／foundTag。只用在封面和石燈的資訊框；戰鬥裡的名字照 name
+function stageName(k){var st=CONFIG.stages[k],nm=st&&st.names;if(!nm||!Save)return st?st.name:'';var d=Save.data();return d.story.endings.true?nm.found:d.cleared[k]?st.name:nm.lost;}
+function nameFound(k){var st=CONFIG.stages[k];return !!(st&&st.names&&Save.data().story.endings.true);}
 // 把一句話變成缺字版的 HTML：每個字照這句話算的固定亂數決定——換成□或█、淡掉、偶爾抖（CSS 的 .gb）、或照原樣；<br> 照留
 function garbleHtml(s){var h=7;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%2147483647;var r=prng(h),out='';
   String(s).split(/(<br>)/).forEach(function(part){if(part==='<br>'){out+='<br>';return;}
@@ -6477,13 +6546,13 @@ function fillTeamHud(){var st=CONFIG.stages[APP.stage],cv=st.cover||{};
   var dU=Save.data(),ownU=ULT_KEYS.filter(function(k){return CONFIG.ultAlt[k]&&dU.ults[k];}),onU=ownU.filter(ultAltOn);   // 拿到變奏後才顯示「大招」按鈕
   document.getElementById('cvUlt').hidden=!ownU.length;document.getElementById('cvUltList').textContent=onU.length?onU.map(function(k){return ultName(k,true);}).join('・'):'全部原版';
   var cc=document.getElementById('cvChal');cc.hidden=!st.chal||!chalOpen();if(st.chal){document.getElementById('cvChalText').textContent=st.chal.text;cc.classList.toggle('done',!!dU.chal[APP.stage]);}
-  document.getElementById('cvIssue').textContent=st.title;document.getElementById('cvSeries').textContent='狐仙三消　'+CONFIG.chapters[GARDEN.chapterOfStage(APP.stage)].name+'試煉';document.getElementById('cvName').textContent=st.name;
+  document.getElementById('cvIssue').textContent=st.title;document.getElementById('cvSeries').textContent='狐仙三消　'+CONFIG.chapters[GARDEN.chapterOfStage(APP.stage)].name+'試煉';document.getElementById('cvName').textContent=stageName(APP.stage);
   document.getElementById('cvDeck').textContent=cv.deck||'';var gb=coverGarbled(APP.stage);
   if(gb){document.getElementById('cvHead').innerHTML=garbleHtml(cv.head||st.name);document.getElementById('cvLore').innerHTML=garbleHtml(cv.lore||st.lore);document.getElementById('cvTag').innerHTML=garbleHtml(cv.tag||'');}   // 冥界還沒打倒：缺字
-  else {document.getElementById('cvHead').innerHTML=cv.head||st.name;document.getElementById('cvLore').textContent=cv.lore||st.lore;document.getElementById('cvTag').textContent=cv.tag||'';}
+  else {var fd=nameFound(APP.stage);document.getElementById('cvHead').innerHTML=(fd?cv.foundHead:cv.head)||st.name;document.getElementById('cvLore').textContent=cv.lore||st.lore;document.getElementById('cvTag').textContent=(fd?cv.foundTag:cv.tag)||'';}   /* 第九關真結局之後：大標、標語換掉 */
   var at=document.getElementById('cvAttr');at.textContent=st.attrName;at.className='a-'+st.attr;
   document.getElementById('cvWeak').textContent=st.attr==='none'?'沒有弱點':st.weak+'屬性';
-  document.getElementById('cvHp').textContent=st.hp.toLocaleString('zh-TW');
+  document.getElementById('cvHp').textContent=(st.segs?st.segs.length+'×':'')+st.hp.toLocaleString('zh-TW');   /* 最終戰：3×10,000 */
   document.getElementById('cvTime').textContent=(st.time||CONFIG.battle.time)+' 秒';
   document.getElementById('cvAtk').textContent='每 '+st.interval+' 秒';
   document.getElementById('cvSkillName').textContent=cv.skill||'';document.getElementById('cvSkillText').textContent=cv.brief||coverSkill(st);   /* 封面用短版（見 config.js 的 cover.lore／brief） */
@@ -6515,7 +6584,7 @@ function itemHint(id){return !id||id==='none'?'不戴飾品':FOX_ITEMS[id].name+
 function freshIn(f,s){return s==='ult'?!!Save.data().fresh['ult:'+f]:s==='letter'&&!!Save.data().fresh.letter;}   // 「信」分頁：第一次拿到信（不分狐狸）
 function fillWard(){var f=APP.wardFox,info=wInfo(f),d=Save.data();document.getElementById('wName').textContent=info.name;document.getElementById('wSub').textContent=info.sub;
   Array.prototype.forEach.call(wFoxesEl.children,function(b){var k=b.getAttribute('data-fox');b.classList.toggle('on',k===f);b.setAttribute('aria-selected',k===f?'true':'false');
-    b.classList.toggle('new',SLOTS.concat(['ult']).some(function(s){return freshIn(k,s);}));});
+    b.classList.toggle('new',SLOTS$1.concat(['ult']).some(function(s){return freshIn(k,s);}));});
   if(f==='little'&&wSlot==='ult')wSlot='head';document.querySelector('.wTab[data-slot=ult]').hidden=f==='little';   // 小狐狸沒有大招
   if(!d.story.letter&&wSlot==='letter')wSlot='head';document.querySelector('.wTab[data-slot=letter]').hidden=!d.story.letter;   // 拿到信才多一個「信」分頁
   WARD.showLetter(wSlot==='letter');document.querySelector('.wName').classList.toggle('letter',wSlot==='letter');
@@ -6595,7 +6664,7 @@ function showResult(kind){if(G.mode==='result')return;G.mode='result';S.sel=null
   var win=kind==='win';if(win)AudioFX.win();else AudioFX.lose();
   document.getElementById('rTitle').textContent=win?'勝利':'失敗';
   var bn=battle.boss.name;document.getElementById('rSub').textContent=win?bn+'被打倒了':kind==='time'?'時間到了，'+bn+'還撐著':'隊伍撐不住了';
-  var rec=win&&inChapter(APP.stage);   // 還沒放進章節的關（第三章 A 段的第七、八關，只有 ?test7、?test8 進得來）：打贏不記通關、不發東西（預覽頁跟正式版共用存檔）
+  var rec=win&&inChapter(APP.stage)&&!APP.endTest;   /* 測試網址 ?ending=nobell 借來的關也不記 */   // 還沒放進章節的關（第三章 A 段的第七、八關，只有 ?test7、?test8 進得來）：打贏不記通關、不發東西（預覽頁跟正式版共用存檔）
   if(rec){if(!clearedSet()[APP.stage])APP.newStar=APP.stage;markCleared(APP.stage);}
   var drop=rec?grantDrop(APP.stage):null,ud=rec?grantUlt(APP.stage):null,gl=[];   // 只在結算畫面寫出來；回庭院後只有換裝按鈕上的小紅點，不再跳文字
   if(drop)gl.push('獲得飾品「'+FOX_ITEMS[drop].name+'」');
@@ -6619,7 +6688,7 @@ function fillInfo(){var st=CONFIG.stages[APP.stage],sg=CONFIG.sigils[APP.sigil],
   document.getElementById('pauseSub').textContent='計時和'+st.name+'的攻擊都停下來了。';
   var h='<h3>本關 BOSS</h3><div class="bossInfo"><div class="bn"><b>'+st.name+'</b><i class="a-'+st.attr+'">'+st.attrName+'</i></div>'+
     '<p class="lore">'+st.lore+'</p><dl><dt>弱點</dt><dd>'+(st.attr==='none'?'沒有弱點，任何屬性打她都是一般傷害':st.weak+'屬性打牠 1.5 倍傷害')+'</dd>'+(st.time?'<dt>時間</dt><dd>'+st.time+' 秒</dd>':'')+
-    '<dt>血量</dt><dd>'+st.hp.toLocaleString('zh-TW')+'</dd>'+
+    '<dt>血量</dt><dd>'+(st.segs?st.segs.length+' 段，每段 ':'')+st.hp.toLocaleString('zh-TW')+'</dd>'+
     '<dt>攻擊</dt><dd>每 '+st.interval+' 秒一次（狂暴後 '+st.enrageInterval+' 秒），每次打掉隊伍 '+Math.round(st.hitPct*100)+'% 血量</dd>'+
     '<dt>技能</dt><dd>'+st.skill+'</dd><dt>符印</dt><dd>'+sg.name+'：'+sg.desc+'</dd></dl></div><h3>狐狸大招</h3>';
   CONFIG.orbs.forEach(function(o,i){var key=ULT_KEYS[i],u=CONFIG.ult[key],alt=SES.ULT_SEL[i],c=new THREE.Color(o.color).lerp(new THREE.Color(0xffffff),0.25).getHexString();
@@ -6740,8 +6809,9 @@ function frame(now){
     animConvert({fromXY:foxScreen(2),col:new THREE.Color(0x8ef0b4),items:board.addRandomSpecials(ns,'sword')}).then(settle);}
   if(G.mode==='playing'){var evs=battle.tick(dt);MECHS.forEach(function(m){var c=battle.boss[m.key];if(m.update&&c)m.update(battle,dt,SES.mech[m.key],c,board,evs);});   // 各機制每格要看 session、盤面的（鬼火：倒數、炸開）
     evs.forEach(function(e){if(e.type==='charge')AudioFX.charge();MECHS.forEach(function(m){if(m.onEvent)m.onEvent(e,SES.mech[m.key],board);});MECH_VIEW_LIST.forEach(function(mv){if(mv.onEvent)mv.onEvent(e);});if(e.type==='attack'&&G.mode==='playing')onBossAttack(e);else if(e.type==='timeup'&&G.mode==='playing')onTimeUp();});}
+  FINAL.update();   // 最終戰：一條血打空了 → 換段（放大招的特寫中先等）
   BS.boss.charge(G.mode==='playing'&&battle.charging?Math.min(1,1-battle.atk/battle.boss.charge):0);
-  if(G.mode==='timeup'&&!S.locked&&inflight===0)showResult(battle.bossHp<=0?'win':'time');
+  if(G.mode==='timeup'&&!S.locked&&inflight===0)showResult(battle.bossHp<=0&&!battle.segBusy?'win':'time');   /* 最終戰：一條血打空在換段不算贏 */
   if(!S.locked&&battle.combo>0&&t-S.stableAt>A.comboReset){battle.combo=0;comboEl.classList.remove('show');}
   if(battle.combo>0&&G.mode!=='result'){var ck=S.locked?1:Math.max(0,1-(t-S.stableAt)/A.comboReset);if(Math.abs(ck-comboK)>0.004||(ck===1)!==(comboK===1)){comboK=ck;comboEl.style.setProperty('--k',ck.toFixed(3));comboEl.classList.toggle('low',ck<0.3);}}
   if(G.mode==='playing'&&!S.locked&&!S.hint&&!S.sel&&!drag&&t-S.lastAct>A.hintDelay){var mv=board.findMove();
@@ -6905,6 +6975,41 @@ var ENDING={
 };
 el.addEventListener('click',function(){if(cred&&cred.t>1.5)cred.skip=true;});
 
+// 最終戰（final.js，2026-09-29 第三章 C 段）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 第九關九尾：分段的規則在 battle.js（segStage、nextSeg、segReady），這裡是流程和演出（docs/03「最終戰與結局」；試玩場 lab/mech/final.js CK 打過）：
+//   FINAL.hud(st)       開戰時：BOSS 血條旁的血量寶石（剩幾條就幾顆；沒有分段的關藏起來）
+//   FINAL.update()      主迴圈每格叫：Battle 報了一條血打空（segDown），而且現在是打的時候（放大招的特寫中先等特寫演完）→ 播換段
+//   FINAL.down()        最後一條打空（真的打倒）：最後一顆寶石碎掉
+//   FINAL.endingKind()  打倒時走哪一種結局：還沒有信 'normal'；有信、隊伍裡有狐狸戴金鈴 'true'；有信、沒有狐狸戴金鈴 'nobell'
+// 換段（CK 2026-09-29）：盤面停、BOSS 不出手、時間停（G.mode＝'intro'）→ 一顆寶石碎成光點、BOSS 震一下 → 1.3 秒後換成下一段的招 →
+//   血條慢慢補滿（1.6 秒，不要一下子就滿）→ 最後一段一補滿就狂暴。換段不說話（只有橫幅寫第幾段）；背景換段（冥 → 丘 → 月）還沒做。
+//   前一段留在盤面上的東西不清（CK 想先試）；預告了、還沒放上去的招，各包在 place 收到 null 時自己丟掉。
+// 金鈴在第三段彈開媚惑、她講四句、血量停在最後一小截等台詞講完（03 同一節）還沒做。
+var barEl=document.getElementById('bossbar'),gemsEl=barEl.querySelector('.gems');
+var GEM=new THREE.Color(0xe9d8ff),WHITE=new THREE.Color(0xffffff);
+var BELL='gold-bell',FOXES=['fire','water','wood','light','dark','heart'],SLOTS=['head','neck','tail'];   // 金鈴（第三關妲己的掉落）；隊伍＝六隻狐狸
+var T_BREAK=1.3,T_FILL=1.6;   // 寶石碎掉之後幾秒換招、血條補滿花幾秒
+function gemXY(el){var r=el.getBoundingClientRect(),f=frameEl.getBoundingClientRect();return {x:r.left+r.width/2-f.left,y:r.top+r.height/2-f.top};}
+// 最右邊那顆還在的寶石碎掉：縮小淡掉（CSS）＋光點往外噴＋一圈白光
+function breakGem(){var list=gemsEl.querySelectorAll('i:not(.gone)'),g=list[list.length-1];if(!g)return;
+  var q=gemXY(g);g.classList.add('gone');AudioFX.unlock();ringFx(q.x,q.y,L.cs*0.1,L.cs*0.9,WHITE,0.4);
+  for(var k=0;k<10;k++){var a=k/10*Math.PI*2,sp=L.cs*(1.2+0.4*(k%3));emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp,0.5,L.cs*0.08,GEM,L.cs*4);}}
+// 換段：這一場（SES）中途換了（重新開始、回庭院）就不演下去
+function segDown(){var ses=SES,k=battle.seg+1,bp=bossScreen();G.mode='intro';
+  BS.boss.attack();addShake(12);AudioFX.enrage();ringFx(bp.x,bp.y,L.cs*0.6,L.cs*4,WHITE,0.6);breakGem();
+  showBanner('第 '+(k+1)+' 段「'+battle.boss.segs[k].name+'」');
+  return wait(T_BREAK).then(function(){if(SES!==ses)return null;
+    battle.nextSeg().forEach(function(e){MECH_VIEW_LIST.forEach(function(mv){if(mv.onEvent)mv.onEvent(e);});});   // 反照中換段：反照的畫面收掉
+    return tween(T_FILL,function(v){battle.bossHp=Math.round(battle.bossMax*v);updateBars();});})
+  .then(function(){if(SES!==ses)return;var en=battle.segReady();updateBars();if(G.mode==='intro')G.mode='playing';if(en)onEnrage();});}
+var FINAL={
+  hud:function(st){barEl.classList.toggle('segs',!!st.segs);gemsEl.innerHTML=st.segs?st.segs.map(function(){return '<i></i>';}).join(''):'';},
+  update:function(){if(battle.segDown&&G.mode==='playing'){battle.segDown=false;segDown();}},
+  down:function(){if(battle.boss.segs)breakGem();},
+  endingKind:function(){if(!Save.data().story.letter)return 'normal';
+    return FOXES.some(function(f){var o=Save.outfitOf(f)||{};return SLOTS.some(function(s){return o[s]===BELL;});})?'true':'nobell';}
+};
+
 // 入口：接在所有 module 的最後，組好除錯入口 window.__game、開始遊戲。
 // 執行順序：每個 module 第一行 import 前一個 module（照拆檔前的區塊順序串成一條鏈），這裡只接在鏈的最後一個後面。
 // ES module 深度優先、先執行被 import 的；照這條鏈，任何 module 被拜訪時後面的 module 都已在堆疊上，
@@ -6912,13 +7017,14 @@ el.addEventListener('click',function(){if(cred&&cred.t>1.5)cred.skip=true;});
 // 測試用
 window.__game={bcam:bcam,TEAM:TEAM,WARD:WARD,Save:Save,goWard:function(){goWard();},board:board,views:views,S:S,G:G,battle:battle,BS:BS,GARDEN:GARDEN,foxScreen:foxScreen,tryUlt:tryUlt,LETTER:LETTER,petals:petals,APP:APP,goTeam:function(k){goTeam(k);},startTrial:function(){startTrial();},
   attemptSwap:function(r1,c1,r2,c2){attemptSwap(r1,c1,r2,c2);},L:L,PFL:PFL,DLG:DLG,showResult:function(k){showResult(k);},
-  bossDown:function(){battle.bossHp=0;updateBars();onBossDown();}};   // 測試用：BOSS 直接倒下（走正式的倒下流程：台詞、霧、淡出、結算）
+  bossDown:function(){battle.bossHp=0;updateBars();onBossDown();},   // 測試用：BOSS 直接倒下（走正式的倒下流程：台詞、霧、淡出、結算）
+  hitBoss:function(d){var r=battle.hitBoss(d==null?battle.bossHp:d);updateBars();if(r.killed)onBossDown();return r;}};   // 測試用：打 BOSS d（不給＝剛好打空這一條；最終戰前兩條打空＝換段）
 layout();fillBoardStatic();updateBars();goGarden();startLoop();
-var QS=location.search;if(/[?&]test8/.test(QS)){APP.stage=7;startTrial();}else if(/[?&]test7/.test(QS)){APP.stage=6;startTrial();}else if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else if(/[?&]test5/.test(QS)){APP.stage=4;startTrial();}else if(/[?&]test4/.test(QS)){APP.stage=3;startTrial();}else if(/[?&]test3/.test(QS)){APP.stage=2;startTrial();}else if(/[?&]test2/.test(QS)){APP.stage=1;startTrial();}else if(/[?&]test/.test(QS)){APP.stage=0;startTrial();}else if(/[?&]team/.test(QS)){goTeam(1);}
-// ?letter（開發用）：最終 BOSS 還沒做，先用網址看一般結局：進一關戰鬥（預設第三關；可以跟 ?test～?test6 一起用），一開打就讓 BOSS 倒下 →
+var QS=location.search;if(/[?&]test9/.test(QS)){APP.stage=8;startTrial();}else if(/[?&]test8/.test(QS)){APP.stage=7;startTrial();}else if(/[?&]test7/.test(QS)){APP.stage=6;startTrial();}else if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else if(/[?&]test5/.test(QS)){APP.stage=4;startTrial();}else if(/[?&]test4/.test(QS)){APP.stage=3;startTrial();}else if(/[?&]test3/.test(QS)){APP.stage=2;startTrial();}else if(/[?&]test2/.test(QS)){APP.stage=1;startTrial();}else if(/[?&]test/.test(QS)){APP.stage=0;startTrial();}else if(/[?&]team/.test(QS)){goTeam(1);}
+// ?letter（開發用）：用網址直接看一般結局：進一關戰鬥（預設第三關；可以跟 ?test～?test9 一起用），一開打就讓 BOSS 倒下 →
 //   「……你是誰。」→ 信 → 回月下主島 →「挑戰任務已解鎖」。借來的這一關不記通關、不發掉落、不真的解鎖挑戰（信會記進存檔，換裝頁多「信」分頁）。
-//   ?ending=normal 同上；?ending=true 看真結局（倒下鈴響 →「……這鈴聲。」「……長大了呢。」→ 主島小狐狸看月亮、鈴響回頭 → 製作名單 → 樹上多小鈴鐺；鈴鐺只這次掛著、不記存檔）。
-var endQ=/[?&]ending=(normal|true)/.exec(QS),endK=endQ?endQ[1]:/[?&]letter/.test(QS)?'normal':null;
+//   ?ending=nobell 看有信沒戴鈴的兩句（之後照一般結算，借來的關不記）。?ending=normal 同上；?ending=true 看真結局（倒下鈴響 →「……這鈴聲。」「……長大了呢。」→ 主島小狐狸看月亮、鈴響回頭 → 製作名單 → 樹上多小鈴鐺；鈴鐺只這次掛著、不記存檔）。
+var endQ=/[?&]ending=(normal|true|nobell)/.exec(QS),endK=endQ?endQ[1]:/[?&]letter/.test(QS)?'normal':null;
 if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   var endIv=setInterval(function(){if(G.mode==='playing'){clearInterval(endIv);battle.bossHp=0;updateBars();onBossDown();}},100);}</script>
 </head>
@@ -6933,7 +7039,7 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
     <div id="timer"><b>60</b><small>秒</small></div><span></span>
   </div>
   <button id="muteBtn" type="button" aria-label="關閉音效"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3.5v11L6 12H3z" fill="currentColor" style="fill:var(--gold);stroke:none"/><path class="on" d="M13 7.2a4 4 0 0 1 0 5.6M15.2 5a7 7 0 0 1 0 10"/><path class="off" d="M13.5 7.5l5 5M18.5 7.5l-5 5"/></svg></button>
-  <div id="bossbar" class="hud bhud"><div class="brow"><span class="name">三尾狐</span><span class="attr">木</span><span class="rage">狂暴中</span><span class="num">12000</span></div><div class="bar"><i class="lag"></i><i class="fill"></i></div></div>
+  <div id="bossbar" class="hud bhud"><div class="brow"><span class="name">三尾狐</span><span class="attr">木</span><span class="gems" aria-hidden="true"></span><span class="rage">狂暴中</span><span class="num">12000</span></div><div class="bar"><i class="lag"></i><i class="fill"></i></div></div>
   <div id="bossCd" class="hud bhud hidden">8</div>
   <div id="teambar" class="hud bhud"><div class="trow"><span>隊伍血量<span id="chips"></span></span><span class="num">1000 / 1000</span></div><div class="bar"><i class="lag"></i><i class="fill"></i></div></div>
   <div id="combo" class="hud bhud"><b>0</b><span>Combo</span><i class="cring" aria-hidden="true"></i></div>
