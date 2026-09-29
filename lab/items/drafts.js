@@ -11,6 +11,7 @@ window.ITEM_LAB_DRAFTS = [
         var flat = new T.Vector3(d.x, 0, d.z).normalize();
         front.position.copy(flat).multiplyScalar(r * 0.98 + 0.02);
         front.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
+        front.rotateX(-0.4);
       }
       var flowerGeo = L.peachBlossomGeo(0xe9729f, 0xfbd6e3, 0xe9c47c, 0.1, 1.05, 0);
       var flowerMat = new T.MeshBasicMaterial({ vertexColors: true, side: T.DoubleSide });
@@ -38,18 +39,24 @@ window.ITEM_LAB_DRAFTS = [
 
   { id: 'longevity-lock', slot: 'neck', name: '長命鎖',
     desc: '給小孩子戴的長命鎖。塗山說，這是有人拜託她保管的。',
-    note: '銀色鎖牌，下方三條銀鍊各帶一顆小珠。',
+    note: '凹槽銀鎖與橫桿，下緣像雲；三條銀鍊各帶一顆小珠。',
     build: function (anchor, L) {
       var T = L.THREE, g = new T.Group(), sh = new T.Shape();
-      sh.moveTo(-0.062, 0.052); sh.quadraticCurveTo(-0.048, 0.067, -0.032, 0.06);
-      sh.quadraticCurveTo(0, 0.044, 0.032, 0.06);
-      sh.quadraticCurveTo(0.048, 0.067, 0.062, 0.052);
-      sh.lineTo(0.088, -0.034); sh.quadraticCurveTo(0.07, -0.069, 0.035, -0.066);
-      sh.quadraticCurveTo(0, -0.086, -0.035, -0.066);
-      sh.quadraticCurveTo(-0.07, -0.069, -0.088, -0.034); sh.closePath();
+      sh.moveTo(-0.074, 0.05); sh.quadraticCurveTo(-0.06, 0.076, -0.036, 0.068);
+      sh.lineTo(-0.036, 0.043); sh.quadraticCurveTo(0, 0.004, 0.036, 0.043);
+      sh.lineTo(0.036, 0.068); sh.quadraticCurveTo(0.06, 0.076, 0.074, 0.05);
+      sh.lineTo(0.081, -0.007); sh.quadraticCurveTo(0.105, -0.023, 0.088, -0.044);
+      sh.quadraticCurveTo(0.098, -0.073, 0.065, -0.075);
+      sh.quadraticCurveTo(0.051, -0.096, 0.023, -0.085);
+      sh.quadraticCurveTo(0, -0.108, -0.023, -0.085);
+      sh.quadraticCurveTo(-0.051, -0.096, -0.065, -0.075);
+      sh.quadraticCurveTo(-0.098, -0.073, -0.088, -0.044);
+      sh.quadraticCurveTo(-0.105, -0.023, -0.081, -0.007); sh.closePath();
       var silver = L.toon(0xaebfcc, { emissive: 0x213346 });
       var plateGeo = new T.ExtrudeGeometry(sh, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2 });
       var plate = L.itemPart(plateGeo, silver); g.add(plate);
+      var bar = L.itemPart(new T.CylinderGeometry(0.008, 0.008, 0.09, 10), silver);
+      bar.rotation.z = Math.PI / 2; bar.position.set(0, 0.064, 0.026); g.add(bar);
       var hole = L.SPH_LO.clone(); hole.applyMatrix4(new T.Matrix4().makeScale(0.012, 0.012, 0.003));
       hole.translate(0, 0.01, 0.031);
       var key = new T.BoxGeometry(0.009, 0.025, 0.004); key.translate(0, -0.009, 0.031);
@@ -79,15 +86,16 @@ window.ITEM_LAB_DRAFTS = [
     build: function (anchor, L) {
       var T = L.THREE, H = L.HEAD_TOP, g = new T.Group();
       var gold = L.toon(0xe7bd67, { emissive: 0x624011 });
-      var rim = L.itemPart(L.SPH_LO, gold); rim.scale.set(0.079, 0.079, 0.012); g.add(rim);
+      var mirror = new T.Group(); mirror.rotation.x = -0.52; g.add(mirror);
+      var rim = L.itemPart(L.SPH_LO, gold); rim.scale.set(0.079, 0.079, 0.012); mirror.add(rim);
       var face = L.itemPart(L.SPH_LO, L.toon(0xb8deec, { emissive: 0x406b82 }), false);
-      face.position.z = 0.012; face.scale.set(0.064, 0.064, 0.005); g.add(face);
+      face.position.z = 0.012; face.scale.set(0.064, 0.064, 0.005); mirror.add(face);
       var glint = new T.Mesh(L.SPH_LO, new T.MeshBasicMaterial({ color: 0xfff7e4, transparent: true, opacity: 0.68, depthWrite: false }));
       glint.scale.set(0.011, 0.052, 0.003); glint.position.set(-0.04, 0, 0.019);
-      glint.rotation.z = -0.35; g.add(glint);
+      glint.rotation.z = -0.35; mirror.add(glint);
       var pendants = [];
       [-0.042, 0, 0.042].forEach(function (x, i) {
-        var swing = new T.Group(); swing.position.set(x, -0.074, 0.008);
+        var swing = new T.Group(); swing.position.set(x, -0.074, 0.028);
         var stem = new T.BoxGeometry(0.004, 0.014, 0.004); stem.translate(0, -0.008, 0);
         var tag = new T.BoxGeometry(0.019, 0.057 + (i === 1 ? 0.01 : 0), 0.007);
         tag.translate(0, -0.044, 0);
