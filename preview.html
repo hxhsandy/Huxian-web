@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <script>/* 預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
-   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆。 */
-(function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
+   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
+(function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
@@ -374,6 +374,14 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* 全螢幕（2026-09-29 第三輪）：上面那層深色從安全框底再往下接到螢幕最底（底部橫條後面），顏色＝漸層最底的那一色（--shEnd 跟著各關的漸層改）。
    沒有安全區時高度是 0、什麼都不畫；框裡的漸層、字、按鈕都沒動。 */
 #teamHud::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--safe-bottom);background:rgba(var(--shade),var(--shEnd,.9))}
+/* 冥界封面缺字（flow.js 的 garbleHtml）：□█ 換掉的字、淡掉的字、偶爾錯位抖一下的字（每個字的延遲不同） */
+.gb{display:inline-block;font-style:normal}
+.gb.f{opacity:.3}
+.gb.j{animation:gbJit 3.1s steps(1,end) infinite;animation-delay:var(--d,0s)}
+@keyframes gbJit{0%,86%,100%{transform:none;opacity:1}88%{transform:translate(2px,-1px);opacity:.55}91%{transform:translate(-2px,1px)}94%{transform:translate(1px,0);opacity:.8}}
+/* 第七關青燐、第八關夢婆的封面（暫時）：夜晚，字的強調色是冥界綠／忘川青藍 */
+#teamHud[data-stage="6"]{--acc:#b8ff4a;--acc2:#8fe07a;--shade:6,20,16}
+#teamHud[data-stage="7"]{--acc:#9ad8ff;--acc2:#e0a0b0;--shade:8,14,34}
 #teamHud p,#teamHud dl,#teamHud h1{margin:0}
 #backBtn{position:absolute;left:12px;top:9px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--gold);font-size:21px;line-height:1;pointer-events:auto;padding:0 0 3px;z-index:2}
 .cvTop{position:absolute;left:56px;right:58px;top:17px;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.24em;color:rgba(244,236,216,.7);text-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -619,8 +627,7 @@ var CONFIG={
      skill:'天鏡：開場 4 秒射出第一批小圓鏡，之後每 12 秒 2 面（狂暴後每 9 秒 3 面），最多 6 面。鏡子不能交換、不能連線；旁邊有珠被消掉會先裂開，再一次才碎掉、反光打回天狐。盤面上的鏡子全部打碎，天狐就被自己的光照到，接下來 6 秒你的傷害加倍。',
      shard:{first:4,interval:12,enrageInterval:9,count:2,enrageCount:3,max:6,bonus:100,glare:6,glareMul:2,hits:2},
      cover:{deck:'雲上天門',head:'照見你的樣子<br>也照見你的來處',tag:'天門的鏡子　從不說謊',skill:'天鏡',lore:'守在天門，替每一隻路過的狐狸照一照鏡子。',brief:'小圓鏡蓋住珠子，旁邊消兩次才碎；全碎了傷害 ×2。'}},
-    // 第三章冥界（2026-09-29 A 段：先把機制搬進來、能打；庭院的島、封面、最終戰在 B、C 段）。還沒放進 chapters，所以借第一章的夜晚場景，
-    //   打贏不記通關（見 flow.js 的 showResult）；只有測試網址 ?test7、?test8 進得來。血量、時限先比照第五、六關，屬性先寫 none（遊星問 CK）、掉落和挑戰先空著（繪星的第三章飾品還在做）。
+    // 第三章冥界（2026-09-29 A 段把機制搬進來、B 段放進 chapters＋庭院的島＋封面；最終戰在 C 段）。戰鬥場景先借第一章的夜晚（冥界的天空之後做）。血量、時限先比照第五、六關，屬性先寫 none（遊星問 CK）、掉落和挑戰先空著（繪星的第三章飾品還在做）。
     //   名字、封面文字、介紹照 docs/03_design_story.md 的草稿；外觀是現有狐狸模型換色（render/battle.js 的 LATE_BOSS），美化階段再做。
     // 第七關：青燐的鬼火（src/mechanics/wisp.js）。CK 2026-09-29 試玩場定的數字：每 12 秒 3 團、狂暴後每 9 秒 4 團，倒數 10 秒（狂暴後 8 秒），
     //   只附在「換一步就消得到」的珠上（fair），炸一次扣隊伍 50（5%），盤面最多 4 團；開場 first 秒第一次
@@ -642,8 +649,10 @@ var CONFIG={
   //   look 是這章的天空與打光（'night' 月下／'day' 白天）；tree 是白天主島那棵花樹的花（sakura 粉色樹冠白花／peach 桃花／pear 梨花／jade 青葉白花）
   chapters:[
     {name:'月下',place:'月下小院',stages:[0,1,2],col:0xffd98a,look:'night'},   // place：地圖上的章名、主島左上角的字（要不一樣的話可以另外給 title）
-    {name:'青丘',place:'青丘',stages:[3,4,5],col:0xffb48f,look:'day',tree:'sakura',wip:true},   // wip：這章的關卡還沒做完，最後一關先不接往下一章的傳送陣（第二章打完之前看不到第三章）
-    {name:'冥界',place:'冥界',stages:[],col:0xa9e0c8}
+    {name:'青丘',place:'青丘',stages:[3,4,5],col:0xffb48f,look:'day',tree:'sakura'},
+    // 冥界（2026-09-29 第三章 B 段）：第七、八關；第九關最終戰 C 段再加（先留位置）。wip：這章的關卡還沒做完，最後一關先不接往下一章的傳送陣
+    //   garble：第一次進去（還沒打倒）時封面的名字、介紹、標語是缺字和亂碼（docs/03「劇情」第 3 條；flow.js 的 coverGarbled）
+    {name:'冥界',place:'冥界',stages:[6,7],col:0xa9e0c8,wip:true,garble:true}
   ],
   // 信（2026-09-29；docs/06_drops.md「信」、03_design_story.md 第 5 條）：第一次打倒最終 BOSS 拿到。信封上不寫字；lines＝信裡的三行（直書）。
   //   name／desc＝換裝頁「信」那一格的名字和介紹。字都是暫定，改這裡就好。演出在 src/letter.js。
@@ -1530,6 +1539,13 @@ var TUSHAN={colors:{fur:0xfdfbf6,chest:0xffffff,paw:0xe6d3d3,nose:0x6a3a48,earIn
   eyeGrad:[0x2fc497,0x0c4634],tails:5,tailFan:[[1.35,0.58,0],[0.7,0.3,0.28],[0,0,0.42],[-0.7,-0.3,0.28],[-1.35,-0.58,0]],glow:0x7fe6c8};
 var TIANHU={colors:{fur:0xf8ecd0,chest:0xfffbf0,paw:0xd6b574,nose:0x7a5530,earIn:0xfbe3b4,earTip:0x5aa8e6,tip:0x86c8f2,blush:0xf2ae8a,mark:0x4a9ce0,outline:0xe8c27a},
   eyeGrad:[0xe8a41c,0x6a3c08],tails:6,tailFan:[[1.55,0.66,0],[1.0,0.42,0.3],[0.34,0.14,0.46],[-0.34,-0.14,0.46],[-1.0,-0.42,0.3],[-1.55,-0.66,0]],glow:0xffd870};
+// 第七關青燐（七尾）、第八關夢婆（八尾）：2026-09-29 第三章的暫時外觀——現有狐狸模型換色（docs/03「名字與樣子」），戰鬥（render/battle.js）和封面（render/team.js）共用；造型、道具是美化階段的事
+//   青燐：墨綠毛、胸口淡玉色，尾尖、紋路、眼睛是冥界綠（黃綠螢光 #b8ff4a）；夢婆：藍身體、尾巴紅色漸層（tipFrac 大、tipSoft）
+function fanOf(n){var f=[];for(var i=0;i<n;i++){var u=n>1?i/(n-1)*2-1:0;f.push([-1.6*u,-0.68*u,0.46*(1-Math.abs(u))]);}return f;}   // n 條尾巴攤開成扇子（照天狐六尾的樣子）
+var QINGLIN={colors:{fur:0x245242,chest:0xd6ecdc,paw:0x16362b,nose:0x0d2219,earIn:0x6fbf8a,earTip:0xb8ff4a,tip:0xb8ff4a,blush:0x9fe8a8,mark:0xb8ff4a,eye:0x9dff3a},
+  tails:7,tailFan:fanOf(7),tipFrac:0.45,glow:0xb8ff4a};
+var MENGPO={colors:{fur:0x4f6fc8,chest:0xe6ecfb,paw:0x2e4688,nose:0x1a2750,earIn:0xf3b3c0,earTip:0xd8344a,tip:0xd8344a,blush:0xf0a4b4,mark:0xd8344a},
+  tails:8,tailFan:fanOf(8),tipFrac:0.62,glow:0xff6a6a};
 function createFox(o){
   o=o||{};
   var C={fur:0xe58a45,chest:0xf6ecdc,paw:0x3b2519,nose:0x3b2519,earIn:0xf3c9ab,earTip:0x3b2519,tip:0xf6ecdc,blush:0xf2a4a0,mark:0x9a78d6,outline:0xd6b56f,eye:0x1d1420};
@@ -1833,14 +1849,9 @@ var BS=(function(){
     //   第五關塗山（五尾，胸前戴著紅繩的結）、第六關天狐（六尾，尾巴像光芒一樣散開）：2026-09-28 的暫時外觀（見 TUSHAN、TIANHU）
     4:function(){return makeBoss(TUSHAN.colors,TUSHAN.glow,{tails:TUSHAN.tails,tailFan:TUSHAN.tailFan,tipFrac:0.45,tipSoft:true,eyeGrad:TUSHAN.eyeGrad,outfit:{neck:'red-cord'}});},
     5:function(){return makeBoss(TIANHU.colors,TIANHU.glow,{tails:TIANHU.tails,tailFan:TIANHU.tailFan,tipFrac:0.5,tipSoft:true,eyeGrad:TIANHU.eyeGrad});},
-    //   第七關青燐（七尾）、第八關夢婆（八尾）：2026-09-29 第三章 A 段的暫時外觀——現有狐狸模型換色（docs/03「名字與樣子」），造型、道具是美化階段的事
-    //   青燐：墨綠毛、胸口淡玉色，尾尖、紋路、眼睛是冥界綠（黃綠螢光 #b8ff4a）；夢婆：藍身體、尾巴紅色漸層（tipFrac 大、tipSoft）
-    6:function(){return makeBoss({fur:0x245242,chest:0xd6ecdc,paw:0x16362b,nose:0x0d2219,earIn:0x6fbf8a,earTip:0xb8ff4a,tip:0xb8ff4a,blush:0x9fe8a8,mark:0xb8ff4a,eye:0x9dff3a},0xb8ff4a,
-      {tails:7,tailFan:fanOf(7),tipFrac:0.45,tipSoft:true});},
-    7:function(){return makeBoss({fur:0x4f6fc8,chest:0xe6ecfb,paw:0x2e4688,nose:0x1a2750,earIn:0xf3b3c0,earTip:0xd8344a,tip:0xd8344a,blush:0xf0a4b4,mark:0xd8344a},0xff6a6a,
-      {tails:8,tailFan:fanOf(8),tipFrac:0.62,tipSoft:true});}};
-  // n 條尾巴攤開成一把扇子（左右對稱、兩邊的往下、中間的往後）：照天狐六尾的樣子排
-  function fanOf(n){var f=[];for(var i=0;i<n;i++){var u=n>1?i/(n-1)*2-1:0;f.push([1.6*u*-1,0.68*u*-1,0.46*(1-Math.abs(u))]);}return f;}
+    //   第七關青燐（七尾）、第八關夢婆（八尾）：2026-09-29 第三章的暫時外觀（見 characters.js 的 QINGLIN、MENGPO）
+    6:function(){return makeBoss(QINGLIN.colors,QINGLIN.glow,{tails:QINGLIN.tails,tailFan:QINGLIN.tailFan,tipFrac:QINGLIN.tipFrac,tipSoft:true});},
+    7:function(){return makeBoss(MENGPO.colors,MENGPO.glow,{tails:MENGPO.tails,tailFan:MENGPO.tailFan,tipFrac:MENGPO.tipFrac,tipSoft:true});}};
   var boss=bossList[0];
   var FIRECOL=[[0xa46cff,0xd88cff,0xb07cff],[0xff4f86,0xb04bff,0xff5f96],[0xff6fd0,0xc070ff,0xff8ee0],[0xff8fbd,0xffc2da,0xff9cc6],[0x5fd8b8,0xb8fbe6,0x7fe8cc],[0xffc44a,0xfff0b0,0xffd66e],[0x9dff3a,0xe0ffb0,0xb8ff4a],[0xff5a6a,0xffc0b8,0xff7a7a]];   // 第七關冥界綠、第八關紅
   // 隊伍：六隻狐狸（同一個模型換毛色與小配件）
@@ -2637,7 +2648,11 @@ var ISLES=[
   {isle:[-1.8,6.75,-11.2],col:0xffa9c8,ink:0xf05f97,dark:true,day:true,lamp:0xffc6dc,deco:'dayTemp'},
   // 第五關塗山、第六關天狐（2026-09-28 先做玩法）：放在第一章第二、三關的位置；島先用主島的複製，造景暫時。傳送陣：塗山玉綠、天狐金色（畫法同第四關）
   {isle:[3.3,2.6,-14.5],col:0x9fe8d2,ink:0x2fae8c,dark:true,day:true,lamp:0xb8f4e2,deco:'dayTemp',bush:0xf4f1ea},
-  {isle:[8.8,3.4,-16.5],col:0xffe08a,ink:0xe0a022,dark:true,day:true,lamp:0xffe6a0,deco:'dayTemp',bush:0xf2c65a}
+  {isle:[8.8,3.4,-16.5],col:0xffe08a,ink:0xe0a022,dark:true,day:true,lamp:0xffe6a0,deco:'dayTemp',bush:0xf2c65a},
+  // 第三章冥界（2026-09-29 B 段，暫時的島）：放在第一章第一、二關的位置、用夜晚的石台（冥界還沒有自己的 look），造景借竹林、池塘；
+  //   傳送陣與燈：青燐冥界綠、夢婆忘川的青藍。CK 之後可能把整張地圖改成「一片冥界河、島浮在河上」，所以先不做細
+  {isle:[-1.8,6.75,-11.2],col:0xb8ff4a,lamp:0xd2ff9a,deco:'bamboo'},
+  {isle:[3.3,2.6,-14.5],col:0x7ad8ff,ink:0x0c2238,dark:true,lamp:0xb8ecff,deco:'pond'}
 ];
 var ISLE_S=0.82,ISLE_TY=0.95,ISLE_R=0.84,ISLE_PHI=1.27,BACK_AT=[-0.72,0.62],NEXT_AT=[0.72,0.62],HUB_AT=[1.12,0.72],HUB_BACK_AT=[-1.12,0.72];
 var stoneMat=toon(0x7483ab),stoneDk=toon(0x3f4870),olL=outlineMat(0xd9b46a,0.014),goldM=toon(0xe6c47a,{emissive:0x6a5020});
@@ -3855,15 +3870,19 @@ var TEAM=(function(){
   var tCan=document.createElement('canvas'),tTex=new THREE.CanvasTexture(tCan);tTex.minFilter=THREE.LinearFilter;tTex.generateMipmaps=false;
   var tMesh=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:tTex,transparent:true,depthWrite:false,fog:false}));tMesh.raycast=noRay;cam.add(tMesh);
   var TITLE_D=8.2,TL={top:44,h:110,w:360};
-  function drawTitle(){var st=CONFIG.stages[cur],pal=STAGES[cur].pal,w=Math.round(TL.w*PR),h=Math.round(TL.h*PR),g=tCan.getContext('2d');
+  // 冥界封面缺字（config.js 的 chapters[].garble，flow.js 的 coverGarbled）：名字其中一個字換成□或█、另一個字淡掉；gl＞0 時每個字錯位（偶爾抖一下，見 update）
+  function drawTitle(gl){var st=CONFIG.stages[cur],pal=STAGES[cur].pal,w=Math.round(TL.w*PR),h=Math.round(TL.h*PR),g=tCan.getContext('2d');
     tCan.width=w;tCan.height=h;g.clearRect(0,0,w,h);
-    var txt=st.name,n=txt.length,gap=n<=2?0.62:n===3?0.2:0.06,fs=Math.min(h*0.9,w*0.98/(n+(n-1)*gap)),step=fs*(1+gap),x0=(w-(n*fs+(n-1)*gap*fs))/2+fs/2;
+    var txt=st.name.split(''),al=txt.map(function(){return 1;}),gb=coverGarbled(cur);
+    if(gb){var q=cur%txt.length;txt[q]=cur%2?'█':'□';al[(q+1)%txt.length]=0.4;}
+    var n=txt.length,gap=n<=2?0.62:n===3?0.2:0.06,fs=Math.min(h*0.9,w*0.98/(n+(n-1)*gap)),step=fs*(1+gap),x0=(w-(n*fs+(n-1)*gap*fs))/2+fs/2;
     g.font='900 '+fs.toFixed(1)+'px '+TITLE_FONT;g.textAlign='center';g.textBaseline='middle';
     g.shadowColor=pal.glow;g.shadowBlur=fs*0.16;g.fillStyle=pal.title;
-    for(var k=0;k<n;k++)g.fillText(txt[k],x0+k*step,h*0.54);
-    g.shadowBlur=0;for(k=0;k<n;k++)g.fillText(txt[k],x0+k*step,h*0.54);
+    function row(){for(var k=0;k<n;k++){g.globalAlpha=al[k];var dx=gl?Math.sin(k*7.3+gl*13)*fs*0.08:0,dy=gl?Math.cos(k*3.1+gl*9)*fs*0.05:0;g.fillText(txt[k],x0+k*step+dx,h*0.54+dy);}g.globalAlpha=1;}
+    row();g.shadowBlur=0;row();
     tTex.needsUpdate=true;}
-  (function(){var set={};CONFIG.stages.forEach(function(s){var cv=s.cover||{};(s.name+(cv.deck||'')+(cv.head||'')+(cv.tag||'')+(cv.skill||'')).replace(/<br>|\s/g,'').split('').forEach(function(c){set[c]=1;});});
+  var glT=2.2,glOn=0;   // 缺字標題偶爾錯位抖一下：每 2～3 秒抖 0.14 秒
+  (function(){var set={'□':1,'█':1};CONFIG.stages.forEach(function(s){var cv=s.cover||{};(s.name+(cv.deck||'')+(cv.head||'')+(cv.tag||'')+(cv.skill||'')).replace(/<br>|\s/g,'').split('').forEach(function(c){set[c]=1;});});   // □█：冥界封面缺字用
     var txt=Object.keys(set).join('');
     var ln=document.createElement('link');ln.rel='stylesheet';ln.href='https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@700;900&display=swap&text='+encodeURIComponent(txt);
     ln.onload=function(){if(document.fonts&&document.fonts.load)document.fonts.load('900 64px "Noto Serif HK"',txt).then(function(){drawTitle();}).catch(function(){});};
@@ -3928,8 +3947,17 @@ var TEAM=(function(){
     {pal:{title:'#fff8ec',glow:'rgba(206,104,28,.75)'},dayCv:true,
      sky:[0x3b5cb6,0xf2a87c,0xffd9a8],skyBand:[0.0,0.32],glow:0x7a5030,fog:[0xffe8d0,14,40],moon:{x:0.16,y:0.72,s:0.34,tex:'sun',col:0xffffff,halo:0xffd8b0,halo1:0,halo2:0.1,big:2.2},
      light:{hemi:[0x7486c6,0x1a1f3a,.6],amb:[0x2a3566,.35],key:[0xfff0cc,.9],rim:[0x8496d8,.42,[2,4,9]]},
-     fox:{x:0.63,y:0.71,d:6,s:0.82,rot:[0,-0.3,0],headYaw:0.1},stars:[0xffffff,0xfff2d6]}];
-  var FIRECOL=[[0xa46cff,0xd88cff,0xb07cff],[0xff4f86,0xb04bff,0xff5f96],[0xff6fd0,0xc070ff,0xff8ee0],[0xff8fbd,0xffc2da,0xff9cc6],[0x5fd8b8,0xb8fbe6,0x7fe8cc],[0xffc44a,0xfff0b0,0xffd66e]];
+     fox:{x:0.63,y:0.71,d:6,s:0.82,rot:[0,-0.3,0],headYaw:0.1},stars:[0xffffff,0xfff2d6]},
+    // 第七關青燐、第八關夢婆（2026-09-29 第三章 B 段，暫時的封面，見 buildDayTemp）：夜晚。青燐墨綠的天、冥界綠的月暈；夢婆深藍的天、青藍的月暈（忘川）。燈光一樣是月光
+    {pal:{title:'#ecffd8',glow:'rgba(160,255,90,.55)'},
+     sky:[0x04100c,0x0a241c,0x12362a],skyBand:[-0.04,0.3],glow:0x1c3a2c,fog:[0x08201a,10,30],moon:{x:0.8,y:0.22,s:0.32,tex:'moon',col:0xe8ffe0,halo:0xb8ff4a,halo1:0.035,halo2:0.2,big:2.4},
+     light:{hemi:[0x7486c6,0x1a1f3a,.6],amb:[0x2a3566,.35],key:[0xfff0cc,.9],rim:[0x8496d8,.42,[2,4,9]]},
+     fox:{x:0.62,y:0.7,d:6,s:0.84,rot:[0,-0.32,0],headYaw:0.12},stars:[0xd8ffc0,0xb8ff4a]},
+    {pal:{title:'#eef6ff',glow:'rgba(120,200,255,.55)'},
+     sky:[0x050c24,0x0d1d44,0x173058],skyBand:[-0.04,0.3],glow:0x1c2c52,fog:[0x0b1a3a,10,30],moon:{x:0.2,y:0.24,s:0.32,tex:'moon',col:0xfff6e6,halo:0x9ad8ff,halo1:0.035,halo2:0.2,big:2.4},
+     light:{hemi:[0x7486c6,0x1a1f3a,.6],amb:[0x2a3566,.35],key:[0xfff0cc,.9],rim:[0x8496d8,.42,[2,4,9]]},
+     fox:{x:0.63,y:0.71,d:6,s:0.82,rot:[0,-0.3,0],headYaw:0.1},stars:[0xfff0cc,0xcfe8ff]}];
+  var FIRECOL=[[0xa46cff,0xd88cff,0xb07cff],[0xff4f86,0xb04bff,0xff5f96],[0xff6fd0,0xc070ff,0xff8ee0],[0xff8fbd,0xffc2da,0xff9cc6],[0x5fd8b8,0xb8fbe6,0x7fe8cc],[0xffc44a,0xfff0b0,0xffd66e],[0x9dff3a,0xe0ffb0,0xb8ff4a],[0xff5a6a,0xffc0b8,0xff7a7a]];
 
   // 一隻 BOSS：外面包一層 holder 管位置、朝向與前後傾（YXZ），裡面是 createFox 做的狐狸
   function makeHolder(G,f){var h=new THREE.Group();h.rotation.order='YXZ';h.add(f.group);f.look(0,0);G.add(h);
@@ -4760,7 +4788,12 @@ var TEAM=(function(){
     4:{fox:{f:TUSHAN,head:0.08,tilt:0.12,eyeOpen:0.16,outfit:{neck:'red-cord'},tipFrac:0.45},rock:{top:0x8c9098,edge:0xc9c6cc,side:0x777282,under:0x4c4758,moss:[0x9fdcc0,0xb4e6cf,0x8ccfae,0xc6efdc]},moss:0.7,
        fall:{cols:[0xffffff,0xeefaf5,0xd6f2e6,0xfff0f2],size:0.06},fogCol:[0xffffff,0xe9f7f1]},
     5:{fox:{f:TIANHU,head:0.2,tilt:-0.1,tipFrac:0.5},rock:{top:0x9a8a86,edge:0xd4c2b6,side:0x86726e,under:0x54444c,moss:[0xf2c65a,0xf6d27a,0xe9b64a,0xfbe3a0]},moss:0,
-       fall:{cols:[0xffe39a,0xfff3c8,0xffd070,0xfff9e6],size:0.05},fogCol:[0xffffff,0xffe2cc]}};
+       fall:{cols:[0xffe39a,0xfff3c8,0xffd070,0xfff9e6],size:0.05},fogCol:[0xffffff,0xffe2cc]},
+    // 第七、八關（2026-09-29 第三章 B 段）：借同一個暫時封面，夜晚的石台（青燐墨綠、夢婆藍灰）、飄的是冥界綠的火星／青藍的水光，霧是深色的；沒有光環、鏡子（大鬼火、湯碗是美化階段的事）
+    6:{fox:{f:QINGLIN,head:0.12,tilt:-0.08,tipFrac:QINGLIN.tipFrac},rock:{top:0x3a4a48,edge:0x6f8a80,side:0x2c3a38,under:0x18221f,moss:[0x5aa86a,0x7cc488,0x4a9058,0x9ad8a0]},moss:0.5,
+       fall:{cols:[0xb8ff4a,0xd8ffa0,0x9dff3a,0xefffd0],size:0.045},fogCol:[0x2e5a48,0x1a3a30]},
+    7:{fox:{f:MENGPO,head:0.2,tilt:0.1,tipFrac:MENGPO.tipFrac},rock:{top:0x46506a,edge:0x7e8aa8,side:0x363e58,under:0x1c2236,moss:[0x6a8ab8,0x88a4cc,0x5a78a8,0xa8bcdc]},moss:0.3,
+       fall:{cols:[0x9ad8ff,0xd8f0ff,0x7ac0f0,0xf0f8ff],size:0.04},fogCol:[0x3a5a88,0x1c2c52]}};
   // 霧：[u, v, 距離, 寬（畫面寬的倍數）, 第幾個顏色, 不透明度]
   var DAYCV_FOG=[[0.08,0.9,5,1.3,0,1],[0.45,0.96,4.4,1.3,0,1],[0.86,0.93,5.5,1.3,0,0.95],[1.05,0.84,8.5,1.2,1,0.8],[-0.05,0.8,8.5,1.3,1,0.85],[0.3,0.86,11,1.5,0,0.9],[0.7,0.88,11,1.4,0,0.85],
     [0.55,1.0,3.4,0.9,1,0.75],[0.18,1.0,3.4,0.9,0,0.85],[0.95,0.76,14,1.1,0,0.6],[0.1,0.72,15,1.0,1,0.55],[0.02,0.97,4,0.8,0,0.9],[0.98,1.0,4,0.8,1,0.8]];
@@ -4781,7 +4814,7 @@ var TEAM=(function(){
         for(var j=0;j<r[2];j++){var a=j/r[2]*TAU,dt2=new THREE.Mesh(new THREE.CircleGeometry(0.026,12),dm);dt2.position.set(Math.cos(a)*r[0],Math.sin(a)*r[0],0.001);g.add(dt2);}
         B.anim.push(function(dt){g.rotation.z+=dt*r[3];});});
       B.pillar=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:PILLAR_TEX,color:0xfffbf0,transparent:true,opacity:0.75,depthWrite:false,fog:false}));G.add(B.pillar);}
-    else {   // 大圓鏡：銀白鏡面帶一點夕陽的橘、一道慢慢掃過的反光，金色鏡框、一圈往外的短光芒
+    else if(k===5){   // 大圓鏡：銀白鏡面帶一點夕陽的橘、一道慢慢掃過的反光，金色鏡框、一圈往外的短光芒（第七、八關沒有）
       var mm=new THREE.ShaderMaterial({uniforms:{time:{value:0}},transparent:true,depthWrite:false,fog:false,
         vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
         fragmentShader:['uniform float time; varying vec2 vUv;','void main(){ vec2 p=vUv*2.0-1.0; float r=length(p);',
@@ -4803,7 +4836,7 @@ var TEAM=(function(){
     return B;}
   function buildTushan(G){return buildDayTemp(G,4);}
   function buildTianhu(G){return buildDayTemp(G,5);}
-  var BUILD=[buildBamboo,buildMaple,buildWisteria,buildPeach,buildTushan,buildTianhu];
+  var BUILD=[buildBamboo,buildMaple,buildWisteria,buildPeach,buildTushan,buildTianhu,function(G){return buildDayTemp(G,6);},function(G){return buildDayTemp(G,7);}];
   function ensure(k){if(built[k])return built[k];var G=new THREE.Group();sc.add(G);var B=BUILD[k](G);B.G=G;built[k]=B;if(B.layout)B.layout();placeStage(k);return B;}
   function placeStage(k){var B=built[k];if(!B)return;var P=STAGES[k].fox,v=atPx(P.x*VW,P.y*VH,P.d);
     B.boss.h.position.copy(v);B.boss.h.scale.setScalar(P.s);B.boss.h.rotation.set(P.rot[0],P.rot[1],P.rot[2]);B.boss.f.look(0,P.headYaw);
@@ -4846,6 +4879,7 @@ var TEAM=(function(){
     ndc.set(p.x/L.W*2-1,-(p.y/L.H)*2+1);ray.setFromCamera(ndc,cam);
     if(ray.intersectObject(B.boss.hit,false).length){B.boss.f.attack();pokeT=1;([AudioFX.hop,AudioFX.slash,AudioFX.charm,AudioFX.bloom,AudioFX.ward,AudioFX.mirror][cur]||AudioFX.hop)();}});
   function update(dt,t){var B=built[cur];if(!B)return;
+    if(coverGarbled(cur)){glT-=dt;if(glOn>0){glOn-=dt;if(glOn<=0)drawTitle();}else if(glT<=0){glT=2+((t*7.1)%1);glOn=0.14;drawTitle(t+0.5);}}
     sparks.forEach(function(s){var u=s.userData,k=Math.pow(Math.max(0,Math.sin(t*u.sp+u.ph)),3);s.scale.set(u.s*(0.4+0.6*k),u.s*(0.4+0.6*k),1);s.material.opacity=k*0.9;});
     halo2.material.opacity=(halo2.userData.o||0.28)*(0.92+0.1*Math.sin(t*0.8));
     cloudS.forEach(function(c,j){if(c.visible)c.position.x=c.userData.bx+Math.sin(t*0.05+j*2)*0.6;});
@@ -6307,7 +6341,7 @@ function showGToast(msg,dur){gToastEl.querySelector('span').textContent=msg;gToa
 // 關卡資訊框：長在石燈上方，把星星往上頂；點框外任何地方就收回
 var boxK=-1,boxOpen=false,boxT=0;
 function openBox(k){var st=CONFIG.stages[k];clearTimeout(boxT);boxK=k;boxOpen=true;
-  document.getElementById('lvTitle').textContent=st.title;document.getElementById('lvName').textContent=st.name;
+  document.getElementById('lvTitle').textContent=st.title;if(coverGarbled(k))document.getElementById('lvName').innerHTML=garbleHtml(st.name);else document.getElementById('lvName').textContent=st.name;   // 冥界還沒打倒：名字缺字（技能說明照寫）
   var at=document.getElementById('lvAttr');at.textContent=st.attrName;at.className='a-'+st.attr;
   document.getElementById('lvWeakRow').innerHTML=weakHtml(st);document.getElementById('lvSkill').textContent=st.skill;
   lvBoxEl.classList.toggle('done',!!clearedSet()[k]);
@@ -6363,13 +6397,26 @@ CONFIG.sigils.forEach(function(sg,i){var b=document.createElement('button');b.ty
 function coverSkill(st){
   for(var mi=0;mi<MECH_VIEW_LIST.length;mi++){var mv=MECH_VIEW_LIST[mi];if(mv.coverSkill&&st[mv.key])return mv.coverSkill(st[mv.key]);}   // 已經搬成一包的機制：說明寫在各包的畫法裡
   return '血量低於 '+Math.round(st.enrageAt*100)+'% 會狂暴，出手間隔從 '+st.interval+' 秒縮短成 '+st.enrageInterval+' 秒。';}
+// 冥界封面缺字（docs/03「劇情」第 3 條）：這一章 garble（config.js 的 chapters），而且這一關還沒打倒 → 封面的名字、介紹、標語是缺字和亂碼
+//   （□、█、字淡出、偶爾錯位抖動）；打倒之後恢復完整。數字和技能說明不缺字（暫停選單的「關卡與技能介紹」也完整）。3D 大標題在 render/team.js 的 drawTitle
+function coverGarbled(k){if(!Save||!CONFIG.stages[k])return false;var ch=CONFIG.chapters[GARDEN.chapterOfStage(k)];return !!(ch&&ch.garble&&CONFIG.chapters[GARDEN.chapterOfStage(k)].stages.indexOf(k)>=0&&!Save.data().cleared[k]);}
+// 把一句話變成缺字版的 HTML：每個字照這句話算的固定亂數決定——換成□或█、淡掉、偶爾抖（CSS 的 .gb）、或照原樣；<br> 照留
+function garbleHtml(s){var h=7;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%2147483647;var r=prng(h),out='';
+  String(s).split(/(<br>)/).forEach(function(part){if(part==='<br>'){out+='<br>';return;}
+    Array.prototype.forEach.call(part,function(c){if(/[\s　]/.test(c)){out+=c;return;}var x=r(0,1),e=c==='<'?'&lt;':c==='&'?'&amp;':c;
+      if(x<0.22)out+='<i class="gb">'+(r(0,1)<0.5?'□':'█')+'</i>';
+      else if(x<0.4)out+='<i class="gb f">'+e+'</i>';
+      else if(x<0.55)out+='<i class="gb j" style="--d:'+r(0,3).toFixed(2)+'s">'+e+'</i>';
+      else out+=e;});});
+  return out;}
 function fillTeamHud(){var st=CONFIG.stages[APP.stage],cv=st.cover||{};
   var dU=Save.data(),ownU=ULT_KEYS.filter(function(k){return CONFIG.ultAlt[k]&&dU.ults[k];}),onU=ownU.filter(ultAltOn);   // 拿到變奏後才顯示「大招」按鈕
   document.getElementById('cvUlt').hidden=!ownU.length;document.getElementById('cvUltList').textContent=onU.length?onU.map(function(k){return ultName(k,true);}).join('・'):'全部原版';
   var cc=document.getElementById('cvChal');cc.hidden=!st.chal||!chalOpen();if(st.chal){document.getElementById('cvChalText').textContent=st.chal.text;cc.classList.toggle('done',!!dU.chal[APP.stage]);}
   document.getElementById('cvIssue').textContent=st.title;document.getElementById('cvSeries').textContent='狐仙三消　'+CONFIG.chapters[GARDEN.chapterOfStage(APP.stage)].name+'試煉';document.getElementById('cvName').textContent=st.name;
-  document.getElementById('cvDeck').textContent=cv.deck||'';document.getElementById('cvHead').innerHTML=cv.head||st.name;
-  document.getElementById('cvLore').textContent=cv.lore||st.lore;document.getElementById('cvTag').textContent=cv.tag||'';
+  document.getElementById('cvDeck').textContent=cv.deck||'';var gb=coverGarbled(APP.stage);
+  if(gb){document.getElementById('cvHead').innerHTML=garbleHtml(cv.head||st.name);document.getElementById('cvLore').innerHTML=garbleHtml(cv.lore||st.lore);document.getElementById('cvTag').innerHTML=garbleHtml(cv.tag||'');}   // 冥界還沒打倒：缺字
+  else {document.getElementById('cvHead').innerHTML=cv.head||st.name;document.getElementById('cvLore').textContent=cv.lore||st.lore;document.getElementById('cvTag').textContent=cv.tag||'';}
   var at=document.getElementById('cvAttr');at.textContent=st.attrName;at.className='a-'+st.attr;
   document.getElementById('cvWeak').textContent=st.attr==='none'?'沒有弱點':st.weak+'屬性';
   document.getElementById('cvHp').textContent=st.hp.toLocaleString('zh-TW');
