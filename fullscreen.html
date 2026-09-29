@@ -5126,12 +5126,14 @@ function safeFrame(){var cs=getComputedStyle(safeProbeEl),st=parseFloat(cs.paddi
   return {H:H,st:st,sb:sb,W:Math.min(window.innerWidth,Math.round(H*(DEV_ASPECT||0.5625)))};}
 var TEAM_GAP=14;   // 隊伍血條和珠盤框之間的縫（px）：390×844 時原本就是 14
 // 全螢幕第五輪（CK 實機：手機上「隊伍血量」字和血量數字壓進狐狸腳下的能量環 10～12px）：
-// 隊伍血量那一列（字、數字、狀態小標籤）的上緣要在能量環下緣再往下 RING_CLEAR。差多少照順序補（fitTeam）：
-//   ① 有底部安全區（iPhone 下面的橫條）：血條、狀態、珠盤整組往下移，但珠盤最下面一排離螢幕底至少 BOTTOM_KEEP（免得滑珠時碰到 iOS 回主畫面的手勢）；
-//   ② 還不夠（沒有底部安全區的矮畫面，例如 375×667）：血條和珠盤中間的縫縮小，最小 GAP_MIN；
-//   ③ 還不夠：狐狸那排往上（L.foxUp）。
+// 隊伍血量那一列（字、數字、狀態小標籤）的上緣要在能量環下緣再往下 RING_CLEAR：隊伍血條往下移，差多少照順序補（fitTeam）：
+//   ① 血條和珠盤中間的縫縮小（血條往下靠近珠盤、珠盤不動），最小 GAP_MIN（血條不碰珠盤的金框）；
+//   ② 還不夠、有底部安全區（iPhone 下面的橫條）：珠盤跟著往下，但珠盤最下面一排離螢幕底至少 BOTTOM_KEEP；
+//   ③ 還不夠（沒有底部安全區的矮畫面，例如 375×667）：狐狸那排往上（L.foxUp）。
 //   390×844 沒安全區時本來就沒壓到 → 什麼都不動（跟 v112 一樣）。
-var GAP_MIN=6,RING_CLEAR=1.5,BOTTOM_KEEP=24;
+// 第六輪（CK 實機看第五輪：珠盤整組往下 16px、底排離螢幕底 42px，刻意往下滑會滑出畫面）：①② 對調（先縮縫、珠盤能不動就不動），
+// 縫最小 6→4、BOTTOM_KEEP 24→48。血條停的位置跟第五輪一樣。
+var GAP_MIN=4,RING_CLEAR=1.5,BOTTOM_KEEP=48;
 // 能量環（狐狸腳下的圓環）下緣在框裡的 y：拿每隻狐狸底座的 3D 位置，照戰鬥相機靜止時的樣子投影（flow.js 的 CAM：在 (0,0,14) 看原點，
 // 所以看出去的座標＝世界座標 z 減 14）。大招特寫、震動時相機會動，這裡不管那些，版面只照靜止時排。
 var _rv=new THREE.Vector3();
@@ -5147,8 +5149,8 @@ function teamBarMaxH(){var ch=document.getElementById('chips');if(ch.firstChild&
   p.className='chip shield';p.textContent='護盾';ch.appendChild(p);var h=teamBarEl.getBoundingClientRect().height;ch.removeChild(p);
   if(hid)teamBarEl.style.removeProperty('display');return h;}
 function fitTeam(F){var need=ringBottom()+RING_CLEAR-(L.by-11-TEAM_GAP-L.tbH),down=0,cut=0;   // 珠盤框的外緣＝L.by−11
-  if(need>0&&F.sb>0){down=Math.min(Math.ceil(need),Math.max(0,Math.floor(L.H+F.sb-BOTTOM_KEEP-(L.by+L.cs*ROWS))));L.by+=down;need-=down;}   // ①
-  if(need>0){cut=Math.min(Math.ceil(need),TEAM_GAP-GAP_MIN);need-=cut;}   // ②
+  if(need>0){cut=Math.min(Math.ceil(need),TEAM_GAP-GAP_MIN);need-=cut;}   // ①
+  if(need>0&&F.sb>0){down=Math.min(Math.ceil(need),Math.max(0,Math.floor(L.H+F.sb-BOTTOM_KEEP-(L.by+L.cs*ROWS))));L.by+=down;need-=down;}   // ②
   L.teamGap=TEAM_GAP-cut;L.teamDown=down;
   for(var k=0;k<3&&need>0;k++){L.foxUp+=Math.ceil(need);BS.layoutTeam();need=ringBottom()+RING_CLEAR-(L.by-11-L.teamGap-L.tbH);}}   // ③ 透視下移的量跟 px 差一點點，再量一次
 function layout(){
@@ -5165,7 +5167,7 @@ function layout(){
   document.getElementById('muteBtn').style.top=Math.max(6,(L.topH-36)/2)+'px';
   topEl.style.height=L.topH+'px';
   bossBarEl.style.top=(L.topH+2)+'px';
-  // 隊伍血條黏在珠盤框上緣、固定留縫（全螢幕階段 B）：底邊對齊珠盤框往上 L.teamGap（平常＝TEAM_GAP，矮畫面縮小，見 fitTeam），字撐高只會往上長，不會再蓋到珠盤
+  // 隊伍血條黏在珠盤框上緣、固定留縫（全螢幕階段 B）：底邊對齊珠盤框往上 L.teamGap（平常＝TEAM_GAP；字要避開能量環時縮小，見 fitTeam），字撐高只會往上長，不會再蓋到珠盤
   // （CK 的 iPhone 12 上原本會往下蓋約 5px；375×667 本來就蓋 4px）。珠盤框的外緣＝L.by−11（render/orbs.js 的 rebuildBase）。
   teamBarEl.style.top='auto';teamBarEl.style.bottom=(H-(L.by-11)+L.teamGap)+'px';
   var vy=L.teamY-70;veil.position.set(W/2,-(vy+(H+F.sb-vy)/2),99);veil.scale.set(W,H+F.sb-vy,1);ultBannerEl.style.top=(L.teamY-L.teamH*0.1)+'px';
