@@ -492,20 +492,22 @@ var CONFIG={
   // 關卡：每一關的 BOSS 數值集中在這裡
   //   final:true 標在最終 BOSS 那一關（第九關做好時加上）：第一次打倒它、看完劇情回庭院時，跳出「挑戰任務已解鎖」，之後每一關才看得到挑戰（2026-09-26 使用者：鼓勵二週目、順便讓玩家再點開最終妲己的封面）
   //   chal 是這關的小挑戰（打贏而且達成才算）：kind 'time' 在 max 秒內打倒／'hp' 結算時隊伍血量比例 ≥ min／'combo' 最高連擊 ≥ min／'stat' 這場的 battle[key] ≥ min／'zero' 這場的 battle[key] 是 0；drop 是達成時送的飾品（第四到六關的挑戰飾品還沒做）
+  // cover.lore／cover.brief（2026-09-29 CK）：封面左邊只放短版——介紹最多 2 行（約 26 字）、技能最多 2 行（只講做什麼、怎麼解，不寫秒數）；
+  //   完整的 lore 和 skill（含數字）留在暫停選單「關卡與技能介紹」和庭院的關卡資訊框。沒寫短版的關卡照舊用完整版。
   stages:[
     {title:'第一關',name:'三尾狐',drop:'leaf-clip',chal:{kind:'time',max:40,text:'40 秒內打倒',drop:'cloud-clip'},ultDrop:'water',style:'white',attr:'wood',attrName:'木',hp:12000,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'火',skill:'血量低於一半時狂暴，攻擊變快。',lore:'守著月下石台的白色三尾狐，紫金紋路在月光下閃閃發亮。',
-     cover:{deck:'竹林月夜',head:'竹影裡的<br>白衣狐仙',tag:'一襲白衣　靜臥竹影之間',skill:'狂暴'}},
+     cover:{deck:'竹林月夜',head:'竹影裡的<br>白衣狐仙',tag:'一襲白衣　靜臥竹影之間',skill:'狂暴',brief:'血量剩一半會狂暴，出手變快。'}},
     {title:'第二關',name:'黑三尾狐',drop:'maple-collar',chal:{kind:'hp',min:0.5,text:'結算時血量一半以上',drop:'star-charm'},ultDrop:'heart',style:'black',attr:'dark',attrName:'暗',hp:14000,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'光',lore:'月色最暗的夜裡才會現身的黑色三尾狐，擅長用鎖鏈咒困住靈珠。',skill:'鎖鏈咒：每隔一段時間鎖住 2 顆珠，狂暴後變 3 顆。鎖住的珠不能移動，把它連進三消就能解鎖。',
      lock:{interval:11,enrageInterval:8,count:2,enrageCount:3},
-     cover:{deck:'楓池暗影',head:'撲出霧中的<br>黑色利爪',tag:'楓葉落進池心　牠已經撲過來了',skill:'鎖鏈咒'}},
+     cover:{deck:'楓池暗影',head:'撲出霧中的<br>黑色利爪',tag:'楓葉落進池心　牠已經撲過來了',skill:'鎖鏈咒',lore:'月色最暗的夜裡才現身，用鎖鏈咒困住靈珠。',brief:'定時鎖住珠子，把鎖住的珠連進三消就能解開。'}},
     // 第三關（菁英戰）：無屬性（任何屬性打她都是一般傷害）、時間 90 秒、會媚惑隊員狐狸
     {title:'第三關',name:'妲己',drop:'gold-bell',chal:{kind:'combo',min:25,text:'連擊達到 25',drop:'tail-tassel'},style:'daji',attr:'none',attrName:'無',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'無',lore:'住在紫藤花架下的妲己，耳邊金鈴一響，狐狸們就捨不得對她出手。',
      skill:'媚惑：每 12 秒迷住 2 隻狐狸 6 秒，狂暴後每 9 秒一次。被迷住的狐狸不攻擊、不補血、不能放大招，但能量照樣累積。她沒有屬性，任何屬性打她都是一般傷害。',
      charm:{interval:12,enrageInterval:9,dur:6,count:2},
-     cover:{deck:'紫藤血月',head:'金鈴一響<br>萬般心軟',tag:'舔一舔爪子　你就捨不得出手',skill:'媚惑'}},
+     cover:{deck:'紫藤血月',head:'金鈴一響<br>萬般心軟',tag:'舔一舔爪子　你就捨不得出手',skill:'媚惑',lore:'住在紫藤花架下，耳邊金鈴一響，狐狸們就捨不得出手。',brief:'定時迷住兩隻狐狸，被迷住的不出手，能量照樣累積。'}},
     // 第四關（第二章青丘）：落英——花瓣蓋住珠子，花染上底下珠子淡淡的顏色（2026-09-27 使用者：只是要讓人一瞬間眼花，不是真的要這麼難），照樣能交換、照樣會連成線消掉；旁邊（上下左右）的珠被消掉時花瓣就被吹開
     //   2026-09-27 先做玩法：BOSS 外觀、戰場、關卡島、封面都是暫時的，之後一步一步換掉。名字、封面文字照「九關 BOSS 企劃（草稿）」
     //   petal：每 interval 秒飄下 count 片（狂暴後 enrageInterval 秒 enrageCount 片），盤面上最多 max 片
@@ -513,7 +515,7 @@ var CONFIG={
      weak:'水',lore:'青丘桃林裡最愛笑的狐狸。來過桃林的每一隻狐狸她都記得，只有一個名字，她怎麼也想不起來。',
      skill:'落英：每 10 秒飄下 3 片花瓣蓋住珠子，狂暴後每 8 秒 4 片。花瓣會染上底下珠子淡淡的顏色，被蓋住的珠照樣能交換、照樣會連成線消掉；旁邊的珠被消掉時，花瓣就會被吹開。',
      petal:{interval:10,enrageInterval:8,count:3,enrageCount:4,max:10},
-     cover:{deck:'桃林春晝',head:'桃之夭夭<br>灼灼其華',tag:'花瓣落在哪裡　她就在哪裡笑',skill:'落英'}},
+     cover:{deck:'桃林春晝',head:'桃之夭夭<br>灼灼其華',tag:'花瓣落在哪裡　她就在哪裡笑',skill:'落英',lore:'青丘最愛笑的狐狸，誰都記得，只有一個名字想不起來。',brief:'花瓣蓋住珠子，照樣能消；旁邊的珠被消掉就吹開。'}},
     // 數值（2026-09-28）：企劃草稿是塗山 20,000、天狐 26,000、攻擊 7.5／7 秒。塗山 17,000、天狐 18,000，攻擊都是 8 秒（狂暴 6 秒）。
     //   Version 110（使用者試玩 108 之後）：紅繩太快出現、附近剛好沒珠可以消時很容易卡住 → 每 16 秒一條（狂暴 13 秒）、長度固定 3 排、最多 2 條，繩子上下兩端也能震落鈴鐺；
     //   天鏡的鏡子改成要打兩下（第一下裂開、第二下才碎），天狐的血量改回 18,000（108 曾拉到 22,000）。
@@ -528,7 +530,7 @@ var CONFIG={
      weak:'木',lore:'替青丘守了千年結界的白狐。誰家的孩子走丟了，她都找得回來。只有一次，沒有找回來。',
      skill:'紅繩結界：每 16 秒在兩行珠子之間拉一條掛鈴鐺的紅繩（狂暴後每 13 秒），最多 2 條。隔著繩的珠不能交換，橫的連線也穿不過去；繩子兩旁或上下兩端有珠被消掉就震落一顆鈴鐺，三顆掉光紅繩就解開。',
      cord:{first:6,interval:16,enrageInterval:13,len:3,enrageLen:3,bells:3,max:2},
-     cover:{deck:'塗山雲宮',head:'一條紅繩<br>繫住整座山',tag:'她守著的　都是別人的家',skill:'紅繩結界'}},
+     cover:{deck:'塗山雲宮',head:'一條紅繩<br>繫住整座山',tag:'她守著的　都是別人的家',skill:'紅繩結界',lore:'守了青丘千年的白狐，走丟的孩子都找得回來，只有一次沒有。',brief:'紅繩隔開兩行珠子，旁邊消珠震落鈴鐺，掉光就解開。'}},
     // 第六關（菁英戰，90 秒）：天狐的天鏡。Version 107 是「映出的屬性會被反彈」，跟結界一樣打斷節奏，Version 108 改成做在盤面上：
     //   天鏡射出鏡片落在盤面（Board 的 shard，樣子是一面會反光的小圓鏡），鏡片不能交換、不能連線、跟著珠子往下掉；旁邊有珠被消掉就扣一下，
     //   hits 下扣完才碎掉（Version 110 起是 2：第一下裂開、第二下碎掉），碎掉時反光打天狐（bonus 點傷害）；
@@ -538,7 +540,7 @@ var CONFIG={
      weak:'暗',lore:'修行千年的狐狸才走得到天門。天狐守在門口，替每一隻路過的狐狸照一照鏡子。',
      skill:'天鏡：開場 4 秒射出第一批小圓鏡，之後每 12 秒 2 面（狂暴後每 9 秒 3 面），最多 6 面。鏡子不能交換、不能連線；旁邊有珠被消掉會先裂開，再一次才碎掉、反光打回天狐。盤面上的鏡子全部打碎，天狐就被自己的光照到，接下來 6 秒你的傷害加倍。',
      shard:{first:4,interval:12,enrageInterval:9,count:2,enrageCount:3,max:6,bonus:100,glare:6,glareMul:2,hits:2},
-     cover:{deck:'雲上天門',head:'照見你的樣子<br>也照見你的來處',tag:'天門的鏡子　從不說謊',skill:'天鏡'}}
+     cover:{deck:'雲上天門',head:'照見你的樣子<br>也照見你的來處',tag:'天門的鏡子　從不說謊',skill:'天鏡',lore:'守在天門，替每一隻路過的狐狸照一照鏡子。',brief:'小圓鏡蓋住珠子，旁邊消兩次才碎；全碎了傷害 ×2。'}}
   ],
   // 章節：每章一座主島＋幾座關卡島。stages 是這章的關卡（CONFIG.stages 的索引，要連號）；
   //   place 是主島左上角的地名，col 是通往這章主島的傳送陣顏色。還沒做關卡的章 stages 留空，主島先放一座暫時的空島
@@ -5891,13 +5893,13 @@ function fillTeamHud(){var st=CONFIG.stages[APP.stage],cv=st.cover||{};
   var cc=document.getElementById('cvChal');cc.hidden=!st.chal||!chalOpen();if(st.chal){document.getElementById('cvChalText').textContent=st.chal.text;cc.classList.toggle('done',!!dU.chal[APP.stage]);}
   document.getElementById('cvIssue').textContent=st.title;document.getElementById('cvSeries').textContent='狐仙三消　'+CONFIG.chapters[GARDEN.chapterOfStage(APP.stage)].name+'試煉';document.getElementById('cvName').textContent=st.name;
   document.getElementById('cvDeck').textContent=cv.deck||'';document.getElementById('cvHead').innerHTML=cv.head||st.name;
-  document.getElementById('cvLore').textContent=st.lore;document.getElementById('cvTag').textContent=cv.tag||'';
+  document.getElementById('cvLore').textContent=cv.lore||st.lore;document.getElementById('cvTag').textContent=cv.tag||'';
   var at=document.getElementById('cvAttr');at.textContent=st.attrName;at.className='a-'+st.attr;
   document.getElementById('cvWeak').textContent=st.attr==='none'?'沒有弱點':st.weak+'屬性';
   document.getElementById('cvHp').textContent=st.hp.toLocaleString('zh-TW');
   document.getElementById('cvTime').textContent=(st.time||CONFIG.battle.time)+' 秒';
   document.getElementById('cvAtk').textContent='每 '+st.interval+' 秒';
-  document.getElementById('cvSkillName').textContent=cv.skill||'';document.getElementById('cvSkillText').textContent=coverSkill(st);
+  document.getElementById('cvSkillName').textContent=cv.skill||'';document.getElementById('cvSkillText').textContent=cv.brief||coverSkill(st);   /* 封面用短版（見 config.js 的 cover.lore／brief） */
   Array.prototype.forEach.call(sigilsEl.children,function(b,i){b.classList.toggle('on',i===APP.sigil);b.setAttribute('aria-pressed',i===APP.sigil?'true':'false');});
   document.getElementById('sigilDesc').textContent=CONFIG.sigils[APP.sigil].name+'：'+CONFIG.sigils[APP.sigil].desc;}
 function goGarden(){FX2D.clear();showPanel(null);G.mode='menu';setScreen('garden');closeBox(true);refreshGarden();GARDEN.setLoc(APP.gardenLoc);APP.gardenLoc=GARDEN.getLoc();if(!running)startLoop();
