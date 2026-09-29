@@ -166,13 +166,11 @@ window.ITEM_LAB_DRAFTS = [
         loops.push(geo);
       });
       g.add(L.itemPart(L.mergeGeos(loops), red, L.outlineMat(0x8f1c2e, 0.004)));
-      var knot = L.itemPart(L.SPH_LO, red);
+      var knot = L.itemPart(L.SPH_LO, red, L.outlineMat(0xe5633c, 0.006));
       knot.scale.set(0.028, 0.027, 0.018); knot.position.z = 0.012; g.add(knot);
       var gold = L.toon(0xf2c65a, { emissive: 0x6a4a10 });
-      var bead = L.itemPart(L.SPH_LO, L.toon(0xd9364d, { emissive: 0x4f0b17 }), L.outlineMat(0xf0753e, 0.006));
+      var bead = L.itemPart(L.SPH_LO, gold);
       bead.scale.set(0.013, 0.013, 0.008); bead.position.set(0, 0.002, 0.03); g.add(bead);
-      var beadRim = new T.Mesh(new T.TorusGeometry(0.016, 0.004, 8, 20), L.toon(0xf0753e, { emissive: 0x6a1e0a }));
-      beadRim.position.set(0, 0.002, 0.039); g.add(beadRim);
       var tassel = new T.Group(); tassel.position.set(0, -0.065, 0.006); g.add(tassel);
       var cap = new T.CylinderGeometry(0.015, 0.016, 0.018, 10);
       cap.translate(0, -0.009, 0);
