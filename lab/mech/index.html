@@ -6282,12 +6282,12 @@ var MECH = {
       ['預告', [[{ warn: 1 }, '1 秒'], [{ warn: 1.5 }, '1.5 秒'], [{ warn: 0.6 }, '0.6 秒']]],
       ['灰珠長相', [[{ allgray: 1 }, '開場整盤都灰'], [{ allgray: '' }, '正常']]]] },
   wisp: { name: '第七關 青燐・鬼火', icon: '🔥', logic: WISP, view: WISP_VIEW,
-    // 第一版（2026-09-29，CK 選「消掉附身的珠就滅」）：待 CK 手機試
-    params: { every: [12, 3, 30], enrage: [9, 3, 30], count: [2, 1, 4], ecount: [3, 1, 5], fuse: [10, 3, 20], efuse: [8, 3, 20], dmg: [50, 10, 200], max: [4, 1, 8], fair: [1, 0, 1], first: [5, 1, 20] },
+    // 預設＝CK 2026-09-29 手機試完選的（滅法 A「消掉附身的珠就滅」）：12／9 秒、3／狂暴 4 團、倒數 10／8、只附在換一步就消得到的珠上、炸一次扣 50
+    params: { every: [12, 3, 30], enrage: [9, 3, 30], count: [3, 1, 4], ecount: [4, 1, 5], fuse: [10, 3, 20], efuse: [8, 3, 20], dmg: [50, 10, 200], max: [4, 1, 8], fair: [1, 0, 1], first: [5, 1, 20] },
     cfg: function (P) { return { first: P.first, interval: P.every, enrageInterval: P.enrage, count: P.count, enrageCount: P.ecount, fuse: P.fuse, enrageFuse: P.efuse, dmg: P.dmg, max: P.max, fair: !!P.fair }; },
     info: function (P) { return '每 ' + P.every + ' 秒丟 ' + P.count + ' 團鬼火、倒數 ' + P.fuse + ' 秒；狂暴後每 ' + P.enrage + ' 秒 ' + P.ecount + ' 團、倒數 ' + P.efuse + ' 秒。炸開扣 ' + P.dmg + ' 血（隊伍 1000）；盤面最多 ' + P.max + ' 團；' + (P.fair ? '只附在換一步就消得到的珠上' : '隨便附') + '。把附身的珠消掉就滅。'; },
     menu: [['多常丟', [[{ every: 12, enrage: 9 }, '預設 12／9'], [{ every: 15, enrage: 12 }, '更少 15／12'], [{ every: 9, enrage: 7 }, '更勤 9／7']]],
-      ['一次幾團', [[{ count: 2, ecount: 3 }, '2／狂暴 3'], [{ count: 1, ecount: 2 }, '1／狂暴 2'], [{ count: 3, ecount: 4 }, '3／狂暴 4']]],
+      ['一次幾團', [[{ count: 3, ecount: 4 }, 'CK 選的 3／狂暴 4'], [{ count: 2, ecount: 3 }, '2／狂暴 3'], [{ count: 1, ecount: 2 }, '1／狂暴 2']]],
       ['倒數幾秒', [[{ fuse: 10, efuse: 8 }, '10／狂暴 8'], [{ fuse: 12, efuse: 10 }, '12／10'], [{ fuse: 8, efuse: 6 }, '8／6']]],
       ['附在哪', [[{ fair: 1 }, '換一步就消得到的珠（不怕運氣差）'], [{ fair: 0 }, '隨便一顆']]],
       ['炸一次扣多少', [[{ dmg: 50 }, '50（5%）'], [{ dmg: 80 }, '80'], [{ dmg: 30 }, '30']]]] }
