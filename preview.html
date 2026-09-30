@@ -5656,8 +5656,9 @@ var AudioFX=(function(){
     bomb:function(){tone(150,0.45,'sine',0.38,0,45);noise(0.4,0.26,1000,120,0,0.7,'lowpass');},
     taiji:function(){[0,7,12,16,19,24].forEach(function(sm,k){tone(note(sm),0.8,'sine',0.06,k*0.04);});noise(0.6,0.06,3000,8000,0,0.5);},
     hit:function(strong){var n=performance.now();if(n-lastHit<45)return;lastHit=n;tone(strong?240:280,0.1,'triangle',0.08,0,strong?120:160);noise(0.07,0.06,2200,900,0,1);},
-    // 最後一擊（慢動作那一下，2026-09-30）：同一聲打擊拉長、壓低，像放慢的錄音（音高一半、長 5 倍），底下多一聲很低的悶響；不管 45 毫秒的節流
-    lastHit:function(strong){var f=strong?240:280;lastHit=performance.now();tone(f*0.5,0.5,'triangle',0.11,0,f*0.25,0.02);noise(0.4,0.08,1100,420,0,1);tone(92,0.9,'sine',0.2,0,42,0.02);},
+    // 最後一擊（慢動作那一下，2026-09-30）：同一聲打擊拉長、壓低，像放慢的錄音（音高一半），底下多一聲很低的悶響；不管 45 毫秒的節流
+    //   慢動作拉長到約 2.25 秒時（CK）聲音跟著拉長：打擊 0.5 → 0.9 秒、沙沙聲 0.4 → 0.7 秒、悶響 0.9 → 1.6 秒
+    lastHit:function(strong){var f=strong?240:280;lastHit=performance.now();tone(f*0.5,0.9,'triangle',0.11,0,f*0.25,0.02);noise(0.7,0.08,1100,420,0,1);tone(92,1.6,'sine',0.2,0,42,0.02);},
     heal:function(){tone(1046.5,0.35,'sine',0.07);tone(1318.5,0.35,'sine',0.05,0.06);},
     // 對話框逐字（2026-09-29 CK：不要鍵盤聲、要輕柔；第一版字是「啵」、刪節號的點是細叮，CK 聽完：每個字都用那聲細叮）：很短的高音叮
     //   2026-09-30 CK 手機上聽不到：原本音量 0.006（手機喇叭幾乎沒聲）→ 0.024，尾巴長一點（0.06 → 0.09 秒），同一個音高
@@ -6423,12 +6424,13 @@ function onShotHit(res,type,label){if(!fighting())return;
   if(last)slowStart(num);   // 最後一擊：這一下之後的畫面、聲音都放慢
   bossHitAfter(r);}
 // 最後一擊慢動作（2026-09-30 演出打磨，CK 參考神魔之塔；每一關都有）：打中 BOSS 的這一下算出來會打死她（hitBoss 回 killed；
-//   最終戰有信又戴金鈴打到 0 鎖住＝held 也算）→ 主迴圈的時間乘上 slowK()：先 SLOW_K 倍慢 SLOW_HOLD 秒，再 SLOW_RAMP 秒平滑回到正常。
+//   最終戰有信又戴金鈴打到 0 鎖住＝held 也算）→ 主迴圈的時間乘上 slowK()：先 SLOW_K 倍慢 SLOW_HOLD 秒，再 SLOW_RAMP 秒平滑回到正常
+//   （CK 看第一版要再長一秒：0.35＋0.9 → 0.75＋1.5，約 2.25 秒）。
 //   放慢的是這一下的打擊動態（光點爆開、BOSS 被打的晃動、還在飛的光彈、倒下的光點、震動、傷害數字的 CSS 動畫一起調 playbackRate）
 //   和聲音（AudioFX.lastHit：同一聲打擊拉長壓低）；之後接的倒下／結算／金鈴的秒數也照放慢的時間走（整體晚一點點）。
 //   只放慢畫面：打中那一刻輸贏就算完了（G.mode 已經是 'won'，或金鈴的 'intro'），戰鬥邏輯不再跑，所以不影響判定。
 //   秒數用真實時間算（測試的 __speed 也算進去）；開新的一場時收掉（resetBattleFx）
-var SLOW_K=0.2,SLOW_HOLD=0.35,SLOW_RAMP=0.9,slowT=-1,slowCur=1,slowNum=null;   // slowT：慢動作開始後過了幾秒（−1＝沒在慢）；slowCur：現在的倍數
+var SLOW_K=0.2,SLOW_HOLD=0.75,SLOW_RAMP=1.5,slowT=-1,slowCur=1,slowNum=null;   // slowT：慢動作開始後過了幾秒（−1＝沒在慢）；slowCur：現在的倍數
 function slowStart(num){slowT=0;slowNum=num&&num.getAnimations?num.getAnimations():null;slowRate(SLOW_K);}
 function slowRate(k){slowCur=k;if(slowNum)slowNum.forEach(function(a){a.playbackRate=k;});}
 function slowStop(){if(slowT<0)return;slowT=-1;slowRate(1);slowNum=null;}
@@ -7328,7 +7330,7 @@ el.addEventListener('click',function(){if(cred&&cred.t>1.5)cred.skip=true;});
 //   戴鈴的是哪幾隻（2026-09-30 CK：「有帶鈴鐺還是會被魅惑」——原本 b 一律只算水狐、不看存檔，畫面上戴鈴的那隻反而被迷住）：b＝存檔裡戴著 gold-bell 的那幾隻，
 //   都沒有才算水狐；畫面照這場的算法換（dressBells：水狐這場胸前掛一顆；沒有 b 時存檔裡戴著的先拿下來），只換這場戰鬥的狐狸、不存檔
 // 換段（CK 2026-09-29；2026-09-30 演出打磨：碎裂放慢到 2～3 秒、鏡頭推近，參考 FGO）：
-//   0 秒      盤面停、BOSS 不出手、時間停（G.mode＝'intro'），鏡頭開始往 BOSS 血條那顆寶石推（跟著寶石越推越近，見 ZOOM_KEYS）
+//   0 秒      盤面停、BOSS 不出手、時間停（G.mode＝'intro'），鏡頭開始往 BOSS 血條那顆寶石推（一路順順地越推越近、越推越快，見 zoomAt）
 //   GEM_AT 秒 寶石開始膨脹縮小兩次、第三次慢慢脹大、發抖 → T_CRACK 秒裂開（玻璃聲、碎片、白光）：BOSS 震一下、橫幅寫第幾段，背景開始淡換成下一段的；
 //             鏡頭在這一下推到最近，接著 ZOOM_BACK 秒彈回原位 → T_BREAK 秒碎完：換成下一段的招、血條慢慢補滿（T_FILL 秒，有往上升的聲音）→
 //   最後一段一補滿就狂暴，BOSS 腳底下一直冒火星。換段不說話。
@@ -7349,11 +7351,11 @@ var GEM_AT=0.35,T_CRACK=1.95,T_BREAK=2.8,T_FILL=1.6;   // 換段開始後幾秒�
 // 鏡頭推近（2026-09-30；CK 看完第一版「推近 1.1 倍後停著」：要跟著寶石的演出越來越近、越來越聚焦那一邊，一路推到裂開那一下；碎完快快彈回、帶一點彈性）：
 //   #c（畫布）和 #frame（血條、珠盤、按鈕…）用同一個原點（那顆寶石；畫布從螢幕頂畫起，y 要多加上面的安全區 L.st）一起 CSS 放大，
 //   再把寶石往畫面中間挪一點（ZOOM_PAN；挪的量不讓畫面邊緣露出來），看起來像整個鏡頭往寶石推過去。
-//   ZOOM_KEYS：[換段開始後第幾秒, 放大倍數]，跟著寶石（GEM_PULSE 從 GEM_AT 開始）：先推一點 → 每次脹大往前推一段、縮回時停住 → 第三次脹大一路加速推到裂開
+//   從換段開始到裂開（T_CRACK 秒）一路順順地放大到 ZOOM_MAX，越推越快（進度的 ZOOM_POW 次方）；2026-09-30 CK 看第二版：原本跟著寶石脹縮一段一段推、縮回時停住，要改成不停頓
 //   裂開後 ZOOM_BACK 秒彈回：ZOOM_BOUNCE 秒就回到原位，再像彈簧小小彈一兩下（只往前彈、不會縮到比原本小）。回到 1 時整個拿掉 transform（平常的畫面跟原本逐像素一樣）
-var ZOOM_KEYS=[[0,1],[0.35,1.03],[0.6,1.07],[0.85,1.07],[1.15,1.13],[1.4,1.13],[1.95,1.3]],ZOOM_MAX=1.3,ZOOM_PAN=0.9,ZOOM_BACK=0.8,ZOOM_BOUNCE=0.16;
+var ZOOM_MAX=1.3,ZOOM_POW=1.8,ZOOM_PAN=0.9,ZOOM_BACK=0.8,ZOOM_BOUNCE=0.16;
 var canvasEl=document.getElementById('c'),zoomZ=1,zoomShown=1,zoomTw=0,zoomO={x:0,y:0};   // zoomZ：現在放大幾倍（1＝沒推）；zoomShown：畫面上現在套的倍數（−1＝暫停時先拿掉了）
-function zoomAt(t){var K=ZOOM_KEYS;for(var i=1;i<K.length;i++){var a=K[i-1],b=K[i];if(t<=b[0]){var k=(t-a[0])/(b[0]-a[0]);k=i===K.length-1?k*k:k*k*(3-2*k);return a[1]+(b[1]-a[1])*k;}}return K[K.length-1][1];}   /* 最後一段（推到裂開）越推越快 */
+function zoomAt(t){return 1+(ZOOM_MAX-1)*Math.pow(Math.min(1,t/T_CRACK),ZOOM_POW);}
 function applyZoom(){if(zoomShown===zoomZ)return;zoomShown=zoomZ;var z=zoomZ,on=z!==1,t='';
   if(on){var p=ZOOM_PAN*(z-1)/(ZOOM_MAX-1),Ox=zoomO.x,Oy=zoomO.y+L.st,Ht=L.H+L.st+L.sb,   // 往畫面中間挪：左右最多挪到寶石在正中間，上下挪不多（寶石在最上面，往下挪會露出螢幕頂以上）
     dx=Math.max(-(z-1)*(L.W-Ox),Math.min((z-1)*Ox,(L.W/2-Ox)*p)),dy=Math.max(-(z-1)*(Ht-Oy),Math.min((z-1)*Oy,(L.H*0.35-zoomO.y)*p));
