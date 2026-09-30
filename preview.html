@@ -250,11 +250,18 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #wispTags{top:0;height:100%}
 .wispTag{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .25s,transform .25s}
 .wispTag .gl{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(200,255,120,.5) 0%,rgba(140,230,70,.28) 42%,rgba(90,200,60,0) 70%);animation:wispGl .5s ease-in-out infinite alternate}
-.wispTag .fl{position:absolute;left:50%;top:50%;width:calc(var(--s) * .34);height:calc(var(--s) * .5);transform:translate(-50%,-118%);border-radius:50% 50% 50% 50% / 62% 62% 38% 38%;background:linear-gradient(#f4ffc8,#b8ff4a 45%,#5cc93c);box-shadow:0 0 10px 3px rgba(184,255,74,.75);animation:wispFl .32s ease-in-out infinite alternate}
+/* Q 版鬼火（2026-09-30 演出打磨第三批，CK：冥界螢光綠的 Q 版鬼火）：圓滾滾的火團、頭上一撮往上捲的火尖、兩顆小黑眼睛和腮紅，一直輕輕晃、一伸一縮 */
+.wispTag .fl{position:absolute;left:50%;top:50%;width:calc(var(--s) * .5);height:calc(var(--s) * .46);transform:translate(-50%,-112%);border-radius:50% 50% 46% 46% / 58% 58% 42% 42%;
+  background:radial-gradient(circle at 50% 68%,#fbffe6 0 16%,#d8ff86 38%,#a6f25a 66%,#62cf3e 100%);box-shadow:0 0 10px 4px rgba(170,255,90,.7);animation:wispFl .45s ease-in-out infinite alternate}
+.wispTag .fl::before{content:"";position:absolute;left:50%;top:-34%;width:52%;height:62%;transform:translate(-42%,0) rotate(38deg);border-radius:0 70% 55% 65%;background:linear-gradient(200deg,#eaffb0,#a6f25a 60%,#86e84e);z-index:-1}   /* 火尖 */
+.wispTag .fl::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(ellipse 8% 13% at 35% 50%,#163a0e 85%,transparent 100%),radial-gradient(ellipse 8% 13% at 65% 50%,#163a0e 85%,transparent 100%),
+    radial-gradient(circle at 37% 45%,#fff 0 3%,transparent 4%),radial-gradient(circle at 67% 45%,#fff 0 3%,transparent 4%),
+    radial-gradient(ellipse 11% 6% at 22% 68%,rgba(255,150,180,.6) 70%,transparent 100%),radial-gradient(ellipse 11% 6% at 78% 68%,rgba(255,150,180,.6) 70%,transparent 100%)}   /* 眼睛、眼睛的亮點、腮紅 */
 .wispTag b{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:800 calc(var(--s) * .34)/1 sans-serif;color:#fff;text-shadow:0 0 3px #173a10,0 0 3px #173a10,0 1px 2px #000}
 .wispTag.hot b{color:#ffdf6a}.wispTag.hot .fl{animation-duration:.14s}.wispTag.bye{opacity:0;transform:scale(1.6)}
 @keyframes wispGl{from{opacity:.75}to{opacity:1}}
-@keyframes wispFl{from{transform:translate(-50%,-118%) scale(.92,1)}to{transform:translate(-50%,-126%) scale(1.06,1.08)}}
+@keyframes wispFl{from{transform:translate(-50%,-110%) rotate(-5deg) scale(1.04,.95)}to{transform:translate(-50%,-122%) rotate(5deg) scale(.96,1.06)}}
 .charmLock{position:absolute;left:0;top:0;width:var(--lk,70px);height:var(--lk,70px);margin:calc(var(--lk,70px) / -2) 0 0 calc(var(--lk,70px) / -2);pointer-events:none;
   opacity:0;transform:scale(1.4);transition:opacity .18s,transform .25s cubic-bezier(.3,1.5,.5,1)}
 .charmLock.on{opacity:1;transform:none}
@@ -615,7 +622,7 @@ var CONFIG={
      lock:{interval:11,enrageInterval:8,count:2,enrageCount:3},
      cover:{deck:'楓池暗影',head:'撲出霧中的<br>黑色利爪',tag:'楓葉落進池心　牠已經撲過來了',skill:'鎖鏈咒',lore:'月色最暗的夜裡才現身，用鎖鏈咒困住靈珠。',brief:'定時鎖住珠子，把鎖住的珠連進三消就能解開。'}},
     // 第三關（菁英戰）：無屬性（任何屬性打她都是一般傷害）、時間 90 秒、會媚惑隊員狐狸
-    {title:'第三關',name:'妲己',drop:'gold-bell',chal:{kind:'combo',min:25,text:'連擊達到 25',drop:'tail-tassel'},style:'daji',attr:'none',attrName:'無',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    {title:'第三關',name:'妲己',drop:'gold-bell',chal:{kind:'combo',min:25,text:'連擊達到 25',drop:'tail-tassel'},ultDrop:'fire',style:'daji',attr:'none',attrName:'無',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'無',lore:'住在紫藤花架下的妲己，耳邊金鈴一響，狐狸們就捨不得對她出手。',
      skill:'媚惑：每 12 秒迷住 2 隻狐狸 6 秒，狂暴後每 9 秒一次。被迷住的狐狸不攻擊、不補血、不能放大招，但能量照樣累積。她沒有屬性，任何屬性打她都是一般傷害。',
      charm:{interval:12,enrageInterval:9,dur:6,count:2},
@@ -623,7 +630,7 @@ var CONFIG={
     // 第四關（第二章青丘）：落英——花瓣蓋住珠子，花染上底下珠子淡淡的顏色（2026-09-27 使用者：只是要讓人一瞬間眼花，不是真的要這麼難），照樣能交換、照樣會連成線消掉；旁邊（上下左右）的珠被消掉時花瓣就被吹開
     //   2026-09-27 先做玩法：BOSS 外觀、戰場、關卡島、封面都是暫時的，之後一步一步換掉。名字、封面文字照「九關 BOSS 企劃（草稿）」
     //   petal：每 interval 秒飄下 count 片（狂暴後 enrageInterval 秒 enrageCount 片），盤面上最多 max 片
-    {title:'第四關',name:'桃夭',drop:'peach-pin',chal:{kind:'stat',key:'revealed',min:12,unit:'片',text:'揭開 12 片落英',drop:'peach-wreath'},style:'peach',attr:'fire',attrName:'火',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    {title:'第四關',name:'桃夭',drop:'peach-pin',chal:{kind:'stat',key:'revealed',min:12,unit:'片',text:'揭開 12 片落英',drop:'peach-wreath'},ultDrop:'dark',style:'peach',attr:'fire',attrName:'火',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'水',lore:'青丘桃林裡最愛笑的狐狸。來過桃林的每一隻狐狸她都記得，只有一個名字，她怎麼也想不起來。',
      skill:'落英：每 10 秒飄下 3 片花瓣蓋住珠子，狂暴後每 8 秒 4 片。花瓣會染上底下珠子淡淡的顏色，被蓋住的珠照樣能交換、照樣會連成線消掉；旁邊的珠被消掉時，花瓣就會被吹開。',
      petal:{interval:10,enrageInterval:8,count:3,enrageCount:4,max:10},
@@ -638,7 +645,7 @@ var CONFIG={
     //   Version 107 做的是「只有剋它的屬性打得進去」的結界，使用者試玩覺得要停下來挑顏色、很打斷三消的節奏，Version 108 改成做在盤面上（跟第二關的鎖鏈一樣）：
     //   在兩行珠子之間拉一條紅繩（Board 的 cords），隔著繩不能交換、橫的連線也穿不過去；繩子兩旁或上下兩端有珠被消掉就震落一顆鈴鐺，鈴鐺掉光紅繩就解開
     //   cord：第一條在開場 first 秒，之後每 interval 秒一條（狂暴後 enrageInterval 秒）；長 len 排（狂暴後 enrageLen）、掛 bells 顆鈴鐺，盤面上最多 max 條
-    {title:'第五關',name:'塗山',drop:'red-cord',chal:{kind:'stat',key:'untied',min:3,unit:'條',text:'解開 3 條紅繩',drop:'longevity-lock'},style:'tushan',attr:'water',attrName:'水',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    {title:'第五關',name:'塗山',drop:'red-cord',chal:{kind:'stat',key:'untied',min:3,unit:'條',text:'解開 3 條紅繩',drop:'longevity-lock'},ultDrop:'light',style:'tushan',attr:'water',attrName:'水',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'木',lore:'替青丘守了千年結界的白狐。誰家的孩子走丟了，她都找得回來。只有一次，沒有找回來。',
      skill:'紅繩結界：每 16 秒在兩行珠子之間拉一條掛鈴鐺的紅繩（狂暴後每 13 秒），最多 2 條。隔著繩的珠不能交換，橫的連線也穿不過去；繩子兩旁或上下兩端有珠被消掉就震落一顆鈴鐺，三顆掉光紅繩就解開。',
      cord:{first:6,interval:16,enrageInterval:13,len:3,enrageLen:3,bells:3,max:2},
@@ -658,7 +665,7 @@ var CONFIG={
     // 第七關：青燐的鬼火（src/mechanics/wisp.js）。CK 2026-09-29 試玩場定的數字：每 12 秒 3 團、狂暴後每 9 秒 4 團，倒數 10 秒（狂暴後 8 秒；2026-09-30 CK 看 v118 候選改 12／10 秒、扣血 50 → 30，每波只有第一團保證消得到），
     //   只附在「換一步就消得到」的珠上（fair），炸一次扣隊伍 50（5%），盤面最多 4 團；開場 first 秒第一次
     //   掉落（2026-09-29 繪星第四批）：通關小鬼火燈籠；挑戰「一顆鬼火都沒有炸開」（battle.wispBooms＝0）→ 燐火珠串
-    {title:'第七關',name:'青燐',drop:'twin-wisps',chal:{kind:'zero',key:'wispBooms',unit:'團炸開',text:'一顆鬼火都沒有炸開',drop:'phosphor-beads'},style:'qinglin',attr:'none',attrName:'無',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    {title:'第七關',name:'青燐',drop:'twin-wisps',chal:{kind:'zero',key:'wispBooms',unit:'團炸開',text:'一顆鬼火都沒有炸開',drop:'phosphor-beads'},ultDrop:'wood',style:'qinglin',attr:'none',attrName:'無',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'無',lore:'在冥界替迷路的魂提燈的狐狸。她說最近路上多了好多燈，不知道是誰點的。',
      skill:'鬼火：每 12 秒丟 3 團鬼火附在珠上（狂暴後每 9 秒 4 團），倒數 12 秒（狂暴後 10 秒），最多 4 團；每一波的第一團一定附在換一步就消得到的珠上，其他隨便附。倒數內把那顆珠消掉就滅，沒消掉鬼火狐會衝出來撞隊伍，扣 30 血。',
      wisp:{first:5,interval:12,enrageInterval:9,count:3,enrageCount:4,fuse:12,enrageFuse:10,dmg:30,max:4,fair:true},   // 2026-09-30 CK 看 v118 候選：fuse 10/8 → 12/10、dmg 50 → 30（第二團起隨機附之後變難）
@@ -725,10 +732,15 @@ var CONFIG={
     dark: {fox:'暗狐',name:'影襲',mult:2},                 // 基礎攻擊 × 2 × 目前連擊數
     heart:{fox:'心狐',name:'月華治癒',heal:0.35,shield:0.5}}, // 回復 35%，護盾擋下一次攻擊一半傷害
   // 大招變奏（E 第 4 步）：進關前跟原版二選一。不比原版強，只是用途不同，而且一定放棄原版的一部分；
-  //   在哪一關第一次打倒 BOSS 取得寫在 stages[].ultDrop（打過這關，拿到下一關用得到的招）
+  //   在哪一關第一次打倒 BOSS 取得寫在 stages[].ultDrop（打過這關，拿到下一關用得到的招）：第一關淨流、第二關清心、第三關燎原、第四關穿影、第五關日曜、第七關新芽（第六關不掉）
+  //   2026-09-30 CK 在試玩場（lab/ults，lab/mech/ults.js）打過定的數字；每個變奏剋一關的招（淨流還剋第七關鬼火），清掉的花瓣、紅繩照樣算第四、五關挑戰
   ultAlt:{
-    water:{name:'淨流',delay:2},              // 解開盤面上全部的鎖鏈，但 BOSS 攻擊倒數只 +2 秒
-    heart:{name:'清心',heal:0.15,guard:6}},    // 解除所有媚惑、6 秒內不會再被迷住，但只回 15%、沒有護盾
+    water:{name:'淨流',delay:0},              // 解開盤面上全部的鎖鏈、澆熄盤面上全部的鬼火（算滅了），BOSS 攻擊倒數不延後（原版 +4 秒）
+    heart:{name:'清心',heal:0.15,guard:6},    // 解除所有媚惑、6 秒內不會再被迷住，但只回 15%、沒有護盾
+    fire: {name:'燎原',dmg:1/3},              // 燒掉盤面上全部的落英（算揭開），五顆火球的傷害只有原版的三分之一
+    dark: {name:'穿影',mult:4},               // 剪斷盤面上全部的紅繩（鈴鐺一起掉，算解開），傷害固定是基礎攻擊 × 4、不吃連擊（原版 × 2 × 連擊數）
+    light:{name:'日曜'},                      // 鏡片全部變回普通珠、直接反照（沒有天鏡的關只閃一下），沒有全隊 ×1.5
+    wood: {name:'新芽'}},                     // 被忘川沖灰的珠子全部長回顏色，不生劍氣珠
   // 劇情台詞（2026-09-29；字都是暫定，要改字改這裡就好）。企劃在 docs/03_design_story.md「劇情」：只有章末 BOSS 打倒時講話，每次一到兩句、每句不超過 12 字。
   //   id（存檔 story.lines 記講過的）→ who：框上寫的名字；lines：一句一句；stage：第幾關（0 起算）；when：'down'＝打倒這關 BOSS 時，只講第一次（src/flow.js 的 onBossDown）；
   //   mist：講完 BOSS 淡出時台上的霧的顏色（2026-09-29 CK：妲己粉色、天狐黃色）。BOSS 會留在台上講完才淡出。
@@ -1036,8 +1048,9 @@ Battle.prototype.heal=function(hearts){var h=Math.round(this.teamMax*this.cfg.ba
 Battle.prototype.buffMul=function(){return this.buff>0?this.cfg.ult.light.mult:1;};
 Battle.prototype.addEnergy=function(type,v){if(type<0||type>=this.energy.length)return;this.energy[type]=Math.min(this.cfg.ult.max,this.energy[type]+v);};
 Battle.prototype.healPct=function(p){var before=this.teamHp;this.teamHp=Math.min(this.teamMax,this.teamHp+Math.round(this.teamMax*p));return this.teamHp-before;};
-Battle.prototype.ultDamage=function(type){var b=this.cfg.battle,u=this.cfg.ult,A=this.advMul(type),key=this.cfg.orbs[type].key,d;
-  if(key==='dark')d=b.baseAtk*u.dark.mult*Math.max(1,this.combo)*A;else d=b.baseAtk*u.fire.mult*A*(1+b.comboBonus*this.combo);
+// 大招傷害（火狐每一顆火球、暗狐那一下）；alt＝這一場帶變奏：燎原打原版的 ultAlt.fire.dmg 倍，穿影固定基礎攻擊 × ultAlt.dark.mult、不吃連擊（buff、反照、最終戰倍數照乘）
+Battle.prototype.ultDamage=function(type,alt){var b=this.cfg.battle,u=this.cfg.ult,ua=alt?this.cfg.ultAlt||{}:{},A=this.advMul(type),key=this.cfg.orbs[type].key,d;
+  if(key==='dark')d=ua.dark?b.baseAtk*ua.dark.mult*A:b.baseAtk*u.dark.mult*Math.max(1,this.combo)*A;else {d=b.baseAtk*u.fire.mult*A*(1+b.comboBonus*this.combo);if(key==='fire'&&ua.fire)d*=ua.fire.dmg;}
   return {dmg:Math.max(1,Math.round(d*this.buffMul()*this.glareMul()*this.dmgMul)),adv:A>1?'up':A<1?'down':null,A:A};};
 // 金鈴打到 0 鎖住的時候（最終戰）：時間、她的攻擊、別的招都停（主迴圈看這個決定機制要不要跑）
 Battle.prototype.halted=function(){return !!(this.bell&&this.bell.hold);};
@@ -1096,7 +1109,9 @@ var PETAL={
   onEvent:function(e,s){if(e.type==='petal')s.pending+=e.count;},
   place:function(board,s,cfg){if(s.pending<=0)return null;if(!cfg){s.pending=0;return null;}   /* 最終戰換段後這一段沒有這招：還沒放上去的就不放 */var n=Math.min(s.pending,Math.max(0,(cfg?cfg.max:10)-board.petalCount()));s.pending=0;
     return n>0?board.petalRandom(n):null;},
-  revealed:function(b){b.revealed++;}   // 一片花瓣被吹開：畫法播到那一刻呼叫（時機跟拆包前一樣，打到一半結束時沒播到的不算）
+  revealed:function(b){b.revealed++;},
+  // 大招變奏燎原（2026-09-30 CK）：燒掉盤面上全部落英，每片算揭開一片（revealed，第四關挑戰會算）；回傳燒掉的 [{id, r, c}]（畫面照吹開的動畫走、不再另外算）
+  burn:function(b,board){var list=board.clearPetals();b.revealed+=list.length;return list;}   // 一片花瓣被吹開：畫法播到那一刻呼叫（時機跟拆包前一樣，打到一半結束時沒播到的不算）
 };
 
 // 媚惑（第三關 妲己）的邏輯：BOSS 定時迷住幾隻狐狸（被迷住的不出手、大招按不下去），時間到自己醒來；清心保護中會被擋下。不碰畫面（畫法在 charm_view.js）。
@@ -1145,6 +1160,8 @@ var CORD={
   onEvent:function(e,s){if(e.type==='cord')s.pending=e;},
   place:function(board,s,cfg){var p=s.pending;if(!p)return null;s.pending=null;if(!cfg)return null;   /* 最終戰換段後這一段沒有這招：還沒放上去的就不放 */
     if(cfg&&board.cords.length<cfg.max){var cw=board.cordRandom(p.len,p.bells);if(cw)return cw;}return null;},   // 回傳拉好的那一條；盤面上已經滿了、或找不到位置就不拉
+  // 大招變奏穿影（2026-09-30 CK）：剪斷盤面上全部紅繩（鈴鐺一起掉），每條算解開一條（untied，第五關挑戰會算）；回傳剪掉的繩（畫面用）
+  cutAll:function(b,board){var cut=board.cords.splice(0);cut.forEach(function(w){w.bells=0;});b.untied+=cut.length;return cut;},
   onClear:function(b,st){(st.cords||[]).forEach(function(h){if(h.bells<=0)b.untied++;});}   // 消珠的這一步：鈴鐺掉光的繩子算解開一條（當下就算，跟拆包前一樣）
 };
 
@@ -1167,6 +1184,16 @@ var SHARD={
 };
 // Battle 上跟反照有關的兩個方法：傷害公式（Battle.shot／ultDamage）和勝率模擬會叫，所以掛在 Battle 上、由這一包負責。
 // 反照：盤面上的鏡片全部打碎時由畫面端呼叫（鏡片的碎法在 Board）；glare 秒內傷害 ×glareMul，再打碎一輪就重新算秒
+// 大招變奏日曜（2026-09-30 CK）：鏡片全部變回普通珠（顏色挑不會跟四周直接連成三顆的；打碎算進 shattered），回傳 [{id, r, c, type}]；
+//   有天鏡的關接著直接反照（flow 那邊叫 startGlare，跟全部打碎一樣）
+SHARD.unshard=function(b,board){var out=[],r,c;
+  for(r=0;r<board.R;r++)for(c=0;c<board.C;c++){var o=board.g[r][c];if(!o||!o.shard)continue;o.shard=false;delete o.hp;o.type=safeType(board,r,c);out.push({id:o.id,r:r,c:c,type:o.type});}
+  b.shattered+=out.length;return out;};
+function safeType(bd,r,c){var ts=[],t,k,n;for(t=0;t<bd.T;t++)ts.push(t);
+  for(n=ts.length-1;n>0;n--){k=Math.floor(Math.random()*(n+1));t=ts[n];ts[n]=ts[k];ts[k]=t;}   // 洗牌（跟補珠一樣用 Math.random）
+  for(n=0;n<ts.length;n++){t=ts[n];var h=1,v=1;for(k=c-1;bd.typeAt(r,k)===t;k--)h++;for(k=c+1;bd.typeAt(r,k)===t;k++)h++;for(k=r-1;bd.typeAt(k,c)===t;k--)v++;for(k=r+1;bd.typeAt(k,c)===t;k++)v++;
+    if(h<3&&v<3)return t;}
+  return ts[0];}
 Battle.prototype.startGlare=function(){if(!this.boss.shard)return;this.glare=this.boss.shard.glare;this.glares++;};
 Battle.prototype.glareMul=function(){return this.glare>0&&this.boss.shard?this.boss.shard.glareMul:1;};
 
@@ -1193,6 +1220,8 @@ var LETHE={
   onEvent:function(e,s,bd){
     if(e.type==='letheWarn'){s.cols=grayOnBoard(bd,s)>=e.max?null:pick(bd,s,e.n);e.cols=s.cols;}   // e.cols 給畫法的預告用（邏輯的 onEvent 先跑）；灰珠滿了就不預告、不沖
     if(e.type==='lethe'&&s.cols)s.pending=true;},
+  // 大招變奏新芽（2026-09-30 CK）：被沖灰的珠子全部長回顏色（只是畫面；消除規則本來就不管灰不灰），回傳盤面上長回來的珠 id
+  regrow:function(bd,s){if(!s||!s.gray.size)return [];var out=[];for(var r=0;r<bd.R;r++)for(var c=0;c<bd.C;c++){var o=bd.g[r][c];if(o&&s.gray.has(o.id))out.push(o.id);}s.gray.clear();return out;},
   place:function(bd,s,cfg){if(!s.pending)return null;
     if(!cfg){s.pending=false;s.cols=null;return null;}   // 最終戰換段後這一關沒有忘川了：預告過的也不沖
     s.pending=false;var cols=s.cols,cells=[],room=(cfg.max||Infinity)-grayOnBoard(bd,s);s.cols=null;
@@ -1254,6 +1283,8 @@ var WISP={
         s.list.push({id:pk[2].id,left:p.fuse,max:p.fuse});got.push({r:pk[0],c:pk[1],id:pk[2].id});}});
     s.pending=[];
     return got.length?got:null;},
+  // 大招變奏淨流（2026-09-30 CK）：澆熄盤面上全部鬼火——珠子留著、火滅掉，算「滅了」（wispOut，第七關挑戰只看炸開的，不受影響）；回傳滅掉的珠 id
+  quench:function(b,s){if(!s||!s.list.length)return [];var ids=s.list.map(function(w){return w.id;});s.list.length=0;b.wispOut+=ids.length;return ids;},
   onClear:function(b,st,s){   // 附身的珠被消掉：滅
     (st.items||[]).forEach(function(it){for(var i=s.list.length-1;i>=0;i--)if(s.list[i].id===it.id){s.list.splice(i,1);b.wispOut++;}});}
 };
@@ -5703,7 +5734,36 @@ function beam(x1,y1,x2,y2,wid,color,life){var f=takeFx(beams),dx=x2-x1,dy=y2-y1,
   f.life=f.max=life;f.l0=len*0.7;f.l1=len;f.w0=wid*1.4;f.w1=wid*0.3;}
 function ringFx(x,y,r0,r1,color,life){var f=takeFx(rings);f.m.visible=true;f.m.position.set(x,-y,72);f.m.rotation.z=0;f.m.material.color.copy(color);
   f.life=f.max=life;f.l0=f.w0=r0*2;f.l1=f.w1=r1*2;}
-function updateFx(dt){[beams,rings].forEach(function(pool){pool.forEach(function(f){if(f.life<=0)return;f.life-=dt;
+// 鏡片碎掉的碎片（2026-09-30 演出打磨第三批，CK：小鏡片被消掉時真的裂成好幾片、快速往下掉，演一點點就淡出，碎裂爽感要足）：
+//   一面鏡片裂成 SB_N 片扇形的碎片（大多是銀白的鏡面、兩片是金框），先往四周炸開、往上彈一點，重力很大、一邊轉一邊往下掉，SB_LIFE 秒內淡掉。
+//   碎片是一個 InstancedMesh（SB_CAP 片的池子），每片一個 instance：顏色 instanceColor、透明度 aA；形狀＝尖端在原點的一小片扇形，拉長壓扁出不同的樣子
+var SB_CAP=84,SB_N=7,SB_LIFE=0.55,SB_G=16,sbHead=0,sbS=24681;
+function sbR(a,b){sbS=(sbS*16807)%2147483647;return a+(sbS/2147483647)*(b-a);}   // 碎片用自己的亂數：不動 Math.random（盤面補珠也用它，多抽幾次後面的珠子顏色就整串不一樣）
+var sbGeo=(function(){var g=new THREE.BufferGeometry(),n=3,v=[0,0,0],idx=[];for(var i=0;i<=n;i++){var a=-0.42+0.84*i/n;v.push(Math.cos(a),Math.sin(a)*(i%2?0.92:1),0);}
+  for(i=1;i<=n;i++)idx.push(0,i,i+1);g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);return g;})();   // 尖端朝原點、弧邊在 x＝1 那一側
+var sbMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
+  vertexShader:['attribute float aA; varying float vA; varying vec3 vC; varying vec2 vP;','void main(){ vA=aA; vP=position.xy; vC=vec3(1.0);','#ifdef USE_INSTANCING_COLOR',' vC=instanceColor;','#endif',
+    ' vec4 p=vec4(position,1.0);','#ifdef USE_INSTANCING',' p=instanceMatrix*p;','#endif',' gl_Position=projectionMatrix*modelViewMatrix*p; }'].join('\n'),
+  fragmentShader:['varying float vA; varying vec3 vC; varying vec2 vP;',
+    'void main(){ float r=length(vP); float sh=0.78+0.32*smoothstep(-0.4,0.4,vP.y-vP.x*0.3);',   // 鏡面：一邊亮一邊暗
+    ' vec3 c=vC*sh+vec3(smoothstep(0.82,0.98,r)*0.55);',   // 弧邊（鏡子原本的外緣）一道白色的亮邊
+    ' gl_FragColor=vec4(c,vA); }'].join('\n')});
+var sbMesh=new THREE.InstancedMesh(sbGeo,sbMat,SB_CAP),sbA=new Float32Array(SB_CAP);sbMesh.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(SB_CAP*3),3);
+sbGeo.setAttribute('aA',new THREE.InstancedBufferAttribute(sbA,1));sbMesh.frustumCulled=false;sbMesh.count=0;boardScene.add(sbMesh);
+var sbs=[];for(var sbi=0;sbi<SB_CAP;sbi++)sbs.push({on:false,x:0,y:0,vx:0,vy:0,rot:0,vr:0,sx:1,sy:1,life:0,col:new THREE.Color()});
+var SB_GLASS=[new THREE.Color(0xf4f8ff),new THREE.Color(0xdfe9fb),new THREE.Color(0xc4d3ef),new THREE.Color(0xeef2ff)],SB_GOLD=new THREE.Color(0xf2c65a);
+// 在畫面上 (x, y) 裂開一面大小 size（px，大約一格）的鏡片
+function shatterBits(x,y,size){for(var k=0;k<SB_N;k++){var b=null;for(var q=0;q<SB_CAP;q++){var o=sbs[(sbHead+q)%SB_CAP];if(!o.on){b=o;sbHead=(sbHead+q+1)%SB_CAP;break;}}if(!b)return;
+  var a=k/SB_N*TAU+sbR(-0.25,0.25),sp=size*sbR(1.6,3.4);b.on=true;b.life=SB_LIFE*sbR(0.85,1.1);b.max=b.life;
+  b.x=x+Math.cos(a)*size*0.04;b.y=y+Math.sin(a)*size*0.04;b.vx=Math.cos(a)*sp;b.vy=Math.sin(a)*sp-size*sbR(1.2,2.6);b.rot=a;b.vr=sbR(-11,11);
+  b.sx=size*sbR(0.44,0.54);b.sy=b.sx*sbR(0.85,1.15);   /* 一開始七片拼起來剛好是一面鏡子（尖端在中心的扇形），再各自飛開 */b.col.copy(k===2||k===5?SB_GOLD:SB_GLASS[k%SB_GLASS.length]);}}
+function updateBits(dt){var n=0;for(var k=0;k<SB_CAP;k++){var b=sbs[k];if(!b.on)continue;b.life-=dt;if(b.life<=0){b.on=false;continue;}
+    b.vy+=SB_G*L.cs*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.vx*=Math.pow(0.35,dt);b.rot+=b.vr*dt;var u=1-b.life/b.max,s=1-0.25*u;
+    _p.set(b.x,-b.y,66);_q.setFromAxisAngle(_zA,-b.rot);_s.set(b.sx*s,b.sy*s,1);_m.compose(_p,_q,_s);sbMesh.setMatrixAt(n,_m);
+    sbMesh.instanceColor.setXYZ(n,b.col.r,b.col.g,b.col.b);sbA[n]=u<0.4?1:1-(u-0.4)/0.6;n++;}
+  sbMesh.count=n;sbMesh.instanceMatrix.needsUpdate=true;sbMesh.instanceColor.needsUpdate=true;sbGeo.attributes.aA.needsUpdate=true;}
+var _zA=new THREE.Vector3(0,0,1);
+function updateFx(dt){updateBits(dt);[beams,rings].forEach(function(pool){pool.forEach(function(f){if(f.life<=0)return;f.life-=dt;
   if(f.life<=0){f.m.visible=false;return;}var k=1-f.life/f.max,e=1-Math.pow(1-k,3);
   f.m.scale.set(f.l0+(f.l1-f.l0)*e,f.w0+(f.w1-f.w0)*e,1);f.m.material.opacity=Math.min(1,(1-k)*1.6);});});}
 var shake=0;/* 別的 module 要整個換掉 shake 用這個（import 進去的變數不能直接賦值） */function setShake(v){shake=v;}function addShake(a){shake=Math.max(shake,a);if(navigator.vibrate&&a>=6){try{navigator.vibrate(18);}catch(_){}}}
@@ -6161,8 +6221,8 @@ var PETAL_VIEW={
       for(var k=0;k<5;k++){var a=rand(0,TAU),sp=rand(0.8,1.8)*L.cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-L.cs*0.6,rand(.3,.5),rand(.14,.22)*L.cs,petalSpark(v.type),L.cs*4);}
       return tween(0.24,function(k){v.petalS=1.3-0.3*k;},easeOutBack).then(function(){v.petalS=1;});});}));},
   onClear:function(st,ps){(st.reveals||[]).forEach(function(u){ps.push(after(u.depth*A.chainStep+0.06,function(){PETAL_VIEW.blow(u.id);}));});},   // 旁邊消掉而吹開的花瓣
-// 吹開一片花瓣：cleared 是那顆珠同時被消掉（不另外閃一下）
-  blow:function(id,cleared){var v=views.get(id);if(!v||!v.petal)return;v.petal=0;PETAL.revealed(battle);
+// 吹開一片花瓣：cleared 是那顆珠同時被消掉（不另外閃一下）；counted：已經算過揭開了（大招變奏燎原在 PETAL.burn 一次算完）
+  blow:function(id,cleared,counted){var v=views.get(id);if(!v||!v.petal)return;v.petal=0;if(!counted)PETAL.revealed(battle);
   var q=cellXY(v.row,v.col),sd=Math.random()<0.5?-1:1;petalFlight('out',q.x,q.y,q.x+sd*rand(0.9,1.7)*L.cs,q.y-rand(1.6,2.6)*L.cs,0.6,0,petalTint(v.type));AudioFX.bloom();
   for(var k=0;k<6;k++){var a=rand(0,TAU),sp=rand(1,2.4)*L.cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-L.cs*1.2,rand(.35,.6),rand(.12,.2)*L.cs,petalSpark(v.type),L.cs*5);}
   if(!cleared){v.f=1.7;tween(0.3,function(k){v.f=1.7-0.7*k;});}},
@@ -6273,22 +6333,25 @@ var CORD_VIEW={
 // ---- 第五關紅繩結界、第六關鏡片與反照（2026-09-28 Version 108 做在盤面上，跟第二關的鎖鏈一樣；Version 111 全部打碎的獎勵換成反照）----
 // 鏡片的網格（shardMesh、shardMat）還是在 render/orbs.js 建；天狐身邊的大鏡子是戰場亮點（stageFx）。
 // 碎掉的鏡片反光扣 BOSS 血（battle.hitBoss）照原本寫在畫法的動畫裡：打到一半結束時沒播到的不扣，時機跟拆包前一樣。
-var SILVER=new THREE.Color(0xe6efff),GLARECOL=new THREE.Color(0xffe29a);
+var SILVER$1=new THREE.Color(0xe6efff),GLARECOL=new THREE.Color(0xffe29a);
 // 天鏡射出鏡片：鏡子閃一下，銀色的光打到那幾顆珠，珠子變成鏡片
 function animShard(list){if(!list.length)return Promise.resolve();var bp=bossScreen(),d=stageFx();if(d.fire)d.fire();BS.boss.attack();AudioFX.shard();
-  list.forEach(function(it){var q=cellXY(it.r,it.c);beam(bp.x,bp.y,q.x,q.y,L.cs*0.26,SILVER,0.4);});
+  list.forEach(function(it){var q=cellXY(it.r,it.c);beam(bp.x,bp.y,q.x,q.y,L.cs*0.26,SILVER$1,0.4);});
   return wait(0.2).then(function(){addShake(3);return Promise.all(list.map(function(it){var v=views.get(it.id);if(!v)return null;v.shard=true;v.type=-2;v.petal=0;
-    var q=cellXY(it.r,it.c);ringFx(q.x,q.y,L.cs*0.9,L.cs*0.4,SILVER,0.3);return tween(0.28,function(k){v.shardS=1.6-0.6*k;},easeOutBack).then(function(){v.shardS=1;});}));});}
+    var q=cellXY(it.r,it.c);ringFx(q.x,q.y,L.cs*0.9,L.cs*0.4,SILVER$1,0.3);return tween(0.28,function(k){v.shardS=1.6-0.6*k;},easeOutBack).then(function(){v.shardS=1;});}));});}
 // 鏡片碎掉：碎片噴開，反光打回天狐（CONFIG.stages[5].shard.bonus 點傷害）
+//   2026-09-30 演出打磨第三批（CK：碎裂爽感要足）：鏡片先脹一下、閃白，馬上真的裂成好幾片（effects.js 的 shatterBits）往下掉、淡出，再加一圈白光；
+//   亮粉照原本的抽法（Math.random 抽的次數不變，盤面補珠的顏色才跟原本一樣）、整段一樣 0.16 秒才算演完
 function breakShard(u){var v=views.get(u.id);if(!v)return;var q=cellXY(v.row,v.col),cs=L.cs,d=stageFx(),k;AudioFX.shardBreak();
-  for(k=0;k<10;k++){var a=rand(0,TAU),sp=rand(1.2,3)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*1.1,rand(.3,.55),rand(.12,.22)*cs,k%3?SILVER:GOLD,cs*7);}
-  if(fighting()&&battle.boss.shard){var bp=bossScreen();beam(q.x,q.y,bp.x,bp.y,cs*0.22,SILVER,0.35);
+  for(k=0;k<10;k++){var a=rand(0,TAU),sp=rand(1.2,3)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*1.1,rand(.3,.55),rand(.12,.22)*cs,k%3?SILVER$1:GOLD,cs*7);}
+  ringFx(q.x,q.y,cs*0.25,cs*1.05,SILVER$1,0.22);
+  if(fighting()&&battle.boss.shard){var bp=bossScreen();beam(q.x,q.y,bp.x,bp.y,cs*0.22,SILVER$1,0.35);
     after(0.15,function(){if(!fighting())return;var r=battle.hitBoss(battle.boss.shard.bonus);if(d.pulse)d.pulse();if(r.dealt<=0)return;BS.boss.hit();
       popNum(bp.x+rand(-L.W*0.14,L.W*0.14),bp.y+rand(-L.H*0.05,0),r.dealt,'up','反光');updateBars();if(r.enraged)onEnrage();if(r.killed)onBossDown();});}
-  return tween(0.16,function(k){v.shardS=1+0.35*k;v.f=1+0.8*k;}).then(function(){views.delete(u.id);});}
+  return tween(0.07,function(k){v.shardS=1+0.25*k;v.f=1+1.2*k;}).then(function(){views.delete(u.id);shatterBits(q.x,q.y,cs*0.95);addShake(2);return wait(0.09);});}
 // 鏡子第一次被打到：裂開（鏡面多幾道裂痕、閃一下、噴幾顆銀色碎光），還在原地
 function crackShard(u){var v=views.get(u.id);if(!v)return;var q=cellXY(v.row,v.col),cs=L.cs,k;AudioFX.shardCrack();v.crack=1;
-  ringFx(q.x,q.y,cs*0.3,cs*1.0,SILVER,0.3);for(k=0;k<5;k++){var a=rand(0,TAU),sp=rand(0.8,1.8)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*0.7,rand(.25,.4),rand(.1,.16)*cs,SILVER,cs*6);}
+  ringFx(q.x,q.y,cs*0.3,cs*1.0,SILVER$1,0.3);for(k=0;k<5;k++){var a=rand(0,TAU),sp=rand(0.8,1.8)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*0.7,rand(.25,.4),rand(.1,.16)*cs,SILVER$1,cs*6);}
   return tween(0.24,function(k2){v.shardS=1.18-0.18*k2;v.f=1.8-0.8*k2;}).then(function(){v.shardS=1;v.f=1;});}
 // 反照（Version 111）：盤面上的鏡子全部打碎，天鏡的光照回天狐自己——大鏡子染金、天狐被照得一閃，glare 秒內你打出的傷害 ×glareMul
 function onGlare(){var d=stageFx(),sd=battle.boss.shard,bp=bossScreen(),cs=L.cs,k;if(d.glare)d.glare(true);AudioFX.glare();BS.boss.hit();
@@ -6318,7 +6381,7 @@ var SHARD_VIEW={
 // 灰珠用 skin(v)（syncOrbs 換網格和材質，別的照畫）：鎖、愛心、鬼火、劍氣／爆符的記號、各機制的 drawOrb 都照樣疊上去（最終戰會同時出現）。
 //   試玩場原本用 drawCover 整顆蓋掉，那樣疊加物都不畫，搬進來時改掉了。
 // 灰珠的網格、水的貼圖第一次用到才建（別的關不多建東西、不動到 three.js 的物件編號）。
-var GRAY=0x8f969d,GRAY_PLATE=0x5f5d5a,WATER=0xd4f6ff,DRIP=new THREE.Color(0xc8f4ff),POUR=0.42;
+var GRAY=0x8f969d,GRAY_PLATE=0x5f5d5a,WATER$1=0xd4f6ff,DRIP=new THREE.Color(0xc8f4ff),POUR=0.42;
 var GM=null,waterTex=null,SK={mesh:null,plate:null,i:0,noHL:true};   // SK：skin() 回傳給 syncOrbs 的（重複用同一個物件）
 function inst(geo,mat){var m=new THREE.InstancedMesh(geo,mat,CAP);m.frustumCulled=false;m.count=0;boardScene.add(m);return m;}
 // 灰珠：跟原本的珠同一個形狀，材質換成灰白、不太反光（褪色的感覺）；底盤從金色褪成灰
@@ -6333,7 +6396,7 @@ function water(){if(waterTex)return waterTex;
   waterTex.wrapT=THREE.RepeatWrapping;return waterTex;}
 var cols=[];   // 每一直排一條水：st＝'off'｜'warn'（預告）｜'pour'（沖）｜'fade'（沖完淡掉）
 function colVis(c){
-  while(cols.length<=c){var m=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:water(),color:WATER,transparent:true,opacity:0,depthWrite:false,clippingPlanes:[clip]}));
+  while(cols.length<=c){var m=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:water(),color:WATER$1,transparent:true,opacity:0,depthWrite:false,clippingPlanes:[clip]}));
     m.visible=false;boardScene.add(m);cols.push({m:m,st:'off',k:0,a:0,drip:0});}
   return cols[c];}
 // 把第 c 排的水畫成從盤面上緣往下 k（0～1）那麼長
@@ -6368,11 +6431,35 @@ var LETHE_VIEW={
 // 鬼火的畫法：青燐丟綠光到珠上、附身的珠冒綠火＋倒數秒數（HTML 小標籤，#wispTags；最後 3 秒變黃、火跳得快）、
 // 消掉時噗一下、炸開時鬼火狐（綠色光球）飛去撞狐狸。邏輯在 wisp.js。
 // 第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。接口見 lock_view.js 開頭。
-// 樣子是試玩場的素版（2026-09-29 遊星做、CK 手機試過）；Q 版鬼火、「狐狸鬼火」、青燐身邊的兩團大鬼火是美化階段的事。
+// 樣子是試玩場的素版（2026-09-29 遊星做、CK 手機試過）；2026-09-30 演出打磨第三批：Q 版鬼火（index.html 的 .wispTag .fl）、炸開衝出狐狸魂魄（spirit）。
+//   青燐身邊的兩團大鬼火還是美化階段的事。
 // 樣式在 index.html（.wispTag）。
 var GREEN=new THREE.Color(0xb8ff4a),GREEN2=new THREE.Color(0x7be05a);
 var box=document.getElementById('wispTags'),tags={};   // id → 標籤
 function tagFor(id){var t=tags[id];if(!t){t=document.createElement('div');t.className='wispTag';t.innerHTML='<i class="gl"></i><i class="fl"></i><b></b>';box.appendChild(t);tags[id]=t;}return t;}
+// 鬼火炸開衝出來的狐狸魂魄（2026-09-30 演出打磨第三批，CK 之前的點子：上半身是狐狸、下半身是火焰，半透明，衝向隊伍）：
+//   畫在一張 canvas 貼圖上（第一次要用才畫：狐狸頭朝上、兩隻耳朵、瞇瞇眼，胸口往下變成三條火舌），板子放在盤面那一層（boardScene，z 86）；
+//   從那顆珠沿一條往上拱的弧線衝向那隻狐狸，頭朝前進的方向、一路掉綠色火星，一邊閃。
+//   撞到的時機、還在飛的計數（inflight）、Math.random 抽的次數都照原本：原本的光球照樣射（fireShot，大小幾乎 0＝看不見），魂魄只是畫面，
+//   用自己的亂數（spR），時間一樣是 A.shot 秒——這樣盤面補珠的顏色跟原本一模一樣
+var SPIRIT=null,spirits=[],spS=13579;
+function spR(a,b){spS=(spS*16807)%2147483647;return a+(spS/2147483647)*(b-a);}
+function spiritTex(){if(SPIRIT)return SPIRIT;SPIRIT=canvasTex(128,160,function(g,w,h){var cx=w/2;g.shadowColor='rgba(150,255,90,.9)';g.shadowBlur=14;
+    var fl=g.createLinearGradient(0,60,0,h);fl.addColorStop(0,'rgba(215,255,160,.95)');fl.addColorStop(0.5,'rgba(150,245,95,.75)');fl.addColorStop(1,'rgba(90,210,70,0)');g.fillStyle=fl;
+    g.beginPath();g.moveTo(cx-30,62);g.bezierCurveTo(cx-40,100,cx-26,120,cx-30,152);g.bezierCurveTo(cx-16,132,cx-10,140,cx-4,156);g.bezierCurveTo(cx+2,136,cx+10,132,cx+18,154);
+    g.bezierCurveTo(cx+22,124,cx+40,104,cx+30,62);g.closePath();g.fill();   // 胸口往下變成三條火舌
+    g.fillStyle='rgba(225,255,200,.95)';g.beginPath();g.moveTo(cx-30,34);g.lineTo(cx-34,4);g.lineTo(cx-12,22);g.closePath();g.fill();g.beginPath();g.moveTo(cx+30,34);g.lineTo(cx+34,4);g.lineTo(cx+12,22);g.closePath();g.fill();   // 耳朵
+    g.beginPath();g.ellipse(cx,44,32,27,0,0,Math.PI*2);g.fill();g.beginPath();g.ellipse(cx,66,22,16,0,0,Math.PI*2);g.fill();   // 頭、胸口
+    g.shadowBlur=0;g.fillStyle='rgba(120,230,110,.7)';g.beginPath();g.moveTo(cx-26,30);g.lineTo(cx-29,11);g.lineTo(cx-17,24);g.closePath();g.fill();g.beginPath();g.moveTo(cx+26,30);g.lineTo(cx+29,11);g.lineTo(cx+17,24);g.closePath();g.fill();   // 耳朵裡
+    g.strokeStyle='rgba(20,70,20,.9)';g.lineWidth=3.2;g.lineCap='round';g.beginPath();g.arc(cx-12,44,6,Math.PI*1.1,Math.PI*1.9);g.stroke();g.beginPath();g.arc(cx+12,44,6,Math.PI*1.1,Math.PI*1.9);g.stroke();   // 瞇瞇眼
+    g.fillStyle='rgba(20,70,20,.9)';g.beginPath();g.ellipse(cx,55,3.4,2.4,0,0,Math.PI*2);g.fill();});return SPIRIT;}
+function spirit(from,to){var m=null;for(var i=0;i<spirits.length;i++)if(!spirits[i].visible){m=spirits[i];break;}
+  if(!m){m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:spiritTex(),transparent:true,depthWrite:false,opacity:0.85}));m.visible=false;boardScene.add(m);spirits.push(m);}
+  var cx=(from.x+to.x)/2+spR(-L.W*0.1,L.W*0.1),cy=Math.min(from.y,to.y)-spR(20,60),px=from.x,py=from.y,sz=L.cs*2;
+  return tween(A.shot,function(k){var e=k*k*0.45+k*0.55,u=1-e,x=u*u*from.x+2*u*e*cx+e*e*to.x,y=u*u*from.y+2*u*e*cy+e*e*to.y;   // 跟原本的光球同一條弧線、同一個快慢
+    m.visible=true;m.position.set(x,-y,86);if(Math.hypot(x-px,y-py)>0.5)m.rotation.z=Math.atan2(-(y-py),x-px)-Math.PI/2;px=x;py=y;   // 頭朝前進的方向
+    var s=sz*(0.75+0.25*Math.min(1,k*3));m.scale.set(s*0.8,s,1);m.material.opacity=0.82+0.14*Math.sin(k*40);emit(x,y,spR(-20,20),spR(-20,20),0.25,L.cs*0.28,k*7%2<1?GREEN:GREEN2,0);})
+  .then(function(){m.visible=false;});}
 function drop$1(id,fade){var t=tags[id];if(!t)return;delete tags[id];if(fade){t.classList.add('bye');setTimeout(function(){t.remove();},260);}else t.remove();}
 function orbXY(v){return {x:L.bx+(v.col+0.5+v.ox)*L.cs,y:L.by+(v.row+0.5+v.oy)*L.cs};}
 function puff(x,y,n){for(var k=0;k<n;k++){var a=rand(0,6.283),sp=rand(0.8,2.6)*L.cs;emit(x,y,Math.cos(a)*sp,Math.sin(a)*sp-L.cs*1.2,rand(0.35,0.6),rand(0.1,0.2)*L.cs,k%2?GREEN:GREEN2,L.cs*3);}}
@@ -6388,10 +6475,10 @@ var WISP_VIEW={
   onEvent:function(e){   // 炸開：鬼火狐（綠光球）從珠上跳出去撞一隻狐狸
     if(e.type!=='wispBoom')return;
     var v=views.get(e.id),from=v?orbXY(v):{x:L.W/2,y:L.by};drop$1(e.id,true);puff(from.x,from.y,10);AudioFX.bossAttack();
-    fireShot(from,foxScreen(e.fox),GREEN,0,function(){
+    spirit(from,foxScreen(e.fox));fireShot(from,foxScreen(e.fox),GREEN,0,function(){
       var fp=foxScreen(e.fox);BS.foxes[e.fox].hit();ringFx(fp.x,fp.y,L.cs*0.3,L.cs*1.2,GREEN,0.4);addShake(5);
       popNum(fp.x,fp.y-14,'-'+e.dmg,'team','鬼火');updateBars();
-      if(battle.teamHp<=0&&G.mode==='playing'){G.mode='lost';after(1.3,function(){showResult('hp');});}},1.3);},
+      if(battle.teamHp<=0&&G.mode==='playing'){G.mode='lost';after(1.3,function(){showResult('hp');});}},1e-6);},   /* 光球大小 1e-6：看不見，只留時機 */
   hud:function(){   // 每一格：標籤跟著珠子走、秒數、最後 3 秒變黃、火跳得快
     var s=SES.mech.wisp,live={};
     if(s&&G.mode!=='result')s.list.forEach(function(w){var v=views.get(w.id);if(!v)return;live[w.id]=1;
@@ -6399,6 +6486,7 @@ var WISP_VIEW={
       t.style.left=q.x.toFixed(1)+'px';t.style.top=q.y.toFixed(1)+'px';t.style.setProperty('--s',(L.cs*1.25).toFixed(1)+'px');
       var b=t.lastChild;if(b.textContent!==n)b.textContent=n;t.classList.toggle('hot',w.left<=3);});
     Object.keys(tags).forEach(function(id){if(!live[id]&&!tags[id].dying)drop$1(id,false);});},
+  douse:function(ids){ids.forEach(function(id){drop$1(id,true);});},   // 大招變奏淨流澆熄的：標籤淡掉（ults.js）
   reset:function(){Object.keys(tags).forEach(function(id){drop$1(id,false);});},
   coverSkill:function(c){return '每 '+c.interval+' 秒丟 '+c.count+' 團鬼火附在珠上，倒數 '+c.fuse+' 秒；把那顆珠消掉就滅，沒消掉鬼火狐會衝出來撞隊伍。狂暴後每 '+c.enrageInterval+' 秒 '+c.enrageCount+' 團、倒數 '+c.enrageFuse+' 秒。';}
 };
@@ -6576,7 +6664,11 @@ var veil=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:veilTex,transpare
 function ultAltOn(key){var d=Save.data();return !!(CONFIG.ultAlt[key]&&d.ults[key]&&d.ult[key]==='alt');}
 function ultName(key,alt){return alt?CONFIG.ultAlt[key].name:CONFIG.ult[key].name;}
 function ultDesc(key,alt,st){var a=CONFIG.ultAlt[key],bn=st?st.name:'BOSS ';
-  if(alt&&key==='water')return '解開盤面上全部的鎖鏈，'+bn+'的攻擊倒數只延後 '+a.delay+' 秒。';
+  if(alt&&key==='water')return '解開盤面上全部的鎖鏈、澆熄盤面上全部的鬼火；'+bn+(a.delay?'的攻擊倒數只延後 '+a.delay+' 秒。':'的攻擊倒數不延後。');
+  if(alt&&key==='fire')return '燒掉盤面上全部的落英；'+CONFIG.ult.fire.balls+' 顆火球的傷害只有原版的'+(Math.abs(a.dmg-1/3)<1e-6?'三分之一':Math.round(a.dmg*100)+'%')+'。';
+  if(alt&&key==='dark')return '剪斷盤面上全部的紅繩（鈴鐺一起掉）；傷害固定是基礎攻擊 × '+a.mult+'，不吃連擊。';
+  if(alt&&key==='light')return '陽光照過盤面，鏡片全部變回普通珠，有天鏡的關直接反照；沒有全隊傷害 ×'+CONFIG.ult.light.mult+'。';
+  if(alt&&key==='wood')return '被忘川沖灰的珠子全部長回顏色；不生劍氣珠。';
   if(alt&&key==='heart')return '解除所有媚惑，'+a.guard+' 秒內不會再被迷住；只回復 '+Math.round(a.heal*100)+'% 血量，沒有護盾。';
   return skillText(key,st||{name:'BOSS '});}
 function tryUlt(i){if(G.mode!=='playing'||battle.energy[i]<CONFIG.ult.max)return false;
@@ -6602,21 +6694,24 @@ function updateUlt(rdt){var u=SES.U,d=u.dur,inT=0.28,outT=0.22,e;u.t+=rdt;
 function finishUlt(){var i=SES.U.i;SES.U=null;CAM.pos.set(0,0,14);CAM.look.set(0,0,0);bcam.position.copy(CAM.pos);bcam.lookAt(CAM.look);bcam.updateMatrixWorld();
   BS.ultFx.group.visible=false;veil.visible=false;veil.material.opacity=0;ultBannerEl.classList.remove('show');
   G.mode='playing';S.lastAct=S.time;applyUlt(i);}
-function applyUlt(i){var key=ULT_KEYS[i],cfg=CONFIG.ult[key],fox=BS.foxes[i],from=foxScreen(i),bp=bossScreen(),col=typeColor(i);
+// 大招變奏（alt＝這一場帶變奏，SES.ULT_SEL）：傷害打折／固定在 battle.ultDamage(i, alt)；變奏多做的那一半（清花瓣、剪繩、照鏡片、長回顏色、澆熄鬼火）在 ults.js
+function applyUlt(i){var key=ULT_KEYS[i],alt=!!SES.ULT_SEL[i],cfg=CONFIG.ult[key],fox=BS.foxes[i],from=foxScreen(i),bp=bossScreen(),col=typeColor(i);
   fox.attack();
   FX2D.play({fire:'embers',water:'wave',wood:'vines',light:'gold',dark:'claws',heart:'hearts'}[key]);
   if(key==='dark'){AudioFX.slash();addShake(9);}
-  if(key==='fire'){for(var k=0;k<cfg.balls;k++)(function(k){after(k*0.11,function(){if(!fighting())return;var res=battle.ultDamage(i);fox.attack();AudioFX.fireball();
+  if(key==='fire'){if(alt)ULTS.queue('fire',i);   // 燎原：盤面停下來就燒掉全部落英
+    for(var k=0;k<cfg.balls;k++)(function(k){after(k*0.11,function(){if(!fighting())return;var res=battle.ultDamage(i,alt);fox.attack();AudioFX.fireball();
       fireShot(foxScreen(i),{x:bp.x+rand(-26,26),y:bp.y+rand(-22,22)},new THREE.Color(0xffa060),0,function(){onShotHit(res,i);},1.6);});})(k);}
-  else if(key==='water'){var walt=SES.ULT_SEL[i],wd=walt?CONFIG.ultAlt.water.delay:cfg.delay;if(walt)SES.pendingUnlock=true;battle.atk+=wd;   /* 淨流：盤面停下來後解開全部鎖鏈；倒數加回去之後就不算在蓄力了 */if(battle.atk>battle.boss.charge)battle.charging=false;
+  else if(key==='water'&&alt&&!CONFIG.ultAlt.water.delay){SES.pendingUnlock=true;ULTS.now('water',i);}   // 淨流（2026-09-30 CK：倒數不延後）：解開鎖鏈（盤面停下來後）、當下澆熄鬼火；不打 BOSS、不封倒數
+  else if(key==='water'){var walt=alt,wd=walt?CONFIG.ultAlt.water.delay:cfg.delay;if(walt){SES.pendingUnlock=true;ULTS.now('water',i);}battle.atk+=wd;   /* 淨流：盤面停下來後解開全部鎖鏈；倒數加回去之後就不算在蓄力了 */if(battle.atk>battle.boss.charge)battle.charging=false;
     beam(from.x,from.y,bp.x,bp.y,L.cs*0.55,col,0.45);BS.boss.hit();
     for(var w=0;w<3;w++)(function(w){after(w*0.12,function(){ringFx(bp.x,bp.y,L.cs*0.4,L.cs*(2.4+w*0.8),col,0.5);});})(w);
     var cp=toScreen(BS.bossPoint(-1.05,1.8));popNum(cp.x,cp.y-8,'+'+wd+' 秒','water',ultName('water',walt));
     cdEl.classList.add('sealed');clearTimeout(sealT);sealT=setTimeout(function(){cdEl.classList.remove('sealed');},1800);}
-  else if(key==='wood'){SES.pendingSwords+=cfg.swords;}
-  else if(key==='light'){battle.buff=cfg.dur;BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.2,GOLD,0.5);});}
-  else if(key==='dark'){var res=battle.ultDamage(i),c=Math.max(1,battle.combo);
-    fireShot(from,bp,new THREE.Color(0xb48cff),0,function(){onShotHit(res,i,'影襲 '+c+' 連擊');addShake(8);},2.4);}
+  else if(key==='wood'){if(alt)ULTS.queue('wood',i);else SES.pendingSwords+=cfg.swords;}   // 新芽：灰珠長回顏色，不生劍氣珠
+  else if(key==='light'){if(alt)ULTS.queue('light',i);else {battle.buff=cfg.dur;BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.2,GOLD,0.5);});}}   // 日曜：沒有全隊 ×1.5，也不畫加護的金圈
+  else if(key==='dark'){var res=battle.ultDamage(i,alt),c=Math.max(1,battle.combo);if(alt)ULTS.queue('dark',i);   // 穿影：剪斷全部紅繩；傷害固定、不吃連擊（數字下面寫「穿影」）
+    fireShot(from,bp,new THREE.Color(0xb48cff),0,function(){onShotHit(res,i,alt?ultName('dark',true):'影襲 '+c+' 連擊');addShake(8);},2.4);}
   else if(key==='heart'&&SES.ULT_SEL[i]){var ca=CONFIG.ultAlt.heart,h2=battle.healPct(ca.heal),freed=battle.clearCharm(ca.guard);AudioFX.heal();   // 清心
     freed.forEach(function(j){MECH_VIEWS.charm.uncharm(j);});BS.foxes.forEach(function(f,j){var q=foxScreen(j);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.3,CALMCOL,0.55);});
     popNum(L.W/2,L.teamY+L.teamH*0.66,'+'+h2,'heal',freed.length?'清心・解除媚惑':'清心');updateBars();}
@@ -6889,7 +6984,7 @@ function applyOutfit(f){var o=Save.outfitOf(f);SLOTS$1.forEach(function(s){var i
 function applyAllOutfits(){WKEYS.forEach(applyOutfit);}
 applyAllOutfits();
 function setBossHud(){var st=CONFIG.stages[APP.stage];FINAL.hud(st);bossBarEl.querySelector('.name').textContent=st.name;var at=bossBarEl.querySelector('.attr');at.textContent=st.attrName;at.className='attr a-'+st.attr;}
-function resetBattleFx(){slowStop();REWARD.clear();FX2D.clear();DLG.clear();cdEl.classList.remove('sealed');tweens.length=0;MECH_VIEW_LIST.forEach(function(mv){if(mv.reset)mv.reset();});shotPool.forEach(function(q){q.on=false;q.m.visible=false;q.cb=null;});setInflight(0);motes.forEach(function(m){m.on=false;});parts.forEach(function(q){q.on=false;});
+function resetBattleFx(){slowStop();ULTS.reset();REWARD.clear();FX2D.clear();DLG.clear();cdEl.classList.remove('sealed');tweens.length=0;MECH_VIEW_LIST.forEach(function(mv){if(mv.reset)mv.reset();});shotPool.forEach(function(q){q.on=false;q.m.visible=false;q.cb=null;});setInflight(0);motes.forEach(function(m){m.on=false;});parts.forEach(function(q){q.on=false;});
   [beams,rings].forEach(function(pool){pool.forEach(function(f){f.life=0;f.m.visible=false;});});setShake(0);bannerEl.classList.remove('show');toastEl.classList.remove('show');}
 // ---- 月下庭院：星星計數、關卡資訊框、傳送、第一次通關的收集動畫 ----
 var gHintEl=document.getElementById('gHint'),gToastEl=document.getElementById('gToast'),gToastT=0,gHintT=0,
@@ -7294,6 +7389,7 @@ function frame(now){
   MECHS.forEach(function(m){if(!m.place||G.mode!=='playing'||S.locked)return;   // 盤面停下來：各機制把卡著的東西放上去（鎖鏈：鎖；落英：花瓣；紅繩：繩子；天鏡：鏡片），一格最多一種
     var got=m.place(board,SES.mech[m.key],battle.boss[m.key]);if(got){S.locked=true;S.sel=null;S.hint=null;MECH_VIEWS[m.key].place(got).then(settle);}});
   if(SES.pendingUnlock&&G.mode==='playing'&&!S.locked){SES.pendingUnlock=false;board.unlockAll().forEach(function(u,k){after(k*0.07,function(){MECH_VIEWS.lock.shatter(u);});});}
+  ULTS.update();   // 大招變奏要動盤面的（燎原、穿影、日曜、新芽）：盤面停下來才做
   if(SES.pendingSwords>0&&G.mode==='playing'&&!S.locked){var ns=SES.pendingSwords;SES.pendingSwords=0;S.locked=true;S.sel=null;S.hint=null;
     animConvert({fromXY:foxScreen(2),col:new THREE.Color(0x8ef0b4),items:board.addRandomSpecials(ns,'sword')}).then(settle);}
   if(G.mode==='playing'){var evs=battle.tick(dt);if(!battle.halted())MECHS.forEach(function(m){var c=battle.boss[m.key];if(m.update&&c)m.update(battle,dt,SES.mech[m.key],c,board,evs);});   // 各機制每格要看 session、盤面的（鬼火：倒數、炸開）；最終戰金鈴讓血停住時（halted）也停
@@ -7664,6 +7760,59 @@ var FINAL={
   endingKind:function(){var q=APP.storyTest;if(q)return q.indexOf('l')<0?'normal':q.indexOf('b')>=0?'true':'nobell';
     if(!Save.data().story.letter)return 'normal';
     return savedBells().some(Boolean)?'true':'nobell';}
+};
+
+// 大招變奏的畫面（ults.js，2026-09-30 CK 在試玩場 lab/mech/ults.js 打過定的配法）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 每隻狐狸一個變奏（打過哪一關拿到寫在 CONFIG.stages[].ultDrop），剋一關的招，而且一定放棄原版的一部分（數字在 CONFIG.ultAlt）：
+//   💧 淨流（水，第一關）：解開全部鎖鏈（flow.js 的 pendingUnlock）＋澆熄盤面上全部鬼火｜BOSS 攻擊倒數不延後
+//   💗 清心（心，第二關）：解除媚惑、6 秒內不會再被迷（flow.js 的 applyUlt）｜只回 15%、沒有護盾
+//   🔥 燎原（火，第三關）：燒掉盤面上全部落英（算揭開，第四關挑戰）｜五顆火球的傷害只有三分之一（battle.ultDamage）
+//   🌑 穿影（暗，第四關）：剪斷盤面上全部紅繩、鈴鐺一起掉（算解開，第五關挑戰）｜固定基礎攻擊 × 4、不吃連擊（battle.ultDamage）
+//   ☀️ 日曜（光，第五關）：鏡片全部變回普通珠，有天鏡的關直接反照｜沒有全隊 ×1.5；盤面上沒有鏡片就只閃一下
+//   🌱 新芽（木，第七關）：被忘川沖灰的珠子全部長回顏色｜不生劍氣珠
+// 邏輯（動盤面、計數）在各包：WISP.quench、PETAL.burn、CORD.cutAll、SHARD.unshard、LETHE.regrow（node 的 tests/ults_test.js 測）；這裡只有畫面和時機：
+//   ULTS.now(key, i)    放招當下就做（淨流澆熄鬼火：鬼火附在珠上，不動盤面）
+//   ULTS.queue(key, i)  要動盤面的，先排著，等盤面停下來（主迴圈叫 ULTS.update：G.mode 'playing' 而且 S.locked 沒鎖）才做；這一場（SES）換了就不做
+var SUN=new THREE.Color(0xffe6a0),EMBER=new THREE.Color(0xff8a3a),EMBER2=new THREE.Color(0xffd070),SHADOW=new THREE.Color(0xb48cff),
+  SPROUT=new THREE.Color(0x8fe06a),SPROUT2=new THREE.Color(0xe6ffb0),WATER=new THREE.Color(0x7fd4ff),WATER2=new THREE.Color(0xe0f6ff),SILVER=new THREE.Color(0xe6efff);
+var pend=[];   // 排著等盤面停下來的：{key, i, ses}
+function sparks(x,y,n,c1,c2,up){var cs=L.cs;
+  for(var k=0;k<n;k++){var a=Math.random()*6.283,sp=(0.8+Math.random()*1.8)*cs;emit(x,y,Math.cos(a)*sp,Math.sin(a)*sp-cs*(up||1),0.35+Math.random()*0.3,(0.1+Math.random()*0.1)*cs,k%2?c1:c2,cs*4);}}
+function flash(v,k0){v.f=k0;tween(0.35,function(k){v.f=k0-(k0-1)*k;}).then(function(){v.f=1;});}   // 那顆珠亮一下
+function none(txt){showBanner(txt);ringFx(L.bx+board.C*L.cs/2,L.by+board.R*L.cs/2,L.cs*0.5,L.cs*2.2,GOLD,0.4);}   // 盤面上沒有東西可以清：橫幅說一聲、珠盤中間一圈光
+var DO={
+  // 💧 淨流：澆熄盤面上全部鬼火（珠子留著、火滅掉）；鎖鏈照原本的 pendingUnlock 解開
+  water:function(){var ids=WISP.quench(battle,SES.mech.wisp);if(!ids.length)return;
+    ids.forEach(function(id){var v=views.get(id);if(!v)return;var q=cellXY(v.row,v.col);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.3,WATER,0.4);sparks(q.x,q.y,10,WATER,WATER2,1.2);flash(v,1.5);});
+    WISP_VIEW.douse(ids);AudioFX.unlock();after(0.5,function(){showBanner('淨流　澆熄 '+ids.length+' 團鬼火');});},
+  // 🔥 燎原：燒掉全部落英（照吹開的動畫走、另外噴火星；揭開的數量在 PETAL.burn 就算了）
+  fire:function(){var list=PETAL.burn(battle,board);if(!list.length)return none('燎原：盤面上沒有落英');
+    list.forEach(function(it,k){after(k*0.05,function(){var v=views.get(it.id);if(!v)return;var q=cellXY(v.row,v.col);
+      sparks(q.x,q.y,10,EMBER,EMBER2,1.4);ringFx(q.x,q.y,L.cs*0.2,L.cs*1.1,EMBER,0.35);PETAL_VIEW.blow(it.id,false,true);});});
+    addShake(4);showBanner('燎原　燒掉 '+list.length+' 片落英');},
+  // 🌑 穿影：剪斷全部紅繩，繩上的鈴鐺一起掉（算解開幾條在 CORD.cutAll）
+  dark:function(){var cut=CORD.cutAll(battle,board);if(!cut.length)return none('穿影：盤面上沒有紅繩');
+    cut.forEach(function(w,k){var cv=cordFind(w.id);if(!cv)return;after(k*0.08,function(){var e=cordEnds(cv),ym=(e.y0+e.y1)/2;
+      beam(e.x-L.cs*0.6,e.y0-L.cs*0.4,e.x+L.cs*0.6,e.y1+L.cs*0.4,L.cs*0.18,SHADOW,0.3);   // 一道斜斜的影子劃過繩子
+      while(cv.nb>0){cv.nb--;cordDropBell(cv,cv.nb);}cv.flash=1;cv.untie=0;ringFx(e.x,ym,L.cs*0.3,L.cs*1.8,SHADOW,0.45);sparks(e.x,ym,10,SHADOW,SILVER,1);});});
+    AudioFX.untie();addShake(5);var d=stageFx();if(d.brk)d.brk();showBanner('穿影　剪斷 '+cut.length+' 條紅繩');},
+  // ☀️ 日曜：陽光從光狐照過盤面，鏡片全部變回普通珠；有天鏡的關直接反照（大鏡子染金、橫幅都是天鏡那一套）
+  light:function(i){var got=SHARD.unshard(battle,board);if(!got.length)return none('日曜：盤面上沒有鏡片');var from=foxScreen(i);
+    got.forEach(function(g){var v=views.get(g.id);if(!v)return;var q=cellXY(g.r,g.c);beam(from.x,from.y,q.x,q.y,L.cs*0.22,SUN,0.35);
+      v.shard=false;v.type=g.type;v.crack=0;v.shardS=1;flash(v,2);sparks(q.x,q.y,12,SILVER,GOLD,1.1);ringFx(q.x,q.y,L.cs*0.3,L.cs*1.3,SUN,0.4);});
+    AudioFX.shardBreak();addShake(5);S.hint=null;
+    if(battle.boss.shard&&fighting()){battle.startGlare();MECH_VIEWS.shard.afterMove();}else showBanner('日曜　照碎 '+got.length+' 面鏡片');},
+  // 🌱 新芽：被忘川沖灰的珠子全部長回顏色
+  wood:function(){var ids=LETHE.regrow(board,SES.mech.lethe);if(!ids.length)return none('新芽：盤面上沒有灰珠');
+    ids.forEach(function(id){var v=views.get(id);if(!v)return;v.gray=0;var q=cellXY(v.row,v.col);
+      after(Math.random()*0.25,function(){sparks(q.x,q.y,8,SPROUT,SPROUT2,1.3);ringFx(q.x,q.y,L.cs*0.2,L.cs*1.0,SPROUT,0.35);flash(v,1.7);});});
+    AudioFX.bloom();showBanner('新芽　'+ids.length+' 顆珠子長回顏色');}
+};
+var ULTS={
+  now:function(key,i){if(DO[key])DO[key](i);},
+  queue:function(key,i){if(DO[key])pend.push({key:key,i:i,ses:SES});},
+  update:function(){if(!pend.length||G.mode!=='playing'||S.locked)return;pend.splice(0).forEach(function(p){if(p.ses===SES)DO[p.key](p.i);});},
+  reset:function(){pend.length=0;}
 };
 
 // 入口：接在所有 module 的最後，組好除錯入口 window.__game、開始遊戲。
