@@ -7,14 +7,13 @@
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);
 if(/[?&]easy/.test(location.search)){var EK=0.25,et=setInterval(function(){var g=window.__game;if(!g||!g.battle)return;clearInterval(et);var bt=g.battle,orig=bt.reset;function sc(){if(bt.bossMax>0&&bt.__easy!==bt.bossMax){bt.bossMax=Math.max(1,Math.round(bt.bossMax*EK));bt.bossHp=Math.min(bt.bossHp,bt.bossMax);bt.__easy=bt.bossMax;}}bt.reset=function(){var r=orig.apply(this,arguments);sc();return r;};sc();},30);}
-var CV=/[?&]cover=(\d)/.exec(location.search),IS=/[?&]isle=(\d)/.exec(location.search);if(CV||IS){var jt=setInterval(function(){var g=window.__game;if(!g||!g.GARDEN||!g.goTeam)return;clearInterval(jt);setTimeout(function(){if(CV)g.goTeam(+CV[1]-1);else{g.goGarden();g.GARDEN.setLoc(+IS[1]-1);}},300);},50);}})();</script>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+var CV=/[?&]cover=(\d)/.exec(location.search),IS=/[?&]isle=(\d)/.exec(location.search);if(CV||IS){var jt=setInterval(function(){var g=window.__game;if(!g||!g.GARDEN||!g.goTeam)return;clearInterval(jt);setTimeout(function(){if(CV)g.goTeam(+CV[1]-1);else{g.goGarden();g.GARDEN.setLoc(+IS[1]-1);}},300);},50);}})();</script><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/Huxian-web/apple-touch-icon.png">   <!-- 主畫面圖示（2026-09-29 繪星畫、CK 先試效果；檔案放在 Huxian-web 根目錄，原圖 assets/icon/） -->
 <link rel="icon" type="image/png" href="/Huxian-web/icon-192.png">
-<title>狐仙三消（美術預覽）</title>
+<title>狐仙三消</title>
 <script>/* 全螢幕（2026-09-29 第三輪）：加到主畫面開的（standalone）在 <html> 加 class，高度改用 100vh（見下面的 html.standalone）。
    CK 的 iPhone 12 實測：主畫面模式的 100dvh 只有 797（扣掉瀏海），底下少畫 47px；100vh 是 844＝整個螢幕。 */
 if(navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches))document.documentElement.classList.add('standalone');</script>
@@ -2349,14 +2348,19 @@ var BS=(function(){
     // 2026-09-30 白天美術第一版（CK）：換成新造型（characters.js 的 makeSkyMirror，split：外框轉、中間的圓鏡漂浮、兩者有時間差），跟封面同一面。
     //   接口不變（fire／glare／pulse），射鏡片、鏡片碎掉、反照的特效照舊（mechanics/shard_view.js 叫這裡）
     var M=makeSkyMirror({R:R,split:true});G.add(M.G);var fu=M.u,halo=M.halo;halo.scale.set(R*4.2,R*4.2,1);
-    var st={k:0,flash:0,on:false},cC=new THREE.Color(0xffd46a);
+    var st={k:0,flash:0,on:false,turn:0},cC=new THREE.Color(0xffd46a);   // turn：小鏡子轉向天狐轉到哪（0 朝鏡頭～1 朝天狐）
     // 左右兩面小鏡子（2026-09-30，03 原本的企劃「左右小鏡子射光、反照時光折回打 BOSS」）：原本天狐鏡子的縮小版（makeSkyMirror 沒有 split，一體），
     //   飄在天狐兩側、微微朝向她；只加演出：射鏡片時從小鏡子射出、鏡片碎掉的反光和反照的光從小鏡子折回打她（mechanics/shard_view.js 叫 smallAt／smallFlash）。
-    //   SM：[x, y, z（石台座標）, 半徑, 朝向]——放在耳朵高度的兩側、尾巴前面（放在尾巴後面會被六條尾巴擋住）
+    //   第二版（2026-09-30 CK）：移到整座島的前面（比石台前緣、天狐都靠鏡頭），畫面上的高度、左右對齊白天戰場原本那兩座小浮空石台——這關把小浮石台拿掉（noIsles）。
+    //   SM：[x, y, z（石台座標）, 半徑]——在鏡頭往原本小浮石台中心那條線上（所以不管螢幕比例，畫面上都在小浮石台那個位置），左右再往內收一點，窄的螢幕才不會切到邊
+    //   平常鏡面朝鏡頭（qF）；反照開始往內轉、面向天狐（qB，轉過去看得到金色鏡背），反照結束轉回來；轉一次 TURN 秒（頭尾放慢）
     var SG=new THREE.Group();plat.add(SG);SG.visible=false;
-    var SM=[[-1.9,1.72,0.5,0.32,0.35],[1.9,1.6,0.5,0.32,-0.35]].map(function(c,i){var m=makeSkyMirror({R:c[3],ph:1.3+i*2.1});m.G.position.set(c[0],c[1],c[2]);m.G.userData.y0=c[1];m.G.rotation.y=c[4];SG.add(m.G);
-      return {m:m,flash:0};}),_sv=new THREE.Vector3();
-    return {show:function(on){G.visible=on;SG.visible=on;st.k=0;st.flash=0;st.on=false;fu.col.value.copy(cC);halo.material.opacity=0;SM.forEach(function(o){o.flash=0;o.m.u.k.value=0;o.m.u.flash.value=0;});},layout:function(){},
+    var TURN=0.55,EYE=new THREE.Vector3(0,-1.9,14),AIM=new THREE.Vector3(0,1.05,0.6),_o=new THREE.Object3D();   // EYE：鏡頭、AIM：天狐胸口（都換成石台座標）
+    function faceTo(p,tg){_o.position.copy(p);_o.lookAt(tg);return _o.quaternion.clone();}   // 鏡面（+z）朝向 tg 的轉向
+    var SM=[[-1.52,-0.54,3,0.3],[1.5,-0.15,3,0.3]].map(function(c,i){var m=makeSkyMirror({R:c[3],ph:1.3+i*2.1}),p=new THREE.Vector3(c[0],c[1],c[2]);m.G.position.copy(p);m.G.userData.y0=c[1];SG.add(m.G);
+      var qF=faceTo(p,EYE);m.G.quaternion.copy(qF);return {m:m,flash:0,qF:qF,qB:faceTo(p,AIM)};}),_sv=new THREE.Vector3();
+    return {noIsles:true,smallTurn:TURN,   // noIsles：這關不要白天戰場左右的小浮空石台（小鏡子在那個位置）；smallTurn：小鏡子轉向天狐要幾秒（shard_view.js 等轉好才折回光）
+      show:function(on){G.visible=on;SG.visible=on;st.k=0;st.flash=0;st.on=false;st.turn=0;fu.col.value.copy(cC);halo.material.opacity=0;SM.forEach(function(o){o.flash=0;o.m.u.k.value=0;o.m.u.flash.value=0;o.m.G.quaternion.copy(o.qF);});},layout:function(){},
       fire:function(){st.flash=1;},
       glare:function(on){st.on=!!on;if(on)st.flash=1;},
       pulse:function(){st.flash=Math.max(st.flash,0.7);},
@@ -2365,7 +2369,8 @@ var BS=(function(){
       update:function(dt,t){if(!G.visible)return;M.update(dt,t);st.flash=Math.max(0,st.flash-dt*2.2);fu.flash.value=st.flash;
         st.k+=((st.on?1:0)-st.k)*Math.min(1,dt*3);fu.k.value=st.k;fu.col.value.copy(cC);
         halo.material.color.copy(cC);halo.material.opacity=Math.max(0.5*st.k,0.3*st.flash);G.position.y=1.55+Math.sin(t*0.8)*0.03;
-        SM.forEach(function(o){o.m.update(dt,t);o.flash=Math.max(0,o.flash-dt*2.4);o.m.u.flash.value=o.flash;o.m.u.k.value=st.k;o.m.u.col.value.copy(cC);});}};})();   // 反照時小鏡子也染金
+        st.turn=Math.max(0,Math.min(1,st.turn+(st.on?dt:-dt)/TURN));var tk=smoothstep(0,1,st.turn);
+        SM.forEach(function(o){o.m.update(dt,t);o.flash=Math.max(0,o.flash-dt*2.4);o.m.u.flash.value=o.flash;o.m.u.k.value=st.k;o.m.u.col.value.copy(cC);o.m.G.quaternion.copy(o.qF).slerp(o.qB,tk);});}};})();   // 反照時小鏡子也染金、轉向天狐
   /* ---------- 白天的戰場（第二章，2026-09-27 使用者）：場景燈光不動（BOSS、隊伍的顏色才不會變），只換背景——
        跟外面白天一樣的藍天、太陽、粉綠交錯的紗幔、星空；拔掉夜晚的雲和月亮；石台下半部以下是一整片會流動的白霧；
        石台換成外面的顏色（藍灰石頭、蜜桃粉描邊、台緣垂一圈圓弧草皮），繞圈的雲換成外面的白雲藍影，雲的外圍左右各一座小浮空石台（不對稱、原地上下飄）。
@@ -2503,7 +2508,9 @@ var BS=(function(){
     var shTex=(function(){var N=128,d=new Uint8Array(N*N*4);for(var y=0;y<N;y++)for(var x=0;x<N;x++){var r=Math.hypot((x+0.5)/N*2-1,(y+0.5)/N*2-1),a=0.8*(1-smoothstep(0.3,1,r)),q=(y*N+x)*4;d[q]=12;d[q+1]=30;d[q+2]=84;d[q+3]=Math.round(255*a);}
       var t=new THREE.DataTexture(d,N,N,THREE.RGBAFormat);t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.generateMipmaps=true;t.needsUpdate=true;return t;})();   // 逐像素算（canvas 漸層在 iPhone 會有雜點）
     var shadows=!FOX_SHADOW?[]:foxes.map(function(f){var m=new THREE.Mesh(new THREE.PlaneGeometry(1.35,1.35),new THREE.MeshBasicMaterial({map:shTex,transparent:true,depthWrite:false}));m.position.z=-0.004;m.renderOrder=-1;m.visible=false;f.base.add(m);return m;});
-    var D={G:G,turf:turf,cloudMat:cloudMat,DAY_OL:K.DAY_OL,on:false,show:function(on){this.on=on;G.visible=on;turf.visible=stemM.visible=leafM.visible=flM.visible=fallG.visible=on;if(!DP.turfOn)turf.visible=false;shadows.forEach(function(m){m.visible=on;});if(on)this.layout();},
+    var D={G:G,turf:turf,cloudMat:cloudMat,DAY_OL:K.DAY_OL,on:false,
+      isles:function(on){fl.forEach(function(f){f.visible=on;});},   // 左右的小浮空石台要不要（第六關不要：小鏡子在那個位置，setStage 看 stageDeco[k].noIsles）
+      show:function(on){this.on=on;G.visible=on;turf.visible=stemM.visible=leafM.visible=flM.visible=fallG.visible=on;if(!DP.turfOn)turf.visible=false;shadows.forEach(function(m){m.visible=on;});if(on)this.layout();},
       // 拆掉（場景編輯器換資料重建時用）：從場景和石台上拿下來，材質釋放掉（幾何有些是共用的，不動）
       dispose:function(){var ms=[];[G,turf,stemM,leafM,flM,fallG].forEach(function(o){o.traverse(function(c){if(c.material)ms.push(c.material);});if(o.parent)o.parent.remove(o);});
         ms.forEach(function(m){if(m.dispose)m.dispose();});},
@@ -2604,7 +2611,7 @@ var BS=(function(){
     var day=isDay(k);if(day&&!dayBg)dayBg=buildDayBg(dayDef||DAY_DEF);   // 白天的背景第一次打白天的關才建
     if(day){var dk=(dayDef||DAY_DEF).plat.stone.map(function(h){return new THREE.Color(h).multiply(DAYK).getHex();});pc=dk;}
     paintPlat(pc[0],pc[1],pc[2]);
-    nightSky.visible=moon.visible=!day;halos.forEach(function(h){h.visible=!day;});clouds.forEach(function(c){c.visible=!day;});if(dayBg)dayBg.show(day);
+    nightSky.visible=moon.visible=!day;halos.forEach(function(h){h.visible=!day;});clouds.forEach(function(c){c.visible=!day;});if(dayBg){dayBg.show(day);dayBg.isles(!(stageDeco[k]&&stageDeco[k].noIsles));}
     stars.renderOrder=day?-7:0;sparks.forEach(function(sp){sp.renderOrder=day?-7:0;});   // 白天先畫星星，太陽和紗幔才蓋得住（跟外面一樣）
     cm.material=day?dayBg.cloudMat:nightCloudMat;co.material.uniforms.color.value.setHex(day?dayBg.DAY_OL:0xcaa972);islOl.uniforms.color.value.setHex(day?dayBg.DAY_OL:0xc9a660);rimLine.visible=!day;
     moonBase.setHex(dj?0xff6a5c:0xffffff);moonK=1;moon.material.color.copy(moonBase);skyMat.uniforms.tintK.value=0;api.feetEmbers(false);if(veil)veil.forEach(function(v){v.s.visible=false;});halos.forEach(function(h,j){h.material.color.setHex(dj?(j?0xff7a68:0xc86a86):(j?0xffe6b0:0x9fb0e0));});   // 第三關：偏紅的血月（場景打光不變）
@@ -3019,11 +3026,10 @@ var ISLES=[
   // 第二章（白天的章，島用白天的石台＋圓弧草皮，見 buildIsle）。第四關的造景是暫時的，等島的形狀定了再做桃樹、鞦韆
   //   關卡島的位置照第一章月下小院（2026-09-27 使用者）：這章第幾關就放在第一章第幾關的位置（第四關＝第一關的竹林島），第五、六關之後照第二、三關
   //   傳送陣桃粉色（2026-09-27 使用者）：白天的亮底上用加色的光會白掉、看不出粉色，所以用 dark 的畫法（陣紋與光柱是 ink 色、一般混色）再加 day（柔光、內圈、光芯也一般混色），col 是柔光與內圈的顏色
-  //   2026-09-30 三座島的造景第一版（CK 的規格，見 decoDayPeach／decoDayRope／decoDayMirror）；falls 是這座島自己的瀑布（沒給就跟主島一樣兩道），第三個值 1＝從台面上溢出去
-  {isle:[-1.8,6.75,-11.2],col:0xffa9c8,ink:0xf05f97,dark:true,day:true,lamp:0xffc6dc,deco:'dayPeach'},
+  {isle:[-1.8,6.75,-11.2],col:0xffa9c8,ink:0xf05f97,dark:true,day:true,lamp:0xffc6dc,deco:'dayTemp'},
   // 第五關塗山、第六關天狐（2026-09-28 先做玩法）：放在第一章第二、三關的位置；島先用主島的複製，造景暫時。傳送陣：塗山玉綠、天狐金色（畫法同第四關）
-  {isle:[3.3,2.6,-14.5],col:0x9fe8d2,ink:0x2fae8c,dark:true,day:true,lamp:0xb8f4e2,deco:'dayRope'},
-  {isle:[8.8,3.4,-16.5],col:0xffe08a,ink:0xe0a022,dark:true,day:true,lamp:0xffe6a0,deco:'dayMirror',falls:[[0.45,0.34,1],[1.72,0.2,1],[2.78,0.27,1],[4.55,0.15,1]]},
+  {isle:[3.3,2.6,-14.5],col:0x9fe8d2,ink:0x2fae8c,dark:true,day:true,lamp:0xb8f4e2,deco:'dayTemp',bush:0xf4f1ea},
+  {isle:[8.8,3.4,-16.5],col:0xffe08a,ink:0xe0a022,dark:true,day:true,lamp:0xffe6a0,deco:'dayTemp',bush:0xf2c65a},
   // 第三章冥界（2026-09-29 B 段，暫時的島）：放在第一章第一、二關的位置、用夜晚的石台（冥界還沒有自己的 look），造景借竹林、池塘；
   //   傳送陣與燈：青燐冥界綠、夢婆忘川的青藍。CK 之後可能把整張地圖改成「一片冥界河、島浮在河上」，所以先不做細
   {isle:[-1.8,6.75,-11.2],col:0xb8ff4a,lamp:0xd2ff9a,deco:'bamboo'},
@@ -3342,114 +3348,6 @@ function decoDayTemp(top,I,bushCol){
   var grass=[];[[-0.5,-0.2],[0.6,0.1],[-0.2,0.7],[0.3,-0.75],[-1.1,0.25]].forEach(function(p,i){for(var j=0;j<3;j++)grass.push(blade(p[0],0,p[1],0.08+j*0.02,0.02,i*1.3+j*2.1,-1.05-j*0.12));});
   top.add(meshOf(grass,toon(0x4f9f40)));
   I.obst.push({x:-0.85,z:-0.72,r:0.34},{x:1.08,z:-0.34,r:0.3});}
-/* ---------- 第二章三座關卡島的造景第一版（2026-09-30 CK：三關一起先出一版，有東西她才能 P 圖想，之後再拆成一件件物件給繪星改；規格見 docs/05「白天美術概念（第二章）」）----------
-   座標是關卡島 root 的（沒有縮放）：草皮頂面 y＝0，平的那一圈半徑約 1.33（dayLand 的 1.62×石台縮放 0.82），台緣圓邊到 1.75；+z 是鏡頭那一邊（兩座傳送陣在前面） */
-// 地面一片圓（粉色地面、水面、水面的遮罩共用）：半徑 R，邊緣照島的 rimNoise 起伏；UV 是圓心 (0.5,0.5) 往外
-function discGeo(R,seg){var g=new THREE.CircleGeometry(1,seg||72),p=g.attributes.position;
-  for(var i=0;i<p.count;i++){var x=p.getX(i),y=p.getY(i),f=R*rimNoise(Math.atan2(-y,x));p.setXY(i,x*f,y*f);}
-  g.rotateX(-Math.PI/2);g.computeVertexNormals();return g;}
-// 圓形淡出的 alphaMap（alphaMap 讀綠色）：inner 以內全不透明，往外平滑淡到 0；逐像素算（canvas 漸層在 iPhone 會有雜點）
-function radialAlpha(inner){return dataTex(64,function(x,y){var r=Math.hypot(x,y),a=r<inner?1:Math.max(0,1-(r-inner)/(1-inner));a=Math.round(255*a*a*(3-2*a));return [a,a,a,255];});}
-function meshC(geos,mat,ol){var m=new THREE.Mesh(mergeGeosC(geos),mat);m.raycast=noRay;if(ol)addOutline(m,ol);return m;}   // 帶頂點色的合併網格
-var PEACH_FLOWER=[0xf28db2,0xfde4ec,0xf092b4,0.07,0.72,0];   // 跟第四關介紹頁那棵桃樹的花一樣（team.js 桃夭封面的 flowerCol／flowerLine／flowerLineW／flowerGrad／flowerMode）
-// 樹枝：a→b 一段圓柱（[x,y,z,半徑]），接頭補一顆球
-function limbGeo(out,a,b){var d=new THREE.Vector3(b[0]-a[0],b[1]-a[1],b[2]-a[2]),len=d.length(),g=new THREE.CylinderGeometry(b[3],a[3],len,8,1,true);
-  g.translate(0,len/2,0);g.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize())));g.translate(a[0],a[1],a[2]);out.push(g,xf(SPH_LO,b[0],b[1],b[2],b[3]));}
-// 第四關（桃夭）：兩棵交錯的桃樹（一朵一朵的桃花，跟第四關介紹頁那棵同一種花）、樹枝上幾串珠子（兩三顆珍珠＋尾端粉鑽）、地上粉綠小樹叢球（粉球點白花）、粉色地面＋幾堆花瓣
-function decoDayPeach(top,I){var rnd=prng(401),i,k;
-  var gd=new THREE.Mesh(discGeo(1.34),toon(0xf6aecd,{transparent:true,alphaMap:radialAlpha(0.7),depthWrite:false}));gd.position.y=0.004;gd.renderOrder=-0.5;gd.raycast=noRay;top.add(gd);   // 地面變粉，邊緣淡回草地
-  var pet=[],PC=[0xf7b3c4,0xfbd0da,0xf49ab0,0xffe3ea];   // 花瓣堆
-  [[-0.55,0.55],[0.78,0.3],[-1.0,-0.25],[0.35,-1.0],[1.05,-0.62],[-0.12,1.02],[-0.45,-0.95]].forEach(function(p){var n=8+Math.floor(rnd(0,5));
-    for(k=0;k<n;k++){var a=rnd(0,TAU),r=rnd(0,0.15)*(k<3?0.4:1),s=rnd(0.032,0.048);pet.push(colorize(xf(SPH_LO,p[0]+Math.cos(a)*r,0.008+(k<3?0.016:rnd(0,0.01)),p[1]+Math.sin(a)*r,s,s*0.22,s*0.7,rnd(-0.4,0.4),rnd(0,TAU),rnd(-0.3,0.3)),PC[k%4]));}});
-  top.add(meshC(pet,toon(0xffffff,{vertexColors:true})));
-  // 兩棵樹：樹幹從左後、右後往中間斜，樹枝在燈的後上方交錯。[x, y, z, 半徑]
-  var tg=[],TREES=[
-    [[-1.0,0,-0.72,0.1],[-0.72,0.55,-0.8,0.075],[-0.38,1.0,-0.92,0.055],[0.12,1.38,-1.02,0.035]],
-    [[1.02,0,-0.62,0.1],[0.72,0.6,-0.74,0.075],[0.36,1.08,-0.88,0.055],[-0.16,1.45,-1.0,0.035]]],
-    SIDE=[[[-0.72,0.55,-0.8],[-1.08,0.98,-0.62,0.03]],[[-0.38,1.0,-0.92],[-0.55,1.5,-1.02,0.028]],[[0.72,0.6,-0.74],[1.1,1.02,-0.58,0.03]],[[0.36,1.08,-0.88],[0.52,1.55,-0.98,0.028]]];
-  TREES.forEach(function(T){for(i=0;i<T.length-1;i++)limbGeo(tg,T[i],T[i+1]);I.obst.push({x:T[0][0],z:T[0][2],r:0.22});});
-  SIDE.forEach(function(s){limbGeo(tg,[s[0][0],s[0][1],s[0][2],0.045],s[1]);});
-  top.add(meshOf(tg,toon(0x9a6c55),outlineMat(DAY_OL,0.012)));
-  // 花團：每一團在半球殼上撒花、朝外朝鏡頭；葉子零星夾在花裡
-  var CL=[[0.12,1.38,-1.02,0.3,22],[-0.16,1.45,-1.0,0.28,20],[-1.08,0.98,-0.62,0.22,12],[1.1,1.02,-0.58,0.22,12],[-0.55,1.5,-1.02,0.24,14],[0.52,1.55,-0.98,0.24,14],[-0.38,1.0,-0.92,0.18,8],[0.36,1.08,-0.88,0.18,8]];
-  var NF=CL.reduce(function(s,c){return s+c[4];},0),fm=new THREE.InstancedMesh(peachBlossomGeo(PEACH_FLOWER[0],PEACH_FLOWER[1],PEACH_FLOWER[2],PEACH_FLOWER[3],PEACH_FLOWER[4],PEACH_FLOWER[5]),new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide}),NF);
-  fm.raycast=noRay;var cm=new THREE.InstancedMesh(new THREE.SphereGeometry(1,8,6),new THREE.MeshBasicMaterial({color:0xf4cd5a}),NF);cm.raycast=noRay;var o=new THREE.Object3D(),n=0,lv=[],cam=new THREE.Vector3(0,1.2,6);
-  CL.forEach(function(c){for(k=0;k<c[4];k++){var u=rnd(0,TAU),v=rnd(-0.35,1),rr=c[3]*rnd(0.55,1),d=new THREE.Vector3(Math.cos(u)*Math.sqrt(1-v*v),v,Math.sin(u)*Math.sqrt(1-v*v));
-    o.position.set(c[0]+d.x*rr,c[1]+d.y*rr*0.8,c[2]+d.z*rr);o.lookAt(o.position.clone().add(d.multiplyScalar(0.6)).add(cam.clone().sub(o.position).normalize()));o.rotateZ(rnd(0,TAU));o.scale.setScalar(rnd(0.075,0.11));o.updateMatrix();fm.setMatrixAt(n,o.matrix);o.translateZ(0.012);o.scale.multiplyScalar(0.16);o.updateMatrix();cm.setMatrixAt(n++,o.matrix);
-    if(k%3===0)lv.push(xf(SPH_LO,c[0]+d.x*rr*0.9,c[1]+d.y*rr*0.7-0.03,c[2]+d.z*rr*0.9,0.05,0.018,0.028,rnd(-0.5,0.5),rnd(0,TAU),rnd(-0.5,0.5)));}});
-  top.add(fm);top.add(cm);top.add(meshOf(lv,toon(0x6fb35a),outlineMat(0x3f7a38,0.01)));
-  // 串珠：金色細繩，兩三顆珍珠，尾端一顆粉鑽，輕輕晃
-  var beads=[];[[-0.62,0.8,-0.84,3,0.34],[-0.2,1.18,-0.98,2,0.28],[0.3,1.22,-0.95,3,0.36],[0.86,0.8,-0.68,2,0.3],[-0.95,0.9,-0.66,2,0.26]].forEach(function(b,q){
-    var g=new THREE.Group();g.position.set(b[0],b[1],b[2]);top.add(g);var gs=[],L=b[4],nb=b[3];
-    gs.push(colorize(xf(new THREE.CylinderGeometry(0.006,0.006,L,5),0,-L/2,0,1),0xe8c06a));
-    for(k=0;k<nb;k++)gs.push(colorize(xf(SPH_LO,0,-L*(k+1)/(nb+1)*0.92,0,0.038),0xfff5ec));
-    gs.push(colorize(xf(new THREE.OctahedronGeometry(1,0),0,-L-0.055,0,0.048,0.08,0.048),0xf37fb0));
-    var m=meshC(gs,toon(0xffffff,{vertexColors:true,emissive:0x2a1a20}));g.add(m);beads.push({g:g,ph:q*1.7});});
-  I.anim.push(function(dt,t){beads.forEach(function(b){b.g.rotation.z=0.08*Math.sin(t*1.3+b.ph);b.g.rotation.x=0.05*Math.sin(t*0.9+b.ph*1.3);});});
-  // 小樹叢球：粉的點白花、綠的素的
-  var pk=[],gr=[],wf=[];[[-1.12,-0.05,0.2,1],[1.12,-0.22,0.18,1],[0.58,-1.12,0.15,1],[-0.78,-1.08,0.16,0],[1.08,0.38,0.12,0],[-1.2,0.48,0.12,0],[0.05,-1.22,0.11,0]].forEach(function(b){
-    var L2=b[3]?pk:gr;L2.push(xf(SPH_LO,b[0],b[2]*0.72,b[1],b[2],b[2]*0.84,b[2]));L2.push(xf(SPH_LO,b[0]+b[2]*0.72,b[2]*0.45,b[1]+0.05,b[2]*0.6));I.obst.push({x:b[0],z:b[1],r:b[2]+0.1});
-    if(b[3])for(k=0;k<9;k++){var a=rnd(0,TAU),e=rnd(0.15,1.1),rr=b[2]*1.0;wf.push(xf(SPH_LO,b[0]+Math.cos(a)*Math.cos(e)*rr,b[2]*0.72+Math.sin(e)*rr*0.84,b[1]+Math.sin(a)*Math.cos(e)*rr,0.022,0.022,0.022));}});
-  top.add(meshOf(pk,toon(0xf29fc8),outlineMat(DAY_OL,0.016)));top.add(meshOf(gr,toon(0x5fae4c),outlineMat(0xe8c06a,0.016)));top.add(meshOf(wf,toon(0xffffff,{emissive:0x333333})));}
-// 第五關（塗山）：一整圈粗紅繩，繩與繩之間是漂浮的石頭，整圈跟著石頭一起飄；每條繩中間繫一顆鈴，正面（+z）那一條少一顆；中間圓石盤祭壇，刻發微藍光的符文，燈放在祭壇正中間
-var RUNE_TEX=null;
-function runeTex(){if(RUNE_TEX)return RUNE_TEX;var rnd=prng(517);
-  RUNE_TEX=canvasTex(512,512,function(g,W){var c=W/2;g.clearRect(0,0,W,W);g.strokeStyle='#ffffff';g.lineCap='round';g.lineJoin='round';
-    g.lineWidth=5;g.beginPath();g.arc(c,c,c*0.965,0,TAU);g.stroke();g.lineWidth=3;g.beginPath();g.arc(c,c,c*0.6,0,TAU);g.stroke();
-    for(var i=0;i<12;i++){var a=i/12*TAU;g.save();g.translate(c+Math.cos(a)*c*0.79,c+Math.sin(a)*c*0.79);g.rotate(a+Math.PI/2);g.lineWidth=6;g.beginPath();   // 一個字：幾筆橫豎折
-      for(var s=0;s<4;s++){var x0=rnd(-22,22),y0=rnd(-26,26);g.moveTo(x0,y0);if(s%2)g.lineTo(x0,y0+rnd(14,26)*(rnd(0,1)<0.5?-1:1));else g.lineTo(x0+rnd(14,26)*(rnd(0,1)<0.5?-1:1),y0);if(s===3)g.lineTo(x0+rnd(-10,10),y0+rnd(-10,10));}
-      g.stroke();g.restore();}});return RUNE_TEX;}
-function decoDayRope(top,I){var rnd=prng(502),i,k,AX=0,AZ=-0.3;I.lampAt=[AX,AZ];I.lampY=0.12;
-  var ol=outlineMat(DAY_OL,0.016);
-  top.add(meshOf([xf(new THREE.CylinderGeometry(0.64,0.68,0.07,48),AX,0.035,AZ,1),xf(new THREE.CylinderGeometry(0.52,0.56,0.05,48),AX,0.095,AZ,1)],toon(0x9aa3bb),ol));   // 兩層圓石盤
-  var rg=new THREE.RingGeometry(0.26,0.5,64);rg.rotateX(-Math.PI/2);
-  var rm=new THREE.MeshBasicMaterial({map:runeTex(),color:0x8fd6ff,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending});
-  var rune=new THREE.Mesh(rg,rm);rune.position.set(AX,0.122,AZ);rune.raycast=noRay;top.add(rune);   // 刻在石盤上的符文，微藍光慢慢呼吸
-  I.obst.push({x:AX,z:AZ,r:0.66});
-  var ring=new THREE.Group();top.add(ring);var N=7,RR=1.6,Y0=0.5,a0=Math.PI/2+Math.PI/N,P=[],rock=[],rope=[],bell=[],slit=[];   // 正面剛好是一條繩的中間
-  for(i=0;i<N;i++){var a=a0+i*TAU/N,rr=RR*rimNoise(a);P.push(new THREE.Vector3(Math.cos(a)*rr,Y0+rnd(-0.05,0.05),Math.sin(a)*rr));}
-  P.forEach(function(p){rock.push(xf(new THREE.IcosahedronGeometry(1,0),p.x,p.y,p.z,0.12,0.2,0.12,rnd(-0.2,0.2),rnd(0,TAU),rnd(-0.2,0.2)));});
-  for(i=0;i<N;i++){var A=P[i],B=P[(i+1)%N],M=A.clone().lerp(B,0.5).add(new THREE.Vector3(0,-0.2,0));
-    var a1=A.clone().lerp(B,0.1),b1=A.clone().lerp(B,0.9);a1.y+=0.02;b1.y+=0.02;
-    rope.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([a1,A.clone().lerp(M,0.55),M,B.clone().lerp(M,0.55),b1]),28,0.03,6,false));
-    if(i===N-1)continue;   // 正面那一條不繫鈴
-    var by=M.y-0.03;bell.push(xf(SPH_LO,M.x,by-0.07,M.z,0.07),xf(new THREE.TorusGeometry(0.02,0.007,6,12),M.x,by,M.z,1));
-    var fd=new THREE.Vector3(M.x,0,M.z).normalize();slit.push(xf(SPH_LO,M.x+fd.x*0.058,by-0.1,M.z+fd.z*0.058,0.035,0.008,0.012,0,-Math.atan2(fd.z,fd.x)+Math.PI/2,0));}
-  ring.add(meshOf(rock,toon(0x51638f,{flatShading:true}),outlineMat(DAY_OL,0.02)));ring.add(meshOf(rope,toon(0xd23a46),outlineMat(0x7a1a24,0.01)));
-  ring.add(meshOf(bell,toon(0xf2c65a,{emissive:0x6a4a10}),outlineMat(0xa8812f,0.01)));ring.add(meshOf(slit,new THREE.MeshBasicMaterial({color:0x4a2a10})));
-  I.anim.push(function(dt,t){ring.position.y=0.05*Math.sin(t*0.8);ring.rotation.y=0.03*Math.sin(t*0.37);rm.opacity=0.55+0.3*(0.5+0.5*Math.sin(t*1.6));});}
-// 第六關（天狐）：整座島都是淺淺的水（四道寬度不一的瀑布從台緣溢出去，見 ISLES 的 falls）；一面大鏡子＋左右兩面小鏡子，水面假裝反射它們
-//   鏡子用戰鬥、介紹頁同一面（characters.js 的 makeSkyMirror，碼力 2026-09-30 第二版：大鏡子外框加大、跟圓鏡分開漂；背面有金色鏡背，從島的哪一邊看都完整）
-//   水面倒影不用真的反射（手機太吃）：每面鏡子在水面下放一份上下顛倒、半透明、微微晃的複製，用模板（stencil）只畫在水面看得到的範圍裡
-var WATER6_FS=['uniform float time; varying vec2 vUv;',
-  'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
-  'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}',
-  'void main(){ vec2 p=vUv-0.5; float r=length(p)*2.0;',
-  ' float w=n(p*9.0+vec2(time*0.35,time*0.2))*0.6+n(p*21.0-vec2(time*0.5,time*0.1))*0.4;',
-  ' vec3 col=mix(vec3(0.42,0.72,0.98),vec3(0.74,0.9,1.0),w);',
-  ' float spark=smoothstep(0.82,0.95,w);col+=vec3(1.0)*spark*0.5;',
-  ' float edge=smoothstep(0.84,0.97,r);col=mix(col,vec3(0.95,0.99,1.0),edge*0.6);',   // 台緣要溢出去的地方白一點（水花）
-  ' float a=(0.5+0.16*w+spark*0.3)*(1.0-smoothstep(0.96,1.0,r));',
-  ' gl_FragColor=vec4(col,a); }'].join('\n');
-function decoDayMirror(top,I){var i,YW=0.02;
-  var wg=discGeo(1.62,96);
-  var mask=new THREE.Mesh(wg,new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false,transparent:true,stencilWrite:true,stencilRef:1,stencilFunc:THREE.AlwaysStencilFunc,stencilZPass:THREE.ReplaceStencilOp}));
-  mask.position.y=YW;mask.renderOrder=3;mask.raycast=noRay;top.add(mask);   // 先把「水面看得到的地方」記在模板上（被狐狸、燈擋住的地方不算）
-  var wm=new THREE.ShaderMaterial({uniforms:{time:{value:0}},vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',fragmentShader:WATER6_FS,transparent:true,depthWrite:false});
-  var water=new THREE.Mesh(wg,wm);water.position.y=YW;water.renderOrder=5;water.raycast=noRay;top.add(water);
-  // 三面鏡子：[x, y, z, 半徑, 大鏡子（外框和圓鏡分開）, 轉身, 相位]
-  var MS=[[0.0,1.3,-1.12,0.55,1,0,0],[-1.2,0.98,-0.3,0.24,0,0.35,1.3],[1.24,1.06,-0.2,0.24,0,-0.35,2.6]],ms=[];
-  var rg=new THREE.Group();rg.scale.y=-1;rg.position.y=2*YW;top.add(rg);   // 倒影：整組上下顛倒到水面下
-  function asReflection(M){M.G.traverse(function(o){var m=o.material;if(!m)return;o.raycast=noRay;
-      if(m.side===THREE.BackSide&&m.uniforms&&m.uniforms.thickness){o.visible=false;return;}   // 描邊不畫（倒影淡淡的就好）
-      if(o.isSprite){o.visible=false;return;}
-      if(m.fragmentShader&&m.uniforms&&m.uniforms.flash)m.fragmentShader=m.fragmentShader.replace('gl_FragColor=vec4(c,0.93*','gl_FragColor=vec4(c,0.36*');   // 鏡面：淡一點
-      else {m.transparent=true;m.opacity=0.34;}
-      m.depthTest=false;m.depthWrite=false;m.stencilWrite=true;m.stencilRef=1;m.stencilFunc=THREE.EqualStencilFunc;o.renderOrder=4;});}   // 只畫在水面看得到的地方
-  MS.forEach(function(s){[0,1].forEach(function(refl){var M=makeSkyMirror({R:s[3],split:!!s[4],ph:s[6]});M.G.position.set(s[0],s[1],s[2]);M.G.userData.y0=s[1];M.G.rotation.set(-0.06,s[5],0);
-    M.G.traverse(function(o){o.raycast=noRay;});if(refl)asReflection(M);(refl?rg:top).add(M.G);ms.push(M);});});
-  I.anim.push(function(dt,t){wm.uniforms.time.value=t;rg.position.x=0.012*Math.sin(t*2.3);rg.scale.x=1+0.01*Math.sin(t*1.7);ms.forEach(function(M){M.update(dt,t);});});}   // 倒影跟著本尊一起動（同一個 dt、t），再微微晃
-
 // 建一座關卡島：石台（跟主島同一套造型與金色細節）＋造景＋燈與星星＋傳送陣＋繞圈的雲＋漂浮石塊
 var ornGold=toon(0xe9bb5e,{emissive:0x9a6a20}),isleLandMat=toon(0xffffff,{vertexColors:true}),isleLandOl=outlineMat(0xd9b46a,0.032);
 // 每座關卡島的兩座傳送陣通往哪裡：回程是這章的上一關（這章第一關就回這章主島）；
@@ -3469,15 +3367,15 @@ function buildIsle(def,k){
   var day=CONFIG.chapters[c].look==='day';I.day=day;
   if(day){   // 白天的章：整座複製白天主島的島身——石台＋圓弧草皮＋蜜桃粉描邊、嵌在島邊的石頭、兩道瀑布、島底的霧（整座縮成 S）；主島的花樹不複製（2026-09-28 使用者：每一關會不一樣）
     var dg=new THREE.Group();dg.scale.setScalar(S);root.add(dg);var dOl=outlineMat(DAY_OL,0.032),dSm=toon(0xffffff,{vertexColors:true}),dTm=toon(0xffffff,{vertexColors:true});
-    var ipal=palOf(k),FALLS=def.falls||DAY_FALLS;I.dayBody=[];I.land=dayLand(dg,FALLS,dOl,dSm,dTm,ipal,I.dayBody);I.land.userData.isle=k;dayLedges(dg,dOl,dSm,dTm,ipal,I.dayBody);dayFallsMist(dg,FALLS,I.anim,prng(k*17+3));}   // ipal：這一關的島的調色盤（HUB_DAY_DEF.isles[k]，沒有就跟主島一樣）
+    var ipal=palOf(k);I.dayBody=[];I.land=dayLand(dg,DAY_FALLS,dOl,dSm,dTm,ipal,I.dayBody);I.land.userData.isle=k;dayLedges(dg,dOl,dSm,dTm,ipal,I.dayBody);dayFallsMist(dg,DAY_FALLS,I.anim,prng(k*17+3));}   // ipal：這一關的島的調色盤（HUB_DAY_DEF.isles[k]，沒有就跟主島一樣）
   else {
   var land=new THREE.Mesh(islandGeo,isleLandMat);land.scale.setScalar(S);land.userData.isle=k;addOutline(land,isleLandOl);root.add(land);I.land=land;
   var det=new THREE.Group();det.scale.setScalar(S);root.add(det);
   var ln=new THREE.Mesh(landDetail.lines,landDetail.lineMat);ln.raycast=noRay;det.add(ln);
   var pb=new THREE.Mesh(landDetail.peb,landDetail.pebMat);pb.raycast=noRay;addOutline(pb,landDetail.pebOl);det.add(pb);}
-  if(def.deco==='bamboo')decoBamboo(root,I);else if(def.deco==='pond')decoPond(root,I);else if(def.deco==='wisteria')decoWisteria(root,I);else if(def.deco==='dayTemp')decoDayTemp(root,I,def.bush);else if(def.deco==='dayPeach')decoDayPeach(root,I);else if(def.deco==='dayRope')decoDayRope(root,I);else if(def.deco==='dayMirror')decoDayMirror(root,I);
-  var la=I.lampAt,lY=I.lampY||0;I.lamp=makeLantern(root,la[0],la[1],def.lamp);I.lamp.g.position.y=lY;I.lamp.hit.userData.lamp=k;I.obst.push({x:la[0],z:la[1],r:0.38});   // lampY：燈放在台子上（第五關的祭壇）
-  I.star=makeStageStar(root,la[0],1.32+lY,la[1]);
+  if(def.deco==='bamboo')decoBamboo(root,I);else if(def.deco==='pond')decoPond(root,I);else if(def.deco==='wisteria')decoWisteria(root,I);else if(def.deco==='dayTemp')decoDayTemp(root,I,def.bush);
+  var la=I.lampAt;I.lamp=makeLantern(root,la[0],la[1],def.lamp);I.lamp.hit.userData.lamp=k;I.obst.push({x:la[0],z:la[1],r:0.38});
+  I.star=makeStageStar(root,la[0],1.32,la[1]);
   var lk=isleLinks(k),ba=def.backAt||[BACK_AT[0]*f,BACK_AT[1]*f],na=def.nextAt||[NEXT_AT[0]*f,NEXT_AT[1]*f];
   I.back=portalOf(root,ba,lk.back,0.24,0.95);
   I.next=lk.next?portalOf(root,na,lk.next,0.24,0.95,lk.next.to<0?prng(k+1):null):null;
@@ -3492,7 +3390,7 @@ function buildIsle(def,k){
   if(day){if(!dayCloudMat){dayCloudMat=toon(0x8d600f,{emissive:0x4f7deb});dayCloudOl=outlineMat(DAY_OL,0.026);}
     I.clouds=makeCloudRing(root,S,5,dayCloudMat,dayCloudOl);I.flList=FL.map(function(q,i){return q.concat([i%2,i===1]);});I.floaters=dayFloaters(root,I.flList,ipal);
     // 場景編輯器換這座島的顏色：石台、草皮、石階、浮空小石台整組拆掉照新調色盤重建
-    I.repaint=function(p){I.dayBody.forEach(dropObj);I.dayBody=[];I.land=dayLand(dg,FALLS,dOl,dSm,dTm,p,I.dayBody);I.land.userData.isle=k;dayLedges(dg,dOl,dSm,dTm,p,I.dayBody);
+    I.repaint=function(p){I.dayBody.forEach(dropObj);I.dayBody=[];I.land=dayLand(dg,DAY_FALLS,dOl,dSm,dTm,p,I.dayBody);I.land.userData.isle=k;dayLedges(dg,dOl,dSm,dTm,p,I.dayBody);
       I.floaters.forEach(dropObj);I.floaters=dayFloaters(root,I.flList,p);};}   // 白天：雲亮面白、暗面藍；浮石是圓弧小石台＋草皮
   else {I.clouds=makeCloudRing(root,S,5);I.floaters=makeFloaters(root,FL);}
   I.ctx={g:root,S:S,obst:I.obst};
@@ -3706,9 +3604,9 @@ function dayLedges(g,OLB,stoneMat,turfMat,pal,track){var ls=[],lt=[],LM=new THRE
   var ledS=new THREE.Mesh(mergeGeosC(ls),stoneMat),ledT=new THREE.Mesh(mergeGeosC(lt),turfMat);ledS.raycast=ledT.raycast=noRay;addOutline(ledS,OLB);addOutline(ledT,OLB);g.add(ledS);g.add(ledT);if(track)track.push(ledS,ledT);}
 // 從草皮圓邊底下流出去的瀑布（下面散成霧）＋島底幾團淡淡的霧慢慢呼吸；rnd 是霧的相位用的亂數（主島用 Math.random 維持原本的畫面，關卡島用固定種子）
 function dayFallsMist(g,FALLS,anim,rnd){var T=dayTextures(),fmats=[];
-  FALLS.forEach(function(f){var th=f[0],w=f[1],ov=!!f[2],r=(ov?1.96:2.08)*rimNoise(th),Pp=new THREE.Vector3(Math.cos(th)*r,ov?0.03:-0.13,Math.sin(th)*r),out=new THREE.Vector3(Math.cos(th),0,Math.sin(th)),tgv=new THREE.Vector3(-Math.sin(th),0,Math.cos(th));   // ov：從台面上溢出去（第六關，翻過草皮圓邊再往下）
-    [0,1].forEach(function(layer){var NS2=30,pos=[],uv=[],idx=[],LEN=ov?2.76:2.6;
-      for(var s3=0;s3<=NS2;s3++){var v=s3/NS2,o2=Math.min(1,v*(ov?14:6)),C=Pp.clone().addScaledVector(out,(ov?0.26:0.14)*Math.sin(o2*Math.PI/2)+0.05*v+layer*0.02).add(new THREE.Vector3(0,-v*LEN,0)),ww=(w*(1-0.25*layer))*(1+0.6*v);
+  FALLS.forEach(function(f){var th=f[0],w=f[1],r=2.08*rimNoise(th),Pp=new THREE.Vector3(Math.cos(th)*r,-0.13,Math.sin(th)*r),out=new THREE.Vector3(Math.cos(th),0,Math.sin(th)),tgv=new THREE.Vector3(-Math.sin(th),0,Math.cos(th));
+    [0,1].forEach(function(layer){var NS2=30,pos=[],uv=[],idx=[],LEN=2.6;
+      for(var s3=0;s3<=NS2;s3++){var v=s3/NS2,o2=Math.min(1,v*6),C=Pp.clone().addScaledVector(out,0.14*Math.sin(o2*Math.PI/2)+0.05*v+layer*0.02).add(new THREE.Vector3(0,-v*LEN,0)),ww=(w*(1-0.25*layer))*(1+0.6*v);
         pos.push(C.x-tgv.x*ww/2,C.y,C.z-tgv.z*ww/2,C.x+tgv.x*ww/2,C.y,C.z+tgv.z*ww/2);uv.push(0,v,1,v);if(s3<NS2)idx.push(s3*2,s3*2+1,s3*2+2,s3*2+1,s3*2+3,s3*2+2);}
       var fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));fg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));fg.setIndex(idx);
       var mt=new THREE.ShaderMaterial({uniforms:{time:{value:0},layer:{value:layer}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
@@ -6517,11 +6415,12 @@ function crackShard(u){var v=views.get(u.id);if(!v)return;var q=cellXY(v.row,v.c
   ringFx(q.x,q.y,cs*0.3,cs*1.0,SILVER,0.3);for(k=0;k<5;k++){var a=rand(0,TAU),sp=rand(0.8,1.8)*cs;emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*0.7,rand(.25,.4),rand(.1,.16)*cs,SILVER,cs*6);}
   return tween(0.24,function(k2){v.shardS=1.18-0.18*k2;v.f=1.8-0.8*k2;}).then(function(){v.shardS=1;v.f=1;});}
 // 反照（Version 111）：盤面上的鏡子全部打碎，天鏡的光照回天狐自己——大鏡子染金、天狐被照得一閃，glare 秒內你打出的傷害 ×glareMul
-// 有小鏡子（2026-09-30）：金光先從盤面打到左右兩面小鏡子，FOLD 秒後從小鏡子折回、打到天狐（天狐這時才被照得一閃）
+// 有小鏡子（2026-09-30）：金光先從盤面打到左右兩面小鏡子，FOLD 秒後從小鏡子折回、打到天狐（天狐這時才被照得一閃）。
+//   第二版（CK）：小鏡子在島的前面，反照開始時往內轉向天狐（render/battle.js），轉好（d.smallTurn 秒）才折回；光從轉過去之後的鏡面出去。扣血、倍率的判定都不動
 var FOLD=0.18;
 function onGlare(){var d=stageFx(),sd=battle.boss.shard,bp=bossScreen(),cs=L.cs,ms=smallScreens(d);if(d.glare)d.glare(true);AudioFX.glare();
   if(ms){var from={x:L.W/2,y:L.by+cs*2.5};ms.forEach(function(p,i){beam(from.x,from.y,p.x,p.y,cs*0.34,GOLD,0.4);ringFx(p.x,p.y,cs*0.25,cs*1.3,GLARECOL,0.35);d.smallFlash(i);});}
-  after(ms?FOLD:0,function(){var k;BS.boss.hit();if(ms)ms.forEach(function(p,i){d.smallFlash(i);beam(p.x,p.y,bp.x,bp.y,cs*0.42,GOLD,0.45);});
+  after(ms?(d.smallTurn||FOLD):0,function(){var k;BS.boss.hit();if(ms)smallScreens(d).forEach(function(p,i){d.smallFlash(i);beam(p.x,p.y,bp.x,bp.y,cs*0.42,GOLD,0.45);});
     ringFx(bp.x,bp.y,cs*0.6,cs*4.2,GOLD,0.65);after(0.12,function(){ringFx(bp.x,bp.y,cs*0.3,cs*2.8,GLARECOL,0.5);});
     for(k=0;k<16;k++){var a=rand(0,TAU),sp=rand(1.4,3.2)*cs;emit(bp.x,bp.y,Math.cos(a)*sp,Math.sin(a)*sp-cs*0.8,rand(.45,.8),rand(.14,.26)*cs,k%3?GOLD:GLARECOL,cs*3);}});
   showBanner('天狐被自己的光照到了　'+sd.glare+' 秒內傷害 ×'+sd.glareMul);}
