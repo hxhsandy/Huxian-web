@@ -7440,16 +7440,20 @@ el.addEventListener('click',function(){if(cred&&cred.t>1.5)cred.skip=true;});
 // 做好的模型照 id 留著重用（每次打贏不要一直建新的）。
 // SIZE：飾品最長邊（世界單位；石台半徑約 1.4）；CARD：卡片邊長；FLY：飛多久；ARC：拋物線往上拱多高；GAP：兩樣之間錯開幾秒；
 // SPREAD：兩樣落地時左右隔多遠；FLOAT：浮在石台頂面上多高；FRONT：落在石台前緣（z；石台邊上一圈小雲在半徑 1.5 附近，要在雲前面才不會被擋住）；BOB：上下飄多少；FROM：從 BOSS 身上哪裡掉出來（bossPoint 的高度）
-var SIZE=0.78,CARD=0.86,FLY=0.75,ARC=0.9,GAP=0.18,SPREAD=1.15,FLOAT=0.46,FRONT=1.65,BOB=0.05,FROM=1.05;
+var SIZE=0.72,CARD=0.86,FLY=0.75,ARC=0.9,GAP=0.18,SPREAD=1.15,FLOAT=0.46,FRONT=1.65,BOB=0.05,FROM=1.05;
 var FONT='"Noto Serif TC","Songti TC","Source Han Serif TC","PMingLiU",serif';
 var ST={ph:0,jump:false},made={},live=[];   // ST：飾品 upd() 要的狀態（照換裝頁）；made：做好的模型；live：現在台上的
 // 後面一團淡淡的金光（暗的場景裡也看得清楚）
 function glow(s){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffe2a0,transparent:true,opacity:0.34,depthWrite:false,blending:THREE.AdditiveBlending}));
   sp.position.z=-0.25;sp.scale.set(s,s,1);return sp;}
-// 飾品：跟換裝頁小圖一樣（wardrobe.js 的 thumb）：掛點給尾巴的粗細、thumb＝正面朝前；中心移到原點、縮到最長邊 SIZE
+// 飾品實體部分的包圍盒：只算看得到形狀的網格，不算後面的光暈（Sprite、疊加發光的）——燈籠（流蘇尾飾）、符咒、小鬼火後面都有一大團光，
+//   算進去的話本體會被縮得很小（2026-09-30 CK：金鈴超大、燈籠超小；燈籠連光 0.40、本體只有 0.18）
+function solidBox(root){var b=new THREE.Box3();root.traverse(function(m){if(!m.isMesh||!m.geometry)return;var ma=Array.isArray(m.material)?m.material[0]:m.material;
+  if(ma&&ma.blending===THREE.AdditiveBlending)return;if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld));});return b;}
+// 飾品：跟換裝頁小圖一樣（wardrobe.js 的 thumb）：掛點給尾巴的粗細、thumb＝正面朝前；實體的中心移到原點、實體最長邊縮到 SIZE（每件一樣大）
 function itemModel(id){var def=FOX_ITEMS[id],g=new THREE.Group(),holder=new THREE.Group(),anc=new THREE.Group();anc.userData.tailR=0.12;anc.userData.thumb=true;holder.add(anc);
   var obj=def.build(anc);obj.position.set(0,0,0);anc.add(obj);holder.updateMatrixWorld(true);
-  var b=new THREE.Box3().setFromObject(holder),c=b.getCenter(new THREE.Vector3()),s=b.getSize(new THREE.Vector3());
+  var b=solidBox(holder),c=b.getCenter(new THREE.Vector3()),s=b.getSize(new THREE.Vector3());
   anc.position.sub(c);holder.scale.setScalar(SIZE/Math.max(s.x,s.y,s.z,0.01));g.add(holder);var gl=glow(SIZE*2.2);g.add(gl);
   return {g:g,glow:gl,sway:0.45,upd:def.upd?function(t){def.upd(obj,t,ST);}:null};}
 // 四角圓弧的方形（r＝圓角半徑）
