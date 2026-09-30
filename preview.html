@@ -654,7 +654,7 @@ var CONFIG={
     // 第八關：夢婆的忘川（src/mechanics/lethe.js）。CK 2026-09-29 試玩場定的數字：每 15 秒沖一排、狂暴後每 12 秒也一排，盤面最多 12 顆灰珠（滿了就不沖），
     //   預告 warn 秒、開場 first 秒第一次，優先沖彩色珠最多的那一排。灰珠照樣能消、照樣打 BOSS、照樣集能量，只是看不出顏色
     //   掉落：通關彼岸花；挑戰「六隻狐狸都放過大招」（SES.ultUsed）的飾品（小葫蘆）還沒做，先空著
-    {title:'第八關',name:'夢婆',drop:'spider-lily',chal:{kind:'allUlt',text:'六隻狐狸都放過大招'},style:'mengpo',attr:'none',attrName:'無',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
+    {title:'第八關',name:'夢婆',drop:'spider-lily',chal:{kind:'allUlt',text:'六隻狐狸都放過大招',drop:'tail-talisman'},style:'mengpo',attr:'none',attrName:'無',hp:18000,time:90,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'無',lore:'守在渡口替人盛湯的狐狸。每個喝下湯的都笑著走了，只有一個，喝的時候一直回頭。',
      skill:'忘川：開場 4 秒第一次，之後每 15 秒一道忘川水沖過一直排（狂暴後每 12 秒），盤面最多 12 顆灰珠。被沖到的珠子褪成灰白、形狀還在，照樣能消、照樣打得到她、照樣集能量。',
      lethe:{first:4,interval:15,enrageInterval:12,cols:1,enrageCols:1,warn:1,max:12},
@@ -663,8 +663,9 @@ var CONFIG={
     //   血量分三段、每段 hp（10000），三段共用 time（150 秒）；BOSS 普攻打掉隊伍 10%（單關 20% 太痛、連第三段都到不了）；換段不清前一段留下的東西。
     //   segs：三段各自的招（頻率比單關低），倒著走回她的記憶——冥：鬼火＋忘川　丘：落英＋天鏡　月：媚惑，而且一開始就狂暴（前兩段不會半血狂暴：enrageAt 0）。
     //   換段的規則在 battle.js（segStage、nextSeg），演出在 src/final.js。外觀、場景（先借第三關妲己的紫藤血月：style 'daji'）、封面都是暫時的
-    //   掉落：通關勾玉（第一次打倒，一般結局那次）；真結局看完雙鈴紅緞（trueDrop，2026-09-29 遊星做的飾品）；挑戰「六隻狐狸都戴著飾品打倒」（桂花枝）還沒做
-    {title:'第九關',name:'九尾',drop:'magatama',trueDrop:'twin-bell-ribbon',style:'daji',attr:'none',attrName:'無',hp:10000,time:150,interval:8,enrageAt:0,enrageInterval:6,hitPct:0.1,charge:0.6,final:true,
+    //   掉落：通關勾玉（第一次打倒，一般結局那次）；真結局看完雙鈴紅緞（trueDrop，2026-09-29 遊星做的飾品）；
+    //   挑戰「六隻狐狸都戴著飾品打倒」→ 桂花枝（chal.kind 'dressed'：開戰時六隻各至少戴一件不是開局就有的飾品，見 flow.js 的 dressedCount）
+    {title:'第九關',name:'九尾',drop:'magatama',trueDrop:'twin-bell-ribbon',chal:{kind:'dressed',text:'六隻狐狸都戴著飾品打倒',drop:'osmanthus-sprig'},style:'daji',attr:'none',attrName:'無',hp:10000,time:150,interval:8,enrageAt:0,enrageInterval:6,hitPct:0.1,charge:0.6,final:true,
      weak:'無',lore:'她什麼都不記得了，只記得要等。',
      skill:'血量分三段，打空一條就換下一段、血條慢慢補滿，三段共用時間：第一段「冥」鬼火＋忘川，第二段「丘」落英＋天鏡，第三段「月」媚惑，而且一開始就狂暴。前一段留在盤面上的灰珠、鬼火、花瓣、鏡片不會清掉。',
      segs:[
@@ -1696,6 +1697,39 @@ FOX_ITEMS['twin-bell-ribbon']={slot:'head',name:'雙鈴紅緞',from:'ending',des
       bells.push({g:bg,rb:rb,sd:sd});});
     g.userData.bells=bells;twinBellPose(g,0);return g;},
   upd:twinBellPose};
+// 第五批飾品（2026-09-30 繪星做、CK 定稿，實驗室 Huxian-web 95a8c31）：符咒（第八關挑戰，取代原本的小葫蘆）、桂花枝（第九關挑戰，戴在耳旁）。造型照定稿搬，不改。
+// 符咒：尾巴上歪貼一張黃紙，紅色「敕令」，後面紅光輕輕呼吸；CK 指定往後仰、往外移，下緣才不會插進尾巴
+var TALISMAN_TEX=null;   // 紅字貼圖：第一次戴的時候畫一次，之後大家共用
+FOX_ITEMS['tail-talisman']={slot:'tail',name:'符咒',from:'chal',desc:'一張貼在尾巴上的符。夢婆說，走到忘川邊時別把它揭下來。',
+  build:function(anc){var ud=(anc&&anc.userData)||{},r=ud.tailR||0.12,g=new THREE.Group(),fc=new THREE.Group(),paper=new THREE.Group();g.add(fc);fc.add(paper);
+    if(!ud.thumb){var d=new THREE.Vector3(BOW_DIR[0],BOW_DIR[1],BOW_DIR[2]).normalize(),dh=new THREE.Vector3(d.x,0,d.z).normalize();
+      fc.position.copy(dh).multiplyScalar(r+0.025);fc.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),d);}
+    paper.position.set(ud.thumb?0:-0.018,0.01,0.035);paper.rotation.set(-0.5,0.12,-0.25);
+    var sh=new THREE.Shape();sh.moveTo(-0.059,0.107);sh.lineTo(0.059,0.107);sh.lineTo(0.056,-0.1);sh.lineTo(0.032,-0.109);sh.lineTo(0.007,-0.101);sh.lineTo(-0.019,-0.11);sh.lineTo(-0.055,-0.1);sh.closePath();   // 下緣撕得不太齊
+    paper.add(itemPart(new THREE.ExtrudeGeometry(sh,{depth:0.005,bevelEnabled:true,bevelThickness:0.002,bevelSize:0.002,bevelSegments:1}),toon(0xf8dc79,{emissive:0x544013}),outlineMat(0xa87528,0.003)));
+    if(!TALISMAN_TEX)TALISMAN_TEX=canvasTex(128,256,function(c){c.clearRect(0,0,128,256);c.fillStyle='#a3262c';c.strokeStyle='#b12c30';c.lineWidth=4;c.strokeRect(10,10,108,236);
+      c.textAlign='center';c.textBaseline='middle';c.font='bold 85px "Noto Serif CJK TC", serif';c.fillText('敕',64,75);c.fillText('令',64,169);c.beginPath();c.moveTo(29,218);c.lineTo(99,218);c.stroke();});
+    var ink=new THREE.Mesh(new THREE.PlaneGeometry(0.099,0.181),new THREE.MeshBasicMaterial({map:TALISMAN_TEX,transparent:true,depthWrite:false,side:THREE.DoubleSide}));ink.raycast=noRay;ink.position.z=0.01;paper.add(ink);
+    var gl=itemSprite(paper,glowTex,0xf44343,0.36,true);gl.position.z=-0.015;gl.scale.set(0.36,0.43,1);
+    g.userData.paper=paper;g.userData.glow=gl;return g;},
+  upd:function(m,t){m.userData.paper.rotation.z=-0.25+0.025*Math.sin(t*1.6);m.userData.glow.material.opacity=0.34+0.1*Math.sin(t*1.8);}};   // 紙輕輕晃、紅光呼吸
+// 桂花枝：耳旁兩朵立體的黃桂花（右邊那朵小一點、淡一點）、三片綠葉，沒有單根的枝條；下面一小串吊墜會擺（CK 2026-09-30 指定戴在耳旁）
+FOX_ITEMS['osmanthus-sprig']={slot:'head',name:'桂花枝',from:'chal',desc:'一小枝桂花。冥界裡，明明沒有桂花樹。',
+  build:function(){var g=new THREE.Group(),lv=[],pg=[[],[]],cs=[];
+    [[-0.063,0.071,0.65],[0.016,0.096,-0.52],[0.084,0.05,-0.8]].forEach(function(p){var l=SPH_LO.clone();l.applyMatrix4(new THREE.Matrix4().makeScale(0.016,0.039,0.011));l.rotateZ(p[2]);l.translate(p[0],p[1],-0.01);lv.push(l);});   // [x, y, 轉角]
+    g.add(itemPart(mergeGeos(lv),toon(0x3b8652,{emissive:0x173925}),outlineMat(0x1e5135,0.003)));
+    [[-0.046,0.02,0.032],[0.049,0.026,0.029]].forEach(function(f,n){var sz=n?0.84:1;
+      for(var i=0;i<4;i++){var a=i*Math.PI/2+(n?0.3:-0.2),pt=SPH_LO.clone();pt.applyMatrix4(new THREE.Matrix4().makeScale(0.024*sz,0.032*sz,0.018*sz));pt.rotateZ(a);pt.translate(f[0]+Math.sin(a)*0.026*sz,f[1]+Math.cos(a)*0.026*sz,f[2]);pg[n].push(pt);}   // 四片花瓣
+      var ct=SPH_LO.clone();ct.applyMatrix4(new THREE.Matrix4().makeScale(0.015*sz,0.015*sz,0.012*sz));ct.translate(f[0],f[1],f[2]+0.017*sz);cs.push(ct);});
+    g.add(itemPart(mergeGeos(pg[0]),toon(0xf5bd46,{emissive:0x73400d}),outlineMat(0xb87a24,0.003)));
+    g.add(itemPart(mergeGeos(pg[1]),toon(0xffd25c,{emissive:0x705012}),outlineMat(0xc79432,0.003)));
+    g.add(new THREE.Mesh(mergeGeos(cs),toon(0xfff0a2,{emissive:0x795014})));
+    var bead=itemPart(SPH_LO,toon(0xf1c860,{emissive:0x6b4512}));bead.scale.setScalar(0.014);bead.position.set(-0.077,-0.049,0.019);g.add(bead);
+    var pd=new THREE.Group();pd.position.set(-0.077,-0.06,0.019);g.add(pd);
+    var cord=new THREE.CylinderGeometry(0.003,0.003,0.036,6);cord.translate(0,-0.018,0);var drop=SPH_LO.clone();drop.applyMatrix4(new THREE.Matrix4().makeScale(0.012,0.023,0.012));drop.translate(0,-0.057,0);
+    pd.add(itemPart(mergeGeos([cord,drop]),toon(0xf6eac2,{emissive:0x685c38}),outlineMat(0xa68b5f,0.002)));   // 細繩＋一顆垂墜
+    g.position.set(-0.18-HEAD_TOP[0],0.18-HEAD_TOP[1],0.11-HEAD_TOP[2]);g.rotation.y=-0.18;g.userData.pendant=pd;return g;},   // 戴在左耳旁
+  upd:function(m,t){m.userData.pendant.rotation.z=0.13*Math.sin(t*2.0);}};
 // 外耳：一個圓錐，耳尖顏色用頂點色漸層（跟尾巴同一種做法，交界在原本耳尖小圓錐的位置、高度約 72%）。
 //   原本是在外耳上多套一個深色小圓錐，小圓錐的底比外耳在那個高度還寬，外輪廓會多一格階梯；圓錐尖端的頂點法線也各朝各的方向，描邊在耳尖閉合不起來，這裡收成同一個方向
 var EAR_GEO={};
@@ -6261,7 +6295,8 @@ function freshSession(){return {
   mech:freshMech(),         // 已經搬成一包的機制各自卡著的狀態（SES.mech.lock、petal、cord、shard），內容由各包的 session() 決定
   pendingSwords:0,          // 木狐大招的劍氣：盤面停下來才變
   pendingUnlock:false,      // 水狐變奏（淨流）：盤面停下來後解開全部鎖鏈
-  ultUsed:[0,0,0,0,0,0]     // 這一場每隻狐狸放過大招沒（第八關挑戰「六隻狐狸都放過大招」，chal.kind 'allUlt'）
+  ultUsed:[0,0,0,0,0,0],    // 這一場每隻狐狸放過大招沒（第八關挑戰「六隻狐狸都放過大招」，chal.kind 'allUlt'）
+  dressed:0                 // 開戰時有幾隻狐狸戴著「不是開局就有的」飾品（第九關挑戰「六隻狐狸都戴著飾品打倒」，chal.kind 'dressed'；beginBattle 照存檔數）
 };}
 var SES=freshSession();
 function newSession(){SES=freshSession();}
@@ -6499,8 +6534,13 @@ function finishNormal(){if(CONFIG.stages[APP.stage].final&&!APP.endTest&&!APP.st
 //   九尾講完一樣留在台上、帶霧淡出（bossVanish）才暗掉。計時都用 ENDING.wait（跟著主迴圈）；主島的鏡頭在 garden.js 的 GARDEN.ending。
 // 真結局的獎勵飾品（CONFIG.stages[k].trueDrop＝雙鈴紅緞，docs/03「真結局飾品」）：名單跑完、回到主島之後才給（換裝按鈕的小紅點、那一格 new，跟其他飾品一樣），
 //   主島跳一句「獲得頭飾」。開戰的金鈴判斷還是只看 gold-bell，這件不算。測試網址（?ending=true、?story=）不給
-function grantTrueDrop(k,real){var id=CONFIG.stages[k].trueDrop,d=Save.data();if(!real||!id||d.items[id])return;d.items[id]=1;d.fresh[id]=1;Save.save();
-  document.getElementById('gWard').classList.toggle('new',Save.anyFresh());showGToast('獲得頭飾「'+FOX_ITEMS[id].name+'」',2800);}
+function grantTrueDrop(k,real){var id=CONFIG.stages[k].trueDrop,d=Save.data();if(!real||!id||d.items[id])return false;d.items[id]=1;d.fresh[id]=1;Save.save();
+  document.getElementById('gWard').classList.toggle('new',Save.anyFresh());showGToast('獲得頭飾「'+FOX_ITEMS[id].name+'」',2800);return true;}
+// 真結局沒有結算畫面：第九關的挑戰在 finishFinal 照結算一樣檢查、記進存檔（checkChal），結果（達成＋獲得飾品，或「還差一點（這次 N 隻有戴）」）
+//   等名單跑完回到主島，在「獲得頭飾」那句之後（delay 秒）跳一句
+var trueChalMsg=null;
+function trueChalToast(delay){var m=trueChalMsg;trueChalMsg=null;if(!m)return;
+  ENDING.wait(delay).then(function(){document.getElementById('gWard').classList.toggle('new',Save.anyFresh());showGToast(m.replace('\n','　'),3600);});}
 function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait,k=APP.stage,real=!!CONFIG.stages[k].final&&!APP.endTest&&!APP.storyTest;
   DLG.say(T.who,T.lines).then(function(){return bossVanish(T.mist);}).then(function(){return ENDING.fadeTo(1,1.2);})
   .then(function(){finishFinal('true');gameEl.classList.add('cine');GARDEN.ending.start();return W(0.6);})
@@ -6509,7 +6549,7 @@ function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait,k=APP.stage
   .then(function(){return W(1.1);}).then(function(){return ENDING.fadeTo(1,0.5);})
   .then(function(){GARDEN.ending.stop();gameEl.classList.remove('cine');GARDEN.setTreeBell(true);return W(0.8);})
   .then(function(){return ENDING.credits();}).then(function(){return W(0.6);}).then(function(){return ENDING.fadeTo(0,1.8);})
-  .then(function(){grantTrueDrop(k,real);if(!maybeChalNotice())showHint();});}
+  .then(function(){trueChalToast(grantTrueDrop(k,real)?3:0);if(!maybeChalNotice())showHint();});}
 // 有信、但隊伍裡沒有狐狸戴金鈴（2026-09-29 CK 加，03「最終戰與結局」）：她說「……沒有鈴聲。」「……不是你。」→ 帶霧淡出 → 照一般通關結算（沒有信、沒有結局演出）。
 //   測試網址 ?ending=nobell 借來的關不記通關（showResult 看 APP.endTest）
 function endingNoBell(){var T=CONFIG.talk['ending-nobell'];
@@ -6521,7 +6561,8 @@ function bossVanish(col){BS.bossMist(col==null?0xf3d2ff:col);AudioFX.heal();retu
 // 看完結局：通關、掉落、挑戰解鎖照記（跟結算一樣），回月下主島（loc −1）。
 // 測試網址 ?letter 借別關演（APP.endTest）：不記通關、不發掉落、不真的解鎖挑戰，只跳提示看樣子（信會記進存檔）。
 function finishFinal(kind){var real=!!CONFIG.stages[APP.stage].final&&!APP.endTest&&!APP.storyTest,d=Save.data();   /* ?test9&ending=…、?story=… 用真的最終關演也不記 */G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
-  if(real){markCleared(APP.stage);grantDrop(APP.stage);grantUlt(APP.stage);d.story.endings[kind]=1;if(!chalOpen()){d.seen.chal=1;APP.chalNew=true;}Save.save();}   // 第一次才解鎖、才跳提示（跟 showResult 一樣）
+  if(real){markCleared(APP.stage);grantDrop(APP.stage);grantUlt(APP.stage);d.story.endings[kind]=1;trueChalMsg=kind==='true'?checkChal(APP.stage):null;   /* 真結局：挑戰照結算一樣檢查（回主島才跳那句） */
+    if(!chalOpen()){d.seen.chal=1;APP.chalNew=true;}Save.save();}   // 第一次才解鎖、才跳提示（跟 showResult 一樣）
   else if(kind!=='true')APP.chalNew=true;   /* 測試網址也照正式流程：真結局一定是第二次以後打倒（要先有信＝一般結局已經解鎖過挑戰），不再跳（2026-09-29 CK） */
   APP.endTest=false;APP.newStar=-1;APP.gardenLoc=-1;
   if(kind==='true'){if(!real)APP.bellPreview=true;   // 真結局：回主島但先不跳任何提示（鏡頭演完才跳）；?ending=true 借來的關：鈴鐺只在這次掛著、不記存檔
@@ -6676,7 +6717,12 @@ function chalMet(ch,k){var lim=CONFIG.stages[k].time||CONFIG.battle.time,used=li
   if(ch.kind==='stat'){var sv=battle[ch.key]||0;return {ok:sv>=ch.min,stat:'這次 '+sv+' '+(ch.unit||'')};}
   if(ch.kind==='zero'){var zv=battle[ch.key]||0;return {ok:zv===0,stat:'這次 '+zv+' '+(ch.unit||'')};}
   if(ch.kind==='allUlt'){var nu=SES.ultUsed.filter(Boolean).length;return {ok:nu>=6,stat:'這次 '+nu+' 隻放過'};}   // 六隻狐狸都放過大招（第八關）
+  if(ch.kind==='dressed')return {ok:SES.dressed>=6,stat:'這次 '+SES.dressed+' 隻有戴'};   // 六隻狐狸都戴著飾品打倒（第九關；開戰時數的，beginBattle）
   return {ok:battle.maxCombo>=ch.min,stat:'這次最高 '+battle.maxCombo+' 連擊'};}
+// 第九關挑戰「六隻狐狸都戴著飾品打倒」：六隻狐狸（不算庭院的小狐狸）各有沒有戴至少一件「不是開局就有的」飾品，回傳幾隻有戴。
+//   開局就有的不算：屬性符號（owner，每隻自己那個，一直都有）、蝴蝶結（from:'start'）——算進去的話一開局就達成了（遊星 2026-09-30）
+function dressedCount(){return ULT_KEYS.filter(function(f){var o=Save.outfitOf(f)||{};
+  return SLOTS$1.some(function(s){var it=o[s]&&FOX_ITEMS[o[s]];return !!it&&it.from!=='start'&&!it.owner;});}).length;}
 function chalOpen(){return !!Save.data().seen.chal;}
 function checkChal(k){var ch=CONFIG.stages[k].chal,d=Save.data();if(!ch||!chalOpen()||d.chal[k])return null;var r=chalMet(ch,k);
   if(!r.ok)return '挑戰「'+ch.text+'」還差一點（'+r.stat+'）';
@@ -6933,7 +6979,7 @@ document.addEventListener('pointerdown',function(){AudioFX.init();},{once:true})
 var overlayEl=document.getElementById('overlay'),panels={start:document.getElementById('pStart'),pause:document.getElementById('pPause'),result:document.getElementById('pResult')};
 function showPanel(name){overlayEl.classList.toggle('show',!!name);Object.keys(panels).forEach(function(k){panels[k].classList.toggle('show',k===name);});}
 function beginBattle(){
-  newSession();SES.ULT_SEL=ULT_KEYS.map(function(k){return ultAltOn(k)?1:0;});   // 每場的暫時狀態（大招特寫、卡著的鎖鏈／花瓣／紅繩／鏡片／劍氣…）整個換新，見 state.js
+  newSession();SES.ULT_SEL=ULT_KEYS.map(function(k){return ultAltOn(k)?1:0;});SES.dressed=dressedCount();   // 每場的暫時狀態（大招特寫、卡著的鎖鏈／花瓣／紅繩／鏡片／劍氣…）整個換新，見 state.js
   showPanel(null);battle.reset(CONFIG.stages[APP.stage],CONFIG.sigils[APP.sigil],CONFIG.stages[APP.stage].segs?FINAL.story():null);   /* 最終戰：有沒有信、誰戴金鈴 */BS.setStage(APP.stage);gameEl.classList.toggle('dayFight',BS.isDay(APP.stage));setPetalStyle(CONFIG.stages[APP.stage].style);setBossHud();resetBattleFx();CAM.pos.set(0,0,14);CAM.look.set(0,0,0);veil.visible=false;ultBannerEl.classList.remove('show');BS.ultFx.group.visible=false;
   BS.foxes.forEach(function(f){f.energyDisp=0;});BS.boss.reset();BS.foxes.forEach(function(f){f.reset();});BS.clearCharm();bossBarEl.classList.remove('enraged');
   comboEl.className='hud bhud';updateBars();G.mode='intro';
