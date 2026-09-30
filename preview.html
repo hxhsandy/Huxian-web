@@ -145,7 +145,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* 對話框（2026-09-29，src/dialogue.js）：劇情台詞，放在安全框裡。樣子對齊面板：深藍半透明、金色細邊、宋體。
    #dlg＝擋住畫面的那種：蓋滿安全框、接住所有點擊（點一下換下一句），框在畫面下半、珠盤上方；下面淡淡壓暗一點。
    #dlgFloats＝不擋操作的短句（浮在指定的位置、幾秒後自己消失；最終戰的金鈴台詞浮在珠盤框和隊伍血條之間）：不接點擊，排在暫停面板（#overlay）下面。 */
-#dlg{position:absolute;inset:0;z-index:9;display:none;background:linear-gradient(to top,rgba(6,9,26,.5),rgba(6,9,26,0) 55%)}
+#dlg{position:absolute;inset:0;z-index:9;display:none}
+/* 下面淡淡壓暗的那層：畫在 ::before，往下延伸到底部橫條後面（2026-09-30：原本只到安全框底，全螢幕時下面那截沒蓋到；框的位置照舊跟著 #dlg） */
+#dlg::before{content:"";position:absolute;left:0;right:0;top:0;bottom:calc(-1 * var(--safe-bottom));background:linear-gradient(to top,rgba(6,9,26,.5),rgba(6,9,26,0) 55%)}
 #dlg.show{display:block;animation:dlgIn .3s ease-out both}
 #dlg.out{animation:dlgOut .3s ease-in both}
 @keyframes dlgIn{from{opacity:0}to{opacity:1}}
@@ -183,8 +185,11 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .enCred p{margin:36px 0 0;font-size:15px;letter-spacing:.3em;text-indent:.3em;color:rgba(244,236,216,.8)}
 /* 信（2026-09-29，src/letter.js）：擋住畫面的演出，放在安全框裡。樣子是遊星的草案（待 CK／繪星定）：米白信封綁紅繩、信封上不寫字；
    信紙淡淡的桂花黃、直書三行、角落一朵小桂花。位置、透明度、角度都由 letter.js 每格設定（這裡只有長相）。 */
-#letter{position:absolute;inset:0;z-index:9;display:none;overflow:hidden}
+#letter{position:absolute;inset:0;z-index:9;display:none}
 #letter.show{display:block}
+/* 信後面的半透明黑底（濃淡由 letter.js 每格設 --dim）：畫在 ::before，往上下延伸蓋滿整個螢幕（2026-09-30 CK：全螢幕時瀏海那一截沒蓋到——
+   原本畫在 #letter 自己的底色，只有安全框那麼大）。信封、信紙的位置照舊用 #letter（安全框）的座標；#letter 拿掉 overflow:hidden，不然 ::before 超出的部分會被切掉 */
+#letter::before{content:"";position:absolute;left:0;right:0;top:calc(-1 * var(--safe-top));bottom:calc(-1 * var(--safe-bottom));background:var(--dim,transparent)}
 .lEnv{position:absolute;left:0;top:0;width:min(200px,52%);aspect-ratio:1.55;perspective:500px}
 .lEnv>i{position:absolute;inset:0;display:block}
 .lBack{background:#e9dcbf;border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:0}
@@ -6607,8 +6612,8 @@ function stageFx(){return BS.deco(APP.stage)||{};}
 function afterMove(){MECHS.forEach(function(m){if(m.afterMove&&m.afterMove(battle,board,SES.mech[m.key],battle.boss[m.key],fighting()))MECH_VIEWS[m.key].afterMove();});}
 // woke：金鈴那四句講完、她清醒（final.js 的 bellStory）——不是被打倒的，不炸光點、不震，只有一圈淡金光
 // 通關獎勵從 BOSS 身上掉出來（2026-09-30 打磨第二批，src/reward.js）：轉圈消失（BS.boss.defeat，1.1 秒）到一半 SPIN_HALF 秒、或講完話淡出（bossVanish）到一半時掉；
-//   落地之後再浮 REWARD_REST 秒才跳結算（沒有東西就照原本 1.6 秒）。真結局的雙鈴紅緞在主島給，不掉
-var SPIN_HALF=0.55,REWARD_REST=0.6,LETTER_DX=0.95;
+//   落地之後再浮 REWARD_REST 秒才跳結算（CK 看完第一版：多等 1 秒，0.6 → 1.6；沒有東西就照原本 1.6 秒）。真結局的雙鈴紅緞在主島給，不掉
+var SPIN_HALF=0.55,REWARD_REST=1.6,LETTER_DX=0.95;
 function onBossDown(woke){G.mode='won';var fin=CONFIG.stages[APP.stage].final||APP.endTest?APP.endTest||FINAL.endingKind():null;   /* 最終 BOSS（或測試網址借一關演）：走哪一種結局（final.js 的 endingKind） */
   if(fin==='true')AudioFX.farBell();   /* 真結局：倒下那一刻鈴響 */FINAL.down();if(!downTalk(APP.stage)&&!fin)BS.boss.defeat();   /* 要講話的 BOSS 先留在台上，講完才淡出（bossVanish） */cdEl.classList.add('hidden');var p=bossScreen();
   if(woke)ringFx(p.x,p.y,L.cs*0.5,L.cs*4,GOLD,0.35);
@@ -7314,7 +7319,7 @@ function lineEnd(){var L0=CONFIG.letter.lines,n=L0.length;return T_LINE0+(n-1)*T
 function render(){var t=cur.t,W=el$1.clientWidth,H=el$1.clientHeight,cx=W/2,cy=H*0.46,f=cur.from;
   // 背景壓暗
   var close=cur.closing>=0?clamp01(cur.closing/T_CLOSE):0;
-  el$1.style.backgroundColor='rgba(6,9,26,'+(0.6*ease$1(seg(t,0,T_FLY))*(1-close)).toFixed(3)+')';
+  el$1.style.setProperty('--dim','rgba(6,9,26,'+(0.6*ease$1(seg(t,0,T_FLY))*(1-close)).toFixed(3)+')');   /* 畫在 #letter::before：蓋滿整個螢幕（連瀏海、底部橫條後面） */
   // 信封：從 from 飄到畫面中間（中間拱起一點、左右輕輕晃）、慢慢變大；信紙展開時往下沉、淡掉
   var k=ease$1(Math.pow(seg(t,0,T_FLY),FLY_W)),x=f.x+(cx-f.x)*k,y=f.y+(cy-f.y)*k-Math.sin(Math.PI*k)*H*0.06,rot=Math.sin(seg(t,0,T_FLY)*TAU)*7*(1-k),sc=0.3+0.7*k,
       out=ease$1(seg(t,T_PULL,T_OPEN));
