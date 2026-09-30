@@ -4306,21 +4306,29 @@ var TEAM=(function(){
   var tMesh=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:tTex,transparent:true,depthWrite:false,fog:false}));tMesh.raycast=noRay;cam.add(tMesh);
   var TITLE_D=8.2,TL={top:44,h:110,w:360};
   // 冥界封面缺字（config.js 的 chapters[].garble，flow.js 的 coverGarbled）：名字其中一個字換成□或█、另一個字淡掉；gl＞0 時每個字錯位（偶爾抖一下，見 update）
-  //   大標題的缺字（□、█，第九關還沒打倒的名字「██」也是）不畫字（2026-09-30 CK：大字的「□」很像中文字「口」），那一格畫幾塊長方形色塊（CK 畫的樣子：
-  //   跟標題同色、半透明淡淡的，左右錯開疊成一個字的範圍，後面一層暗的柔影），而且會動，像訊號故障的切條——每 0.5～1.4 秒一次「故障」：
-  //   幾塊左右滑一下（BLK_SLIDE 秒）、整組重排、或閃一下（BLK_FLASH 秒）。介紹文、資訊框的小字照舊用□█。
-  //   色塊畫在標題的畫布上（跟字一樣會被 BOSS 擋住），只有故障那一下重畫，平常不重畫。位置用自己的亂數（blkR，不動 Math.random）
-  //   blk.cells[k]：第 k 個字那一格的色塊 [{x, y（中心，字級 fs 的倍數，格子中心是 0）, w, h, a（不透明度）, dx（滑開多少）, dx0, dx1（滑動的起點、終點）}]
-  var BLK_N=5,BLK_SLIDE=0.18,BLK_FLASH=0.1,blkS=4099,blk={cur:-1,cells:{},ev:'',u:0,t:0.8,flash:false};
-  function blkR(){blkS=(blkS*16807)%2147483647;return blkS/2147483647;}
-  function blkLayout(){var out=[];for(var i=0;i<BLK_N;i++){var w=0.34+0.3*blkR(),h=0.12+0.08*blkR(),y=-0.38+i*0.76/(BLK_N-1)+(blkR()-0.5)*0.08,side=i%2?1:-1,
-      x=side*(0.08+0.14*blkR());x=Math.max(-0.52+w/2,Math.min(0.52-w/2,x));out.push({x:x,y:y,w:w,h:h,a:0.5+0.3*blkR(),dx:0,dx0:0,dx1:0});}   // 一排一塊、左右交錯，不跑出那一格太多
-    return out;}
-  function blkEvent(){var cells=Object.keys(blk.cells).map(function(k){return blk.cells[k];});if(!cells.length)return;var r=blkR();
-    if(r<0.55){blk.ev='slide';blk.u=0;cells.forEach(function(c){c.forEach(function(b){b.dx0=b.dx1=b.dx;});for(var n=1+Math.floor(blkR()*2),q=0;q<n;q++){var b=c[Math.floor(blkR()*c.length)%c.length];
-      b.dx1=Math.max(-0.25,Math.min(0.25,b.dx+(blkR()<0.5?-1:1)*(0.08+0.14*blkR())));}});}   // 一格裡一兩塊往左或往右滑
-    else if(r<0.8){Object.keys(blk.cells).forEach(function(k){blk.cells[k]=blkLayout();});blk.ev='flash';blk.u=0;blk.flash=true;}   // 整組重排（順便閃一下）
-    else {blk.ev='flash';blk.u=0;blk.flash=true;}}
+  //   大標題的缺字（□、█，第九關還沒打倒的名字「██」也是）不畫字，畫一個菱形外框 ◇（大正方形轉 45 度，才不會被認成「口」；2026-09-30 CK 第三版，
+  //   前兩版：細的靜電雜點、半透明長方形色塊——CK：動得太慢、不像故障）。整個名字（連正常的字）一直在故障：標題板換成 GLITCH 材質（shader，每格算，
+  //   不重畫畫布）——橫向切條一直細抖＋波浪、偶爾一大條錯開，字邊洋紅／青色分色錯開，缺字那一格旁邊偶爾飛出幾條橫短線（白、洋紅、青，參考 CK 給的故障外框圖）。
+  //   沒缺字的標題照舊用一般材質（第一到六關封面逐像素不變）。介紹文、資訊框的小字照舊用□█
+  var GL_M=new THREE.Vector3(0.93,0.42,0.86),GL_C=new THREE.Vector3(0.42,0.95,0.9);   // 分色的洋紅、青（淡一點，配冥界色）
+  var baseTMat=tMesh.material,glitchMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
+    uniforms:{map:{value:tTex},time:{value:0},cells:{value:[new THREE.Vector4(),new THREE.Vector4()]},nCell:{value:0},cM:{value:GL_M},cC:{value:GL_C},cW:{value:new THREE.Vector3(1,1,1)}},
+    vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:['uniform sampler2D map; uniform float time; uniform vec4 cells[2]; uniform int nCell; uniform vec3 cM,cC,cW; varying vec2 vUv;',
+      'float h1(float n){ return fract(sin(n)*43758.5453); }',
+      'void main(){ vec2 uv=vUv; float tq=floor(time*24.0), band=floor(uv.y*36.0), big=floor(uv.y*7.0), tb=floor(time*8.0), near=0.0;',
+      ' for(int i=0;i<2;i++){ if(i>=nCell) break; near=max(near,1.0-smoothstep(cells[i].z*1.1,cells[i].z*2.4,abs(uv.x-cells[i].x))); }',   // 離缺字那一格多近（正常的字只輕輕抖）
+      ' float dx=(h1(band*1.73+tq*3.11)-0.5)*0.006+sin(uv.y*55.0+time*11.0)*0.0022;',   // 切條細抖（一秒換 24 次）＋波浪
+      ' if(h1(big*7.7+tb*1.37)>0.84) dx+=(h1(big*3.3+tb*5.1)-0.5)*0.07*mix(0.3,1.0,near);',   // 偶爾一大條錯開（一秒 8 次機會；正常的字錯得少）
+      ' float sp=(0.005+0.005*h1(tq*0.71))*mix(0.6,1.0,near);',   // 分色錯開的距離也在抖
+      ' vec4 c=texture2D(map,vec2(uv.x+dx,uv.y)), m=texture2D(map,vec2(uv.x+dx+sp,uv.y)), k=texture2D(map,vec2(uv.x+dx-sp,uv.y));',
+      ' float am=m.a*(1.0-c.a)*0.75, ak=k.a*(1.0-c.a)*0.75; vec3 col=c.rgb*c.a+cM*am+cC*ak; float a=c.a+am+ak;',
+      ' float tl=floor(time*7.0);',
+      ' for(int i=0;i<2;i++){ if(i>=nCell) break; vec4 q=cells[i];',   // 缺字那一格旁邊的橫短線（q：中心 xy、半寬、半高，都是 uv）
+      '  for(int j=0;j<5;j++){ float s=float(j)*13.1+float(i)*71.3+tl*0.37; if(h1(s)>0.45) continue;',
+      '   float ly=q.y+(h1(s+1.1)-0.5)*q.w*2.6, lx=q.x+(h1(s+2.3)-0.5)*q.z*3.0, ll=q.z*(0.3+0.7*h1(s+3.7)), th=q.w*0.045;',
+      '   if(abs(uv.y-ly)<th && abs(uv.x-lx)<ll*0.5){ float pk=h1(s+5.9); vec3 lc=pk<0.45?cW:pk<0.72?cM:cC; col=col*0.1+lc*0.9; a=max(a,0.92); } } }',
+      ' gl_FragColor=vec4(col/max(a,0.0001),min(a,1.0)); }'].join('\n')});
   function drawTitle(gl){var st=CONFIG.stages[cur],pal=STAGES[cur].pal,w=Math.round(TL.w*PR),h=Math.round(TL.h*PR),g=tCan.getContext('2d');
     tCan.width=w;tCan.height=h;g.clearRect(0,0,w,h);
     var txt=stageName(cur).split(''),al=txt.map(function(){return 1;}),gb=coverGarbled(cur);   /* 第九關：名字會回來（flow.js 的 stageName） */
@@ -4328,14 +4336,16 @@ var TEAM=(function(){
     var n=txt.length,gap=n<=2?0.62:n===3?0.2:0.06,fs=Math.min(h*0.9,w*0.98/(n+(n-1)*gap)),step=fs*(1+gap),x0=(w-(n*fs+(n-1)*gap*fs))/2+fs/2;
     g.font='900 '+fs.toFixed(1)+'px '+TITLE_FONT;g.textAlign='center';g.textBaseline='middle';
     g.shadowColor=pal.glow;g.shadowBlur=fs*0.16;g.fillStyle=pal.title;
-    if(blk.cur!==cur){blk.cur=cur;blk.cells={};blk.ev='';blk.flash=false;}
     function miss(c){return c==='□'||c==='█';}
     function row(){for(var k=0;k<n;k++){if(miss(txt[k]))continue;g.globalAlpha=al[k];var dx=gl?Math.sin(k*7.3+gl*13)*fs*0.08:0,dy=gl?Math.cos(k*3.1+gl*9)*fs*0.05:0;g.fillText(txt[k],x0+k*step+dx,h*0.54+dy);}g.globalAlpha=1;}
-    row();g.shadowBlur=0;row();
-    g.save();g.fillStyle=pal.title;g.shadowColor='rgba(4,10,8,.45)';g.shadowBlur=fs*0.14;   // 缺字那一格：幾塊半透明色塊（後面一層暗的柔影），跟字一樣錯位
-    for(var k=0;k<n;k++){if(!miss(txt[k]))continue;var c=blk.cells[k]||(blk.cells[k]=blkLayout()),cx=x0+k*step+(gl?Math.sin(k*7.3+gl*13)*fs*0.08:0),cy=h*0.54+(gl?Math.cos(k*3.1+gl*9)*fs*0.05:0);
-      c.forEach(function(b){g.globalAlpha=al[k]*Math.min(1,b.a*(blk.flash?1.5:1));g.fillRect(cx+(b.x+b.dx-b.w/2)*fs,cy+(b.y-b.h/2)*fs,b.w*fs,b.h*fs);});}
-    g.restore();
+    var cells=[];
+    function diamonds(){for(var k=0;k<n;k++){if(!miss(txt[k]))continue;var cx=x0+k*step+(gl?Math.sin(k*7.3+gl*13)*fs*0.08:0),cy=h*0.54+(gl?Math.cos(k*3.1+gl*9)*fs*0.05:0),R=fs*0.44;   // 缺字那一格：菱形外框 ◇，跟字一樣錯位
+      g.globalAlpha=al[k];g.beginPath();g.moveTo(cx,cy-R);g.lineTo(cx+R,cy);g.lineTo(cx,cy+R);g.lineTo(cx-R,cy);g.closePath();g.stroke();
+      if(cells.length<2)cells.push([cx/w,1-cy/h,R/w,R/h]);}g.globalAlpha=1;}
+    g.strokeStyle=pal.title;g.lineWidth=fs*0.075;g.lineJoin='miter';
+    row();diamonds();g.shadowBlur=0;cells=[];row();diamonds();
+    tMesh.material=cells.length?glitchMat:baseTMat;glitchMat.uniforms.nCell.value=cells.length;cells.forEach(function(c,i){glitchMat.uniforms.cells.value[i].set(c[0],c[1],c[2],c[3]);});
+    var tc=new THREE.Color(pal.title);glitchMat.uniforms.cW.value.set(tc.r,tc.g,tc.b);   // 橫短線的白＝標題色
     tTex.needsUpdate=true;}
   var glT=2.2,glOn=0,glAt=0;   // 缺字標題偶爾錯位抖一下：每 2～3 秒抖 0.14 秒
   (function(){var set={'□':1,'█':1};CONFIG.stages.forEach(function(s){var cv=s.cover||{},nm=s.names||{};(s.name+(nm.lost||'')+(nm.found||'')+(cv.deck||'')+(cv.head||'')+(cv.tag||'')+(cv.skill||'')+(cv.foundHead||'')+(cv.foundTag||'')).replace(/<br>|\s/g,'').split('').forEach(function(c){set[c]=1;});});   // □█：冥界封面缺字用；第九關真結局之後的名字、大標也要
@@ -5372,11 +5382,7 @@ var TEAM=(function(){
     if(ray.intersectObject(B.boss.hit,false).length){B.boss.f.attack();pokeT=1;([AudioFX.hop,AudioFX.slash,AudioFX.charm,AudioFX.bloom,AudioFX.ward,AudioFX.mirror][cur]||AudioFX.hop)();}});
   function update(dt,t){var B=built[cur];if(!B)return;
     if(coverGarbled(cur)){glT-=dt;if(glOn>0){glOn-=dt;if(glOn<=0)drawTitle();}else if(glT<=0){glT=2+((t*7.1)%1);glOn=0.14;glAt=t+0.5;drawTitle(glAt);}}
-    if(coverGarbled(cur)&&Object.keys(blk.cells).length){var glNow=glOn>0?glAt:undefined;   // 缺字色塊的故障：滑一下／重排／閃一下
-      if(blk.ev==='slide'){blk.u=Math.min(1,blk.u+dt/BLK_SLIDE);var e=1-(1-blk.u)*(1-blk.u);Object.keys(blk.cells).forEach(function(k){blk.cells[k].forEach(function(b){b.dx=b.dx0+(b.dx1-b.dx0)*e;});});
-        if(blk.u>=1)blk.ev='';drawTitle(glNow);}
-      else if(blk.ev==='flash'){blk.u+=dt/BLK_FLASH;if(blk.u>=1){blk.ev='';blk.flash=false;drawTitle(glNow);}}
-      else {blk.t-=dt;if(blk.t<=0){blk.t=0.5+0.9*blkR();blkEvent();drawTitle(glNow);}}}
+    if(tMesh.material===glitchMat)glitchMat.uniforms.time.value=t;   // 缺字標題一直在故障（shader 跟著時間走）
     sparks.forEach(function(s){var u=s.userData,k=Math.pow(Math.max(0,Math.sin(t*u.sp+u.ph)),3);s.scale.set(u.s*(0.4+0.6*k),u.s*(0.4+0.6*k),1);s.material.opacity=k*0.9;});
     halo2.material.opacity=(halo2.userData.o||0.28)*(0.92+0.1*Math.sin(t*0.8));
     cloudS.forEach(function(c,j){if(c.visible)c.position.x=c.userData.bx+Math.sin(t*0.05+j*2)*0.6;});
