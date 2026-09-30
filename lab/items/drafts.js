@@ -497,5 +497,105 @@ window.ITEM_LAB_DRAFTS = [
       g.userData.tassel = tassel;
       return g;
     },
-    upd: function (obj, t) { obj.userData.tassel.rotation.z = 0.09 * Math.sin(t * 2.2); } }
+    upd: function (obj, t) { obj.userData.tassel.rotation.z = 0.09 * Math.sin(t * 2.2); } },
+
+  { id: 'tail-talisman', slot: 'tail', name: '符咒',
+    desc: '一張貼在尾巴上的符。夢婆說，走到忘川邊時別把它揭下來。',
+    note: '微斜的黃紙紅字貼在尾尖，紅光輕輕呼吸。',
+    build: function (anchor, L) {
+      var T = L.THREE, r = anchor.userData.tailR || 0.12;
+      var g = new T.Group(), face = new T.Group(), paper = new T.Group();
+      g.add(face); face.add(paper);
+      if (!anchor.userData.thumb) {
+        var d = new T.Vector3(L.BOW_DIR[0], L.BOW_DIR[1], L.BOW_DIR[2]).normalize();
+        var flat = new T.Vector3(d.x, 0, d.z).normalize();
+        face.position.copy(flat).multiplyScalar(r + 0.025);
+        face.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
+      }
+      paper.position.set(anchor.userData.thumb ? 0 : -0.018, 0.01, 0.025);
+      paper.rotation.set(-0.18, 0.12, -0.25);
+      var shape = new T.Shape();
+      shape.moveTo(-0.059, 0.107); shape.lineTo(0.059, 0.107);
+      shape.lineTo(0.056, -0.1); shape.lineTo(0.032, -0.109);
+      shape.lineTo(0.007, -0.101); shape.lineTo(-0.019, -0.11);
+      shape.lineTo(-0.055, -0.1); shape.closePath();
+      paper.add(L.itemPart(new T.ExtrudeGeometry(shape, {
+        depth: 0.005, bevelEnabled: true, bevelThickness: 0.002,
+        bevelSize: 0.002, bevelSegments: 1
+      }), L.toon(0xf8dc79, { emissive: 0x544013 }), L.outlineMat(0xa87528, 0.003)));
+      var inkTex = L.canvasTex(128, 256, function (ctx) {
+        ctx.clearRect(0, 0, 128, 256);
+        ctx.fillStyle = '#a3262c'; ctx.strokeStyle = '#b12c30'; ctx.lineWidth = 4;
+        ctx.strokeRect(10, 10, 108, 236);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 85px "Noto Serif CJK TC", serif';
+        ctx.fillText('敕', 64, 75); ctx.fillText('令', 64, 169);
+        ctx.beginPath(); ctx.moveTo(29, 218); ctx.lineTo(99, 218); ctx.stroke();
+      });
+      var ink = new T.Mesh(new T.PlaneGeometry(0.099, 0.181),
+        new T.MeshBasicMaterial({ map: inkTex, transparent: true, depthWrite: false, side: T.DoubleSide }));
+      ink.position.z = 0.01; paper.add(ink);
+      var glow = L.sprite(paper, L.glowTex, 0xf44343, 0.2, true);
+      glow.position.z = -0.015; glow.scale.set(0.29, 0.36, 1);
+      g.userData.paper = paper; g.userData.glow = glow;
+      return g;
+    },
+    upd: function (obj, t) {
+      obj.userData.paper.rotation.z = -0.25 + 0.025 * Math.sin(t * 1.6);
+      obj.userData.glow.material.opacity = 0.15 + 0.075 * Math.sin(t * 1.8);
+    } },
+
+  { id: 'osmanthus-sprig', slot: 'head', name: '桂花枝',
+    desc: '一小枝桂花。冥界裡，明明沒有桂花樹。',
+    note: '耳旁兩朵立體黃桂花、三片綠葉，下面一小串吊墜輕晃。',
+    build: function (anchor, L) {
+      var T = L.THREE, H = L.HEAD_TOP, g = new T.Group();
+      var green = L.toon(0x3b8652, { emissive: 0x173925 });
+      var stem = L.itemPart(new T.CylinderGeometry(0.005, 0.006, 0.17, 8),
+        L.toon(0x82603a, { emissive: 0x27180b }), false);
+      stem.rotation.z = -0.72; stem.position.set(0, 0.016, -0.017); g.add(stem);
+      var leaves = [];
+      [[-0.063, 0.071, 0.65], [0.016, 0.096, -0.52], [0.084, 0.05, -0.8]].forEach(function (p) {
+        var leaf = L.SPH_LO.clone();
+        leaf.applyMatrix4(new T.Matrix4().makeScale(0.016, 0.039, 0.011));
+        leaf.rotateZ(p[2]); leaf.translate(p[0], p[1], -0.01);
+        leaves.push(leaf);
+      });
+      g.add(L.itemPart(L.mergeGeos(leaves), green, L.outlineMat(0x1e5135, 0.003)));
+      var gold = L.toon(0xf5bd46, { emissive: 0x73400d });
+      var cream = L.toon(0xffdf7d, { emissive: 0x806026 });
+      var petalGeos = [[], []], centers = [];
+      [[-0.046, 0.02, 0.032], [0.049, 0.026, 0.029]].forEach(function (f, n) {
+        for (var i = 0; i < 4; i++) {
+          var a = i * Math.PI / 2 + (n ? 0.3 : -0.2);
+          var petal = L.SPH_LO.clone();
+          petal.applyMatrix4(new T.Matrix4().makeScale(0.024, 0.032, 0.018));
+          petal.rotateZ(a); petal.translate(f[0] + Math.sin(a) * 0.026,
+            f[1] + Math.cos(a) * 0.026, f[2]);
+          petalGeos[n].push(petal);
+        }
+        var center = L.SPH_LO.clone();
+        center.applyMatrix4(new T.Matrix4().makeScale(0.015, 0.015, 0.012));
+        center.translate(f[0], f[1], f[2] + 0.017); centers.push(center);
+      });
+      g.add(L.itemPart(L.mergeGeos(petalGeos[0]), gold, L.outlineMat(0xb87a24, 0.003)));
+      g.add(L.itemPart(L.mergeGeos(petalGeos[1]), cream, L.outlineMat(0xc79432, 0.003)));
+      g.add(new T.Mesh(L.mergeGeos(centers), L.toon(0xfff0a2, { emissive: 0x795014 })));
+      var bead = L.itemPart(L.SPH_LO, L.toon(0xf1c860, { emissive: 0x6b4512 }));
+      bead.scale.setScalar(0.014); bead.position.set(-0.077, -0.049, 0.019); g.add(bead);
+      var pendant = new T.Group(); pendant.position.set(-0.077, -0.06, 0.019); g.add(pendant);
+      var cord = new T.CylinderGeometry(0.003, 0.003, 0.036, 6);
+      cord.translate(0, -0.018, 0);
+      var drop = L.SPH_LO.clone();
+      drop.applyMatrix4(new T.Matrix4().makeScale(0.012, 0.023, 0.012));
+      drop.translate(0, -0.057, 0);
+      pendant.add(L.itemPart(L.mergeGeos([cord, drop]),
+        L.toon(0xf6eac2, { emissive: 0x685c38 }), L.outlineMat(0xa68b5f, 0.002)));
+      g.position.set(-0.18 - H[0], 0.18 - H[1], 0.11 - H[2]);
+      g.rotation.y = -0.18; g.userData.pendant = pendant;
+      return g;
+    },
+    upd: function (obj, t) {
+      obj.userData.pendant.rotation.z = 0.13 * Math.sin(t * 2.0);
+    } }
 ];
