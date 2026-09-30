@@ -3435,7 +3435,15 @@ var DAY_OL=0xeeb3a1,DAY_CRACK=0xf0bda2;
    預設的數字＝原本寫死的那些（TURF、TURF_PK、PINK_BUSH、0x5878aa…、SUN、SUN_S），畫面一模一樣 */
 var HUB_DAY_DEF={v:1,sky:{grad:[0x004abb,0x6c6cd6,0xf6a8c8],h:[0.3,0.02,-0.2],g1:[1,0.72,0.6],g1k:0.28,e1:40,glowAt:[6,8,-32.1],nb:0.97,na:0.06,mist:[0.97,0.98,1],mistK:1},
   sun:{x:4.5,y:8,z:-32,s:9.5},
-  main:{turf:TURF,pink:TURF_PK,side:0x5878aa,bot:0x3a517e,mini:[0x5b7cae,0x3a517e],bush:PINK_BUSH},isles:{}};
+  main:{turf:TURF,pink:TURF_PK,side:0x5878aa,bot:0x3a517e,mini:[0x5b7cae,0x3a517e],bush:PINK_BUSH},isles:{},
+  veilCols:[0xe790b8,0x9bdcbe],   // 紗幔的兩種顏色（粉、綠）；veils、clouds 在下面 veilSpec、totemSpec 排好再放進來
+  // 雲霧（dayMist，每層的意思見 mistMesh）：
+  //   1. 島身邊的薄霧：y 從 -1.0 往下每 0.6 一層，半徑 8（4.5 以外慢慢淡掉），每層很淡；不管從哪個角度看都在（a0、a1 設成一定是 1）
+  //   2. 雲海：上面三層半透明、最下面一層是底（寫深度，壓在它下面的紗幔尾巴就看不到）；往下 14°（sin=0.24）開始出現、26°（sin=0.44）以上全濃
+  //      霧的濃淡：淡的地方偏一點點藍灰（cLo），濃的地方純白，上面幾層白霧在底上飄，才看得出一團一團、會動
+  mists:[0,1,2,3,4,5].map(function(k){return {y:-1.0-k*0.6,op:0.1,sc:0.23+0.03*k,spd:0.012+0.003*k,a0:-2,a1:-1.5,rin:4.5,rout:8,lo:0.45,cHi:0xffffff,cLo:0xeef2fb,ro:-5.5,dw:0,seg:64};})
+    .concat([[-10,0.5,0.05,0.01,0.2],[-13,0.6,0.036,0.007,0.25],[-16,0.7,0.026,0.005,0.3]].map(function(v){return {y:v[0],op:v[1],sc:v[2],spd:v[3],a0:0.24,a1:0.44,rin:110,rout:150,lo:v[4],cHi:0xffffff,cLo:0xe6edf7,ro:-5.5,dw:0,seg:72};}))
+    .concat([{y:-19,op:1,sc:0.02,spd:0.004,a0:0.24,a1:0.44,rin:110,rout:150,lo:0.999,cHi:0xffffff,cLo:0xc9d7ea,ro:-6.5,dw:1,seg:72}])};
 var hubDef=null;   // 場景編輯器換上去的資料（遊戲裡一直是 null＝用 HUB_DAY_DEF）
 function HD(){return hubDef||HUB_DAY_DEF;}
 function palOf(k){var d=HD();return (k!==undefined&&d.isles&&d.isles[k])||d.main;}
@@ -3445,9 +3453,13 @@ function lookFromDef(d){var L=LOOKS.day,S=d.sky;L.grad.top=S.grad[0];L.grad.mid=
   L.sky.g1=S.g1.slice();L.sky.g1k=S.g1k;L.sky.e1=S.e1;L.sky.nb=S.nb;L.sky.na=S.na;L.glowAt=S.glowAt.slice();L.mist=[S.mist.slice(),S.mistK];}
 lookFromDef(HUB_DAY_DEF);
 // 場景編輯器換白天大地圖的資料（set(null) 回到內建）：天空重套、太陽搬位置、主島和關卡島的顏色有變才重建
-var lastPal='';
+var lastPal='',lastSkyEl={};
 function setHubDay(d){hubDef=d||null;var D=HD(),pj=JSON.stringify([D.main,D.isles]);lookFromDef(D);
   hubs.forEach(function(H){if(!H||!H.sunG)return;H.sunG.position.set(D.sun.x,D.sun.y,D.sun.z);H.sunSp.scale.set(D.sun.s,D.sun.s,1);});
+  // 紗幔、雲霧、祥雲：有變的那一種才整組拆掉重建
+  [['veils',buildVeils,[D.veils,D.veilCols]],['mists',buildMists,D.mists],['clouds',buildSkyClouds,D.clouds]].forEach(function(e){var js=JSON.stringify(e[2]);
+    if(lastSkyEl[e[0]]===undefined)lastSkyEl[e[0]]=JSON.stringify(e[0]==='veils'?[HUB_DAY_DEF.veils,HUB_DAY_DEF.veilCols]:HUB_DAY_DEF[e[0]]);
+    if(js===lastSkyEl[e[0]])return;lastSkyEl[e[0]]=js;hubs.forEach(function(H){if(H&&H.sunG)e[1](H.W,H);});});
   if(pj!==lastPal){lastPal=pj;hubs.forEach(function(H){if(H&&H.repaint)H.repaint(D.main);});isles.forEach(function(I,k){if(I&&I.repaint)I.repaint(palOf(k));});}
   if(CONFIG.chapters[curCh]&&CONFIG.chapters[curCh].look==='day')applyLook('day');}
 function fixSeam(geo,P,SEG){var n=geo.attributes.normal;for(var j=0;j<P;j++){var a=j,b=SEG*P+j,nx=n.getX(a)+n.getX(b),ny=n.getY(a)+n.getY(b),nz=n.getZ(a)+n.getZ(b),l=Math.hypot(nx,ny,nz)||1;n.setXYZ(a,nx/l,ny/l,nz/l);n.setXYZ(b,nx/l,ny/l,nz/l);}}
@@ -3716,19 +3728,16 @@ var MIST_FS=['uniform sampler2D nt; uniform float time,op,sc,spd,a0,a1,rin,rout,
   ' float rim=1.0-smoothstep(rin,rout,length(vW.xz));',
   ' float a=op*mix(lo,1.0,smoothstep(0.3,0.72,n))*ang*rim;',
   ' gl_FragColor=vec4(mix(cLo,cHi,smoothstep(0.25,0.8,n)),a); }'].join('\n');
-function mistLayer(W,H,o){var m=new THREE.ShaderMaterial({uniforms:{nt:{value:mistNoiseTex()},time:{value:0},op:{value:o.op},sc:{value:o.sc},spd:{value:o.spd},a0:{value:o.a0},a1:{value:o.a1},
+// 雲霧的每一層（HUB_DAY_DEF.mists 的一筆）建成一個圓盤：y 高度、op 濃淡、sc 霧紋大小、spd 飄的快慢、a0／a1 往下看幾度開始出現到全濃（sin 值）、
+//   rin／rout 從哪個半徑開始淡掉到哪裡為止、lo 淡的地方留多少、cHi／cLo 濃／淡的顏色、ro 畫的順序、dw 寫深度（最底那層）、seg 圓的邊數
+function mistMesh(o){var m=new THREE.ShaderMaterial({uniforms:{nt:{value:mistNoiseTex()},time:{value:0},op:{value:o.op},sc:{value:o.sc},spd:{value:o.spd},a0:{value:o.a0},a1:{value:o.a1},
       rin:{value:o.rin},rout:{value:o.rout},lo:{value:o.lo},hi:{value:1},cHi:{value:new THREE.Color(o.cHi)},cLo:{value:new THREE.Color(o.cLo)}},
     vertexShader:MIST_VS,fragmentShader:MIST_FS,transparent:true,depthWrite:!!o.dw,side:THREE.DoubleSide});
-  var g=new THREE.CircleGeometry(o.rout,o.seg||72);g.rotateX(-Math.PI/2);var mesh=new THREE.Mesh(g,m);mesh.position.y=o.y;mesh.renderOrder=o.ro;mesh.frustumCulled=false;mesh.raycast=noRay;W.add(mesh);
-  H.anim.push(function(dt,t){m.uniforms.time.value=t;});return mesh;}
-function dayMist(W,H){
-  // 1. 島身邊的薄霧：y 從 -1.0 往下每 0.6 一層，半徑 8（4.5 以外慢慢淡掉），每層很淡；不管從哪個角度看都在（a0、a1 設成一定是 1）
-  for(var k=0;k<6;k++)mistLayer(W,H,{y:-1.0-k*0.6,op:0.1,sc:0.23+0.03*k,spd:0.012+0.003*k,a0:-2,a1:-1.5,rin:4.5,rout:8,lo:0.45,cHi:0xffffff,cLo:0xeef2fb,ro:-5.5,seg:64});
-  // 2. 雲海：上面三層半透明、最下面一層是底（寫深度，壓在它下面的紗幔尾巴就看不到）；往下 14°（sin=0.24）開始出現、26°（sin=0.44）以上全濃
-  //    霧的濃淡：淡的地方偏一點點藍灰（cLo），濃的地方純白，上面幾層白霧在底上飄，才看得出一團一團、會動
-  [[-10,0.5,0.05,0.01,0.2],[-13,0.6,0.036,0.007,0.25],[-16,0.7,0.026,0.005,0.3]].forEach(function(v){
-    mistLayer(W,H,{y:v[0],op:v[1],sc:v[2],spd:v[3],a0:0.24,a1:0.44,rin:110,rout:150,lo:v[4],cHi:0xffffff,cLo:0xe6edf7,ro:-5.5});});
-  mistLayer(W,H,{y:-19,op:1,sc:0.02,spd:0.004,a0:0.24,a1:0.44,rin:110,rout:150,lo:0.999,cHi:0xffffff,cLo:0xc9d7ea,ro:-6.5,dw:true});}
+  var g=new THREE.CircleGeometry(o.rout,o.seg||72);g.rotateX(-Math.PI/2);var mesh=new THREE.Mesh(g,m);mesh.position.y=o.y;mesh.renderOrder=o.ro;mesh.frustumCulled=false;mesh.raycast=noRay;return mesh;}
+// 島身邊的薄霧＋最底下的雲海（資料在 HUB_DAY_DEF.mists）；H.mistMesh 記著，場景編輯器改了就整組拆掉重建
+function dayMist(W,H){H.mistMesh=[];H.anim.push(function(dt,t){var ms=H.mistMesh;for(var i=0;i<ms.length;i++)ms[i].material.uniforms.time.value=t;});buildMists(W,H);}
+function buildMists(W,H){H.mistMesh.forEach(function(m){W.remove(m);m.geometry.dispose();m.material.dispose();});
+  H.mistMesh=HD().mists.map(function(o){var m=mistMesh(o);W.add(m);return m;});}
 /* ---------- 半透明的圖騰祥雲（2026-09-27 使用者手繪的三張中式雲；第四關白天戰場先用，同一天也放進青丘外面的大地圖）----------
    一條條兩頭圓的橫雲、中間用短柱子連起來（接口圓滑），白色半透明、蜜桃粉描邊、整朵雲的最底下染一點點黃（白色的區域是一整塊，不是每一橫條各自染）。
    每朵是 [橫雲 [左, 右, 中心高度, 半高], …] 和 [柱子 [左, 右, 上, 下], …]，單位是手繪稿的 4px。
@@ -3763,15 +3772,20 @@ var SKY_TOTEM=[[0,1,0.7,4.39,-28.49,8.5,0.8],[2,0,8.6,7.6,-30,6.6,0.72]];
 var SUN_S=9.5;   // 太陽貼圖的大小：圓盤＋緊貼著的第一圈光暈（半徑 0.69）跟月下小院的月亮圓盤一樣大（2026-09-27 使用者要照月亮；Version 95 是 11）
 // 遠方那一圈（2026-09-27 使用者圈出來的）：第 7 朵（預設鏡頭看在樹幹後面、畫面左邊）拿掉；第 8 朵（島的右邊）縮成 0.6 倍，左緣留在原地
 var RING_OFF={7:1},RING_SMALL={8:0.6};
-function dayTotemClouds(W,H){var list=[],rnd=prng(5150);
-  function add(c,ro){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:totemTex(c[0],c[1]),transparent:true,opacity:c[6],depthWrite:false}));
-    sp.position.set(c[2],c[3],c[4]);sp.scale.set(c[5],c[5]/2,1);sp.renderOrder=ro;sp.raycast=noRay;W.add(sp);list.push({sp:sp,x:c[2],ph:rnd(0,TAU),amp:rnd(0.4,1)});}
-  SKY_TOTEM.forEach(function(c){add(c,-3.5);});   // 太陽旁邊：畫在太陽前面（跟戰場一樣）
+// 祥雲的資料（HUB_DAY_DEF.clouds）：每朵 [哪一朵 0～2, 左右翻, x, y, z, 寬, 不透明度, 1＝太陽旁邊（畫在太陽前面）／0＝遠方一圈（紗幔後面、雲海前面）, 飄的相位, 飄多遠]
+//   預設照原本的算法用固定種子排一次（亂數的用法、順序都跟原本一樣，畫面一模一樣）
+function totemSpec(){var out=[],rnd=prng(5150);
+  function add(c,front){out.push([c[0],c[1],c[2],c[3],c[4],c[5],c[6],front,rnd(0,TAU),rnd(0.4,1)]);}
+  SKY_TOTEM.forEach(function(c){add(c,1);});   // 太陽旁邊：畫在太陽前面（跟戰場一樣）
   for(var i=0;i<10;i++){var a=i/10*TAU+rnd(-0.2,0.2),r=rnd(38,50),c=[i%3,rnd(0,1)<0.5?1:0,Math.cos(a)*r,rnd(-7,-2.5),Math.sin(a)*r,rnd(14,22),0.75];
     if(RING_OFF[i]){rnd(0,1);rnd(0,1);continue;}   // 拿掉的那朵：它的亂數照樣用掉，其他幾朵的位置、飄法才不會變
     var k=RING_SMALL[i];if(k){c[2]-=c[5]*(1-k)/2;c[5]*=k;}
-    add(c,-6.2);}   // 遠方一圈：在紗幔後面、雲海前面（白霧會從下面慢慢把它吃進去）
-  H.anim.push(function(dt,t){list.forEach(function(c){c.sp.position.x=c.x+Math.sin(t*0.05+c.ph)*c.amp;});});}
+    add(c,0);}   // 遠方一圈：在紗幔後面、雲海前面（白霧會從下面慢慢把它吃進去）
+  return out;}
+function dayTotemClouds(W,H){H.skyClouds=[];H.anim.push(function(dt,t){H.skyClouds.forEach(function(c){c.sp.position.x=c.x+Math.sin(t*0.05+c.ph)*c.amp;});});buildSkyClouds(W,H);}
+function buildSkyClouds(W,H){H.skyClouds.forEach(function(c){W.remove(c.sp);c.sp.material.dispose();});   // Sprite 的幾何是大家共用的，不能丟
+  H.skyClouds=HD().clouds.map(function(c){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:totemTex(c[0],c[1]),transparent:true,opacity:c[6],depthWrite:false}));
+    sp.position.set(c[2],c[3],c[4]);sp.scale.set(c[5],c[5]/2,1);sp.renderOrder=c[7]?-3.5:-6.2;sp.raycast=noRay;W.add(sp);return {sp:sp,x:c[2],ph:c[8],amp:c[9]};});}
 /* ---------- 天上的紗幔（第二章白天，2026-09-27 使用者要的）----------
    粉 e790b8 和綠 9bdcbe 的半透明長紗幔圍在場景外圈一整圈（半徑比鏡頭能退到的最遠還大，轉鏡頭也不會擋到島），從看不到的高處垂下來。
    純色、沒有光澤，約 45% 不透明；上面稍窄、往下變寬；粗細、長短、疏密都不一樣；下端是一刀切齊的直邊。
@@ -3803,28 +3817,31 @@ function veilGeo(){if(!VEIL_GEO){var NX=2,NY=64,pos=[],idx=[],i,j;
     for(j=0;j<NY;j++)for(i=0;i<NX;i++){var a=j*(NX+1)+i,b=a+NX+1;idx.push(a,b,a+1,a+1,b,b+1);}
     VEIL_GEO=new THREE.BufferGeometry();VEIL_GEO.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));VEIL_GEO.setIndex(idx);}
   return VEIL_GEO;}
-function dayVeils(W,H){
-  veilGeo();
-  var COL=[new THREE.Color(0xe790b8),new THREE.Color(0x9bdcbe)],mats=[],rnd=prng(2027);
-  // [方位角（度，0 是預設鏡頭看過去的正後方、正的往右）, 半徑, 下端高度, 上寬, 下寬, 顏色 0 粉 1 綠, 不透明度, 擺幅（佔長度的比例）, 擺的快慢, 扭轉, 相位]
+// 紗幔的資料（HUB_DAY_DEF.veils）：每條 [方位角（度，0 是預設鏡頭看過去的正後方、正的往右）, 半徑, 下端高度, 上寬, 下寬, 顏色 0 粉 1 綠（HUB_DAY_DEF.veilCols）,
+//   不透明度, 擺幅（佔長度的比例）, 擺的快慢, 扭轉, 相位, 上端高度]；預設照原本的算法用固定種子排一次（亂數的用法、順序都跟原本一樣）
+function veilSpec(){var rnd=prng(2027);
   // 預設鏡頭看得到的幾條：左邊三條擠在一起（中間那條最寬），太陽那一塊（約 -3°～+17°）空著不擋太陽，右邊畫面外一條，下半段被風吹進畫面
   var SPEC=[[-25,24.5,-18,1.7,2.5,1,0.42,0.1,0.62,0.8,0],[-14,26,-30,3.3,4.8,0,0.46,0.11,0.55,0.9,2.3],[-8.5,29.5,-13,1.1,1.7,1,0.43,0.12,0.74,1.0,4.4],
             [16.5,26,-24,1.6,2.8,0,0.46,0.12,0.8,1.0,1.2]];
   // 其他的一整圈（從 +27° 繞到 -31° 左右，接回左邊那三條）：大多間隔 11°～19°，有四成機會擠得比較近（5°～9°），所以有疏有密
   //   粗的三成、中等三成半、細的三成半；長的（到畫面最底下）四成半、中等三成、短的兩成半；粉綠交錯，最後一條固定是粉色（旁邊那條是綠的）
-  //   固定種子，每次開都一樣
   var ring=[],az=27;
   while(az<329){ring.push(az);az+=rnd(0,1)<0.4?rnd(5,9):rnd(11,19);}
   ring.forEach(function(az,q){var k=rnd(0,1),wB=k<0.3?rnd(4.2,5.5):k<0.65?rnd(2.8,3.8):rnd(1.6,2.4),l=rnd(0,1),c=q===ring.length-1?0:(q%2?0:1);
     SPEC.push([az>180?az-360:az,rnd(23.5,31),l<0.45?rnd(-30,-20):l<0.75?rnd(-16,-8):rnd(-6,2),wB*rnd(0.6,0.8),wB,c,c?rnd(0.4,0.44):rnd(0.44,0.48),rnd(0.09,0.13),rnd(0.5,0.8),rnd(0.6,1.1),rnd(0,6.28)]);});
-  SPEC.forEach(function(v,q){
-    var a0=v[0]*Math.PI/180,R=v[1],ytop=36+(q%3)*1.5,len=ytop-v[2],ctr=new THREE.Vector3(Math.sin(a0)*R,ytop-len*0.6,-Math.cos(a0)*R);
+  return SPEC.map(function(v,q){return v.concat([36+(q%3)*1.5]);});}
+function dayVeils(W,H){veilGeo();H.veilMesh=[];
+  H.anim.push(function(dt,t){var ms=H.veilMesh;for(var i=0;i<ms.length;i++)ms[i].material.uniforms.time.value=t;});buildVeils(W,H);}
+function buildVeils(W,H){H.veilMesh.forEach(function(m){W.remove(m);m.material.dispose();});   // 紗幔的幾何（VEIL_GEO）是共用的，不能丟
+  var D=HD(),COL=D.veilCols.map(function(c){return new THREE.Color(c);});
+  H.veilMesh=D.veils.map(function(v){
+    var a0=v[0]*Math.PI/180,R=v[1],ytop=v[11],len=ytop-v[2],ctr=new THREE.Vector3(Math.sin(a0)*R,ytop-len*0.6,-Math.cos(a0)*R);
     var m=new THREE.ShaderMaterial({uniforms:{time:{value:0},R:{value:R},a0:{value:a0},ytop:{value:ytop},len:{value:len},y0:{value:17},wT:{value:v[3]},wB:{value:v[4]},
-        sw:{value:v[7]},fq:{value:v[8]},tw:{value:v[9]},ph:{value:v[10]},ctr:{value:ctr},col:{value:COL[v[5]]},alpha:{value:v[6]},fy0:{value:16},fy1:{value:30}},
+        sw:{value:v[7]},fq:{value:v[8]},tw:{value:v[9]},ph:{value:v[10]},ctr:{value:ctr},col:{value:COL[v[5]]||COL[0]},alpha:{value:v[6]},fy0:{value:16},fy1:{value:30}},
       vertexShader:VEIL_VS,fragmentShader:VEIL_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide});
     // 排在太陽前面畫：太陽的圓盤蓋在紗幔上、光暈透得過去（萬一擺到太陽那裡，是從太陽後面經過）
-    var mesh=new THREE.Mesh(VEIL_GEO,m);mesh.position.copy(ctr);mesh.frustumCulled=false;mesh.raycast=noRay;mesh.renderOrder=-6;W.add(mesh);mats.push(m);});
-  H.anim.push(function(dt,t){for(var i=0;i<mats.length;i++)mats[i].uniforms.time.value=t;});}
+    var mesh=new THREE.Mesh(VEIL_GEO,m);mesh.position.copy(ctr);mesh.frustumCulled=false;mesh.raycast=noRay;mesh.renderOrder=-6;W.add(mesh);return mesh;});}
+HUB_DAY_DEF.veils=veilSpec();HUB_DAY_DEF.clouds=totemSpec();   // 這兩份要等上面的常數都有了才能排
 // 白天的遠景：遠方青色的石峰（其中一座有亭子）、山上的小瀑布、飄帶狀的祥雲、雲海。2026-09-26 使用者要先看全空的效果，暫時沒有呼叫
 function dayFarScenery(W,H){var i;
   var ribbons=[];[[11,false,3.2,7.4,-28,15,0.96],[29,true,-9.5,10.5,-31,17,0.9],[53,false,10,-0.5,-27,14,0.86],[77,true,-10.5,-2.2,-25,13,0.86]].forEach(function(r2){
@@ -4149,6 +4166,8 @@ return {scene:scene,camera:camera,update:update,resize:resize,preRender:preRende
   //   goDay() 直接站到白天那一章的主島（不寫存檔）；hub()／isle(k) 給編輯器找太陽、島的位置
   dayHubDev:function(){var dayCh=function(){for(var c=0;c<CONFIG.chapters.length;c++)if(CONFIG.chapters[c].look==='day')return c;return -1;};
     return {DEF:HUB_DAY_DEF,cur:HD,set:setHubDay,camera:camera,scene:scene,dayCh:dayCh,goDay:function(){var c=dayCh();if(c>=0)setLoc(-c-1);return c;},
+      orbit:function(dt,dp){ctrl.theta+=dt;ctrl.phi=Math.min(1.68,Math.max(0.6,ctrl.phi+dp));ctrl.vt=ctrl.vp=0;updateCamera();},   // 轉鏡頭（範圍跟庭院裡用手指轉一樣）
+      zoom:function(f){ctrl.r=Math.min(ctrl.maxR,Math.max(ctrl.minR,ctrl.r*f));updateCamera();},
       hub:function(){return hubs[dayCh()];},isleKeys:function(){var c=dayCh();return c<0?[]:CONFIG.chapters[c].stages.slice();},isle:function(k){return isles[k];}};},
   dayKit:function(){return {skyMat:skyMat,LOOKS:LOOKS,dayTextures:dayTextures,VEIL_VS:VEIL_VS,VEIL_FS:VEIL_FS,veilGeo:veilGeo,MIST_VS:MIST_VS,mistNoiseTex:mistNoiseTex,
     dayFloaters:dayFloaters,miniStoneGeo:miniStoneGeo,miniTurfGeo:miniTurfGeo,latheC:latheC,turfCol:turfCol,TURF:TURF,TURF_PK:TURF_PK,PINK_BUSH:PINK_BUSH,DAY_OL:DAY_OL,DAYFALL_FS:DAYFALL_FS,TOTEM:TOTEM,totemTex:totemTex};}};
@@ -7514,12 +7533,15 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   var ASPECTS=[['長螢幕手機 390×844',390/844],['短螢幕手機 375×667',375/667],['電腦 9:16',9/16]],aspect=ASPECTS[0][1];
   var STAGES=[[3,'第四關 桃夭'],[4,'第五關 塗山'],[5,'第六關 天狐']];
   var TABS=[['sky','天空'],['veil','紗幔'],['cloud','祥雲'],['mist','霧'],['isle','小浮島'],['fall','瀑布'],['plat','大平台']],
-    HTABS=[['hsky','天空'],['hmain','主島'],['hisle','其他島']];   // 白天大地圖模式的分頁
+    HTABS=[['hsky','天空'],['hveil','紗幔'],['hmist','霧'],['hcloud','雲'],['hmain','主島'],['hisle','其他島']];   // 白天大地圖模式的分頁
   var TOOLS={sky:[['sel','選取／拖曳']],veil:[['sel','選取／拖曳'],['add','加紗幔']],cloud:[['sel','選取／拖曳'],['add','加祥雲']],mist:[['sel','選取／拖曳'],['add','加白霧']],
     isle:[['sel','選取／拖曳'],['add','加小浮島']],fall:[['sel','選取／拖曳'],['addRim','加台緣瀑布'],['addFree','加自由瀑布']],plat:[['sel','選取／拖曳'],['add','加藤蔓']],
-    hsky:[['sel','選取／拖曳']],hmain:[],hisle:[]};
+    hsky:[['sel','選取／拖曳']],hveil:[['sel','選取／拖曳'],['add','加紗幔']],hmist:[['sel','選取／拖曳'],['add','加一層霧']],hcloud:[['sel','選取／拖曳'],['add','加祥雲']],hmain:[],hisle:[]};
   var HINT={
-    hsky:'白天大地圖的天空：拖黃色圓圈移動太陽，滾輪改太陽大小。天空的三個顏色、暖光、霧白在下面。',
+    hsky:'白天大地圖的天空：拖黃色圓圈移動太陽，滾輪改太陽大小。天空的三個顏色、暖光、霧白在下面。<b>轉鏡頭</b>：在空白的地方按住拖（或按右鍵拖）；沒選東西時滾輪拉近拉遠。',
+    hveil:'粉紅方塊是每條紗幔（在它的下端，太低的就放在看得到的高度）：左右拖＝繞著場景換位置，上下拖＝改下端高度。選到之後滾輪改寬度，Shift＋滾輪改透明度。<b>加紗幔</b>：在畫面上點一下。空白處拖＝轉鏡頭，繞一圈還有很多條。',
+    hmist:'淡藍圓點是每一層霧（在鏡頭正前方那一點）：上下拖改高度。選到之後滾輪改大小（範圍），Shift＋滾輪改濃淡。前 6 層是島身邊的薄霧，後 4 層是最底下的雲海（最後一層是底）。<b>加一層霧</b>：在畫面上點一下。',
+    hcloud:'白色圓點是每朵祥雲的中心：拖它移動。選到之後滾輪改大小，Shift＋滾輪改透明度。前兩朵在太陽旁邊，其他是遠方一圈（要轉鏡頭才看得到）。<b>加祥雲</b>：在畫面上點一下。',
     hmain:'主島的顏色：石台、草皮（綠、粉）、石階和浮空小石台的石頭、粉色草團。下面可以跟關卡內的大平台互相複製顏色。',
     hisle:'關卡島預設跟主島同一套顏色。勾「自己的顏色」才會分開調；「套用主島顏色到其他島」會把全部改回跟主島一樣。',
     sky:'拖黃色圓圈移動太陽，滾輪改太陽大小。天空的三個顏色和位置在下面。',
@@ -7542,6 +7564,11 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   var _v=new THREE.Vector3();
   function cam(){return mode==='hub'?hdev.camera:dev.cam;}
   // 白天大地圖的太陽：主島那一章的世界裡的 sunG（世界座標）
+  // 白天大地圖：鏡頭往前看的水平方向（霧的控制點放在這個方向上）
+  function hubFwd(){var c=hdev.camera,f=new THREE.Vector3();c.getWorldDirection(f);f.y=0;if(f.lengthSq()<1e-6)f.set(0,0,-1);return f.normalize();}
+  function hveilPt(v){var a=v[0]*Math.PI/180;return V(Math.sin(a)*v[1],Math.max(v[2],-4),-Math.cos(a)*v[1]);}   // 紗幔的控制點：下端（太低看不到的放在 -4）
+  function hmistPt(o){var r=Math.min(Math.max(o.rin,3),30);return hubFwd().multiplyScalar(r).add(V(0,o.y,0));}
+  function hcloudPt(c){return V(c[2],c[3],c[4]);}
   function hubSunW(){var H=hdev.hub();return H&&H.sunG?H.sunG.getWorldPosition(new THREE.Vector3()):V(HDD.sun.x,HDD.sun.y,HDD.sun.z);}
   function proj(w){_v.copy(w).project(cam());return [(_v.x+1)/2*L.W,(1-_v.y)/2*L.H+(L.st||0),_v.z];}
   function ndc(x,y){return [x/L.W*2-1,1-(y-(L.st||0))/L.H*2];}
@@ -7554,11 +7581,14 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   function veilBot(v){var a=v[0]*Math.PI/180;return V(Math.sin(a)*v[1],v[2],-Math.cos(a)*v[1]+14);}
   // 滑鼠附近台緣上的角度（每 1 度算一個點投影到畫面，挑最近的）
   function nearestRim(x,y,r,yy){var best=0,bd=1e18;for(var i=0;i<360;i++){var th=i/360*TAU,p=proj(rimPt(th,r,yy)),d=(p[0]-x)*(p[0]-x)+(p[1]-y)*(p[1]-y);if(d<bd){bd=d;best=th;}}return best;}
-  function listOf(k){return {veil:D.veils,cloud:D.clouds,mist:D.mists,isle:D.isles,fall:D.falls,vine:D.plat.vines}[k];}
-  function kindOf(t){return {veil:'veil',cloud:'cloud',mist:'mist',isle:'isle',fall:'fall',plat:'vine'}[t];}
+  function listOf(k){return {veil:D.veils,cloud:D.clouds,mist:D.mists,isle:D.isles,fall:D.falls,vine:D.plat.vines,hveil:HDD.veils,hmist:HDD.mists,hcloud:HDD.clouds}[k];}
+  function kindOf(t){return {veil:'veil',cloud:'cloud',mist:'mist',isle:'isle',fall:'fall',plat:'vine',hveil:'hveil',hmist:'hmist',hcloud:'hcloud'}[t];}
   function anchor(k,o){if(k==='veil')return veilBot(o);if(k==='cloud')return V(o[1],o[2],o[3]);if(k==='mist'||k==='isle')return V(o[0],o[1],o[2]);
     if(k==='fall')return fallTop(o);if(k==='vine')return vineTop(o);return null;}
-  function handles(){var H=[];if(mode==='hub'){if(tab==='hsky'){var q=proj(hubSunW());if(q[2]<1)H.push({k:'hsun',x:q[0],y:q[1]});}return H;}
+  function handles(){var H=[];if(mode==='hub'){if(tab==='hsky'){var q=proj(hubSunW());if(q[2]<1)H.push({k:'hsun',x:q[0],y:q[1]});}
+      var hk={hveil:['hveil',HDD.veils,hveilPt],hmist:['hmist',HDD.mists,hmistPt],hcloud:['hcloud',HDD.clouds,hcloudPt]}[tab];
+      if(hk)hk[1].forEach(function(o,i){var q2=proj(hk[2](o));if(q2[2]<1&&q2[0]>=4&&q2[0]<=L.W-4&&q2[1]>=4&&q2[1]<=L.H+(L.st||0)+(L.sb||0)-4)H.push({k:hk[0],i:i,x:q2[0],y:q2[1]});});
+      return H;}
     if(tab==='sky'){var p=proj(V(D.sun.x,D.sun.y,D.sun.z));H.push({k:'sun',x:p[0],y:p[1]});return H;}
     var k=kindOf(tab),list=listOf(k);if(!list)return H;
     list.forEach(function(o,i){var p=proj(anchor(k,o)),h={k:k,i:i,x:p[0],y:p[1]};
@@ -7568,7 +7598,7 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
     return H;}
   function pick(x,y){var best=null,bd=16*16;handles().forEach(function(h){var d=(h.x-x)*(h.x-x)+(h.y-y)*(h.y-y);if(d<bd){bd=d;best=h;}});return best;}
   // ---- 畫控制點 ----
-  var COL={sun:'#f5c518',veil:'#e0679a',cloud:'#ffffff',mist:'#9fd3ff',isle:'#5fbf4c',fall:'#3d8bff',vine:'#4ea32f'};
+  var COL={sun:'#f5c518',veil:'#e0679a',cloud:'#ffffff',mist:'#9fd3ff',isle:'#5fbf4c',fall:'#3d8bff',vine:'#4ea32f',hveil:'#e0679a',hmist:'#9fd3ff',hcloud:'#ffffff'};
   function dot(x,y,r,fill,stroke,lw){og.beginPath();og.arc(x,y,r,0,TAU);og.fillStyle=fill;og.fill();og.lineWidth=lw||1.5;og.strokeStyle=stroke;og.stroke();}
   function draw(){if(!og)return;var dpr=Math.min(window.devicePixelRatio||1,2),W=gameEl.clientWidth,Hh=gameEl.clientHeight,pw=Math.round(W*dpr),ph=Math.round(Hh*dpr);
     if(ov.width!==pw||ov.height!==ph){ov.width=pw;ov.height=ph;}
@@ -7576,23 +7606,29 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
     handles().forEach(function(h){var s=sel&&sel.k===h.k&&sel.i===h.i;
       if(h.k==='sun'||h.k==='hsun'){var r=h.k==='hsun'?Math.max(10,HDD.sun.s*3):Math.max(10,D.sun.s*4);og.beginPath();og.arc(h.x,h.y,r,0,TAU);og.setLineDash([6,4]);og.lineWidth=2;og.strokeStyle=sel&&sel.k===h.k?'#ff8a1c':'#c98a00';og.stroke();og.setLineDash([]);dot(h.x,h.y,5,'#f5c518','#fff');return;}
       if(h.b){og.beginPath();og.moveTo(h.x,h.y);og.lineTo(h.b[0],h.b[1]);og.strokeStyle=s?'#ff8a1c':(h.k==='fall'?'rgba(61,139,255,.8)':'rgba(40,110,30,.8)');og.lineWidth=s?3:2;og.stroke();}
-      if(h.k==='veil'){og.fillStyle=COL.veil;og.fillRect(h.x-5,h.y-5,10,10);og.strokeStyle='#fff';og.lineWidth=1.5;og.strokeRect(h.x-5,h.y-5,10,10);}
-      else dot(h.x,h.y,h.k==='vine'?4:5.5,COL[h.k],h.k==='cloud'?'#555':'#fff');
+      if(h.k==='veil'||h.k==='hveil'){og.fillStyle=COL.veil;og.fillRect(h.x-5,h.y-5,10,10);og.strokeStyle='#fff';og.lineWidth=1.5;og.strokeRect(h.x-5,h.y-5,10,10);}
+      else dot(h.x,h.y,h.k==='vine'?4:5.5,COL[h.k],h.k==='cloud'||h.k==='hcloud'?'#555':'#fff');
       og.fillStyle='#fff';og.font='11px sans-serif';og.fillText(String(h.i+1),h.x+8,h.y-6);
       if(s){og.beginPath();og.arc(h.x,h.y,10,0,TAU);og.lineWidth=2.5;og.strokeStyle='#ff8a1c';og.stroke();}});}
   // ---- 滑鼠 ----
   function pos(e){var r=ov.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
   function onDown(e){e.preventDefault();var ae=document.activeElement;if(ae&&ae!==document.body&&ae.blur)ae.blur();try{ov.setPointerCapture(e.pointerId);}catch(_){}
-    var p=pos(e),x=p[0],y=p[1];if(e.button===2)return;
-    if(tool==='sel'){var h=pick(x,y);if(h){sel={k:h.k,i:h.i};startDrag(x,y);}else sel=null;buildProps();return;}
+    var p=pos(e),x=p[0],y=p[1];
+    // 白天大地圖：右鍵拖、或在空白處按住拖＝轉鏡頭（跟庭院裡用手指轉一樣）
+    if(mode==='hub'&&e.button===2){drag={orbit:true,x:x,y:y};return;}if(e.button===2)return;
+    if(tool==='sel'){var h=pick(x,y);if(h){sel={k:h.k,i:h.i};startDrag(x,y);}else{sel=null;if(mode==='hub')drag={orbit:true,x:x,y:y};}buildProps();return;}
     addAt(x,y);}
-  function onMove(e){if(!drag)return;var p=pos(e);doDrag(p[0],p[1]);}
+  function onMove(e){if(!drag)return;var p=pos(e);if(drag.orbit){var k=5.2/Math.max(320,Math.min(L.W,L.H));hdev.orbit(-(p[0]-drag.x)*k,-(p[1]-drag.y)*k*0.8);drag.x=p[0];drag.y=p[1];return;}doDrag(p[0],p[1]);}
   function onUp(){drag=null;}
-  function startDrag(x,y){drag={x0:x,y0:y,sel:sel,snap:snap(),moved:false};}
+  function startDrag(x,y){drag={x0:x,y0:y,sel:sel,snap:snap(),moved:false};var k=sel.k,o=listOf(k)&&listOf(k)[sel.i];   // 白天大地圖的紗幔、霧：記下按下去時的樣子，拖的時候照移動量改
+    if(o&&(k==='hveil'||k==='hmist')){drag.o0=clone(o);drag.w0=k==='hveil'?hveilPt(o):hmistPt(o);}}
   function doDrag(x,y){var d=drag,dx=x-d.x0,dy=y-d.y0;if(!d.moved){if(dx*dx+dy*dy<4)return;d.moved=true;undoS.push(d.snap);if(undoS.length>80)undoS.shift();redoS.length=0;}
     var k=d.sel.k,o=k==='sun'?D.sun:k==='hsun'?HDD.sun:listOf(k)[d.sel.i],p;if(!o)return;
     if(k==='sun'){p=atDepth(x,y,V(o.x,o.y,o.z));o.x=r6(p.x);o.y=r6(p.y);}
     else if(k==='hsun'){var SG=hdev.hub()&&hdev.hub().sunG;p=atDepth(x,y,hubSunW());if(SG&&SG.parent)SG.parent.worldToLocal(p);o.x=r6(p.x);o.y=r6(p.y);}
+    else if(k==='hveil'){p=atDepth(x,y,d.w0);o[0]=r6(Math.atan2(p.x,-p.z)*180/Math.PI);o[2]=r6(clamp(d.o0[2]+(p.y-d.w0.y),-40,o[11]-1));}
+    else if(k==='hmist'){p=atDepth(x,y,d.w0);o.y=r6(clamp(d.o0.y+(p.y-d.w0.y),-40,5));}
+    else if(k==='hcloud'){p=atDepth(x,y,hcloudPt(o));o[2]=r6(p.x);o[3]=r6(p.y);o[4]=r6(p.z);}
     else if(k==='veil'){p=atDepth(x,y,veilBot(o));o[0]=r6(Math.atan2(p.x,-(p.z-14))*180/Math.PI);o[2]=r6(p.y);}
     else if(k==='cloud'){p=atDepth(x,y,V(o[1],o[2],o[3]));o[1]=r6(p.x);o[2]=r6(p.y);}
     else if(k==='mist'||k==='isle'){p=atDepth(x,y,V(o[0],o[1],o[2]));o[0]=r6(p.x);o[1]=r6(p.y);}
@@ -7603,6 +7639,12 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   function newFall(mode,x,y){var f0=dev.DEF.falls[0],f={mode:mode,len:1.6,layers:clone(f0.layers),c1:f0.c1.slice(),c2:f0.c2.slice(),op:1,mist:1};
     if(mode==='rim')f.th=r6(nearestRim(x,y,1.5,-0.004));else{var p=atDepth(x,y,platW(0,0,0.6));f.x=r6(p.x);f.y=r6(p.y);f.z=r6(p.z);f.dir=r6(Math.PI/2);}return f;}
   function addAt(x,y){var p;pushUndo();
+    if(mode==='hub'){var fw=hubFwd();
+      if(tab==='hveil'){p=atDepth(x,y,fw.clone().multiplyScalar(26));HDD.veils.push([r6(Math.atan2(p.x,-p.z)*180/Math.PI),26,r6(clamp(p.y,-30,20)),1.6,2.6,0,0.45,0.11,0.65,0.9,rnd(),36]);sel={k:'hveil',i:HDD.veils.length-1};}
+      else if(tab==='hmist'){p=atDepth(x,y,fw.clone().multiplyScalar(6).add(V(0,-2,0)));HDD.mists.push({y:r6(clamp(p.y,-40,5)),op:0.1,sc:0.25,spd:0.012,a0:-2,a1:-1.5,rin:4.5,rout:8,lo:0.45,cHi:0xffffff,cLo:0xeef2fb,ro:-5.5,dw:0,seg:64});sel={k:'hmist',i:HDD.mists.length-1};}
+      else if(tab==='hcloud'){p=atDepth(x,y,fw.clone().multiplyScalar(40).add(V(0,-4,0)));HDD.clouds.push([0,0,r6(p.x),r6(p.y),r6(p.z),16,0.75,0,rnd(),0.7]);sel={k:'hcloud',i:HDD.clouds.length-1};}
+      else{undoS.pop();return;}
+      tool='sel';mark();buildPanel();return;}
     if(tab==='veil'){p=atDepth(x,y,V(0,0,-11));D.veils.push([r6(Math.atan2(p.x,-(p.z-14))*180/Math.PI),25,r6(p.y),1.2,1.8,0,0.45,0.1,0.6,0.9,rnd()]);sel={k:'veil',i:D.veils.length-1};}
     else if(tab==='cloud'){p=atDepth(x,y,V(0,0,-18));D.clouds.push([0,r6(p.x),r6(p.y),r6(p.z),5,0.6,0]);sel={k:'cloud',i:D.clouds.length-1};}
     else if(tab==='mist'){p=atDepth(x,y,V(0,0.6,1.5));D.mists.push([r6(p.x),r6(p.y),1.5,2,0.6]);sel={k:'mist',i:D.mists.length-1};}
@@ -7613,10 +7655,12 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
     tool='sel';mark();buildPanel();}
   function cycle(dir){var k=kindOf(tab),list=listOf(k);if(!list||!list.length)return;var i=sel&&sel.k===k?sel.i:-1;i=i<0?(dir>0?0:list.length-1):(i+dir+list.length)%list.length;sel={k:k,i:i};tool='sel';buildPanel();}
   function delSel(){if(!sel||sel.k==='sun'||sel.k==='hsun')return;var list=listOf(sel.k);if(!list||!list[sel.i])return;pushUndo();list.splice(sel.i,1);sel=null;mark();buildProps();}
-  function onWheel(e){e.preventDefault();if(!sel)return;var now=performance.now();if(now-wheelT>700)pushUndo();wheelT=now;
+  function onWheel(e){e.preventDefault();if(!sel){if(mode==='hub')hdev.zoom(e.deltaY>0?1.06:1/1.06);return;}var now=performance.now();   // 白天大地圖沒選東西：滾輪拉近拉遠if(now-wheelT>700)pushUndo();wheelT=now;
     var up=e.deltaY<0,f=up?1.06:1/1.06,a=up?1:-1,sh=e.shiftKey,k=sel.k,o=k==='sun'?D.sun:k==='hsun'?HDD.sun:listOf(k)[sel.i];if(!o)return;
     if(k==='sun'||k==='hsun')o.s=r6(clamp(o.s*f,0.5,40));
-    else if(k==='veil'){if(sh)o[6]=r6(clamp(o[6]+a*0.03,0,1));else{o[3]=r6(clamp(o[3]*f,0.05,8));o[4]=r6(clamp(o[4]*f,0.05,8));}}
+    else if(k==='veil'||k==='hveil'){if(sh)o[6]=r6(clamp(o[6]+a*0.03,0,1));else{o[3]=r6(clamp(o[3]*f,0.05,12));o[4]=r6(clamp(o[4]*f,0.05,12));}}
+    else if(k==='hmist'){if(sh)o.op=r6(clamp(o.op+a*0.02,0,1));else{o.rin=r6(clamp(o.rin*f,0.5,300));o.rout=r6(clamp(o.rout*f,1,320));}}
+    else if(k==='hcloud'){if(sh)o[6]=r6(clamp(o[6]+a*0.04,0,1));else o[5]=r6(clamp(o[5]*f,0.5,60));}
     else if(k==='cloud'){if(sh)o[5]=r6(clamp(o[5]+a*0.04,0,1));else o[4]=r6(clamp(o[4]*f,0.5,30));}
     else if(k==='mist'){if(sh)o[4]=r6(clamp(o[4]+a*0.04,0,1));else o[3]=r6(clamp(o[3]*f,0.2,12));}
     else if(k==='isle')o[3]=r6(clamp(o[3]*f,0.08,1.2));
@@ -7688,7 +7732,8 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
     var tb=panel.querySelector('#deTabs');tb.innerHTML='';(hub?HTABS:TABS).forEach(function(t){var b=btn(tb,t[1],function(){tab=t[0];tool='sel';sel=null;buildPanel();},'seTab');b.dataset.tab=t[0];});
     Array.prototype.forEach.call(panel.querySelectorAll('.seTab'),function(b){b.classList.toggle('on',b.dataset.tab===tab);});
     var tl=panel.querySelector('#deTools');tl.innerHTML='';(TOOLS[tab]||[]).forEach(function(t){var b=btn(tl,t[1],function(){tool=t[0];buildPanel();},'seTool');b.classList.toggle('on',tool===t[0]);});
-    if(!hub&&tab!=='sky'){btn(tl,'◀ 上一個',function(){cycle(-1);});btn(tl,'下一個 ▶',function(){cycle(1);});}
+    if(!hub&&tab!=='sky'||kindOf(tab)){btn(tl,'◀ 上一個',function(){cycle(-1);});btn(tl,'下一個 ▶',function(){cycle(1);});}
+    if(hub){var rb0=btn(tl,'鏡頭回正',function(){var l=G.GARDEN.getLoc();G.GARDEN.setLoc(l);});rb0.title='轉過的鏡頭回到預設的角度';}
     panel.querySelector('#deHint').innerHTML=HINT[tab]||'';buildProps();}
   function buildProps(){if(!panel)return;SYNC=[];var P=panel.querySelector('#deProps');P.innerHTML='';
     if(sel&&sel.k!=='sun'&&sel.k!=='hsun'){var k=sel.k,o=listOf(k)[sel.i],r;if(!o){sel=null;return buildProps();}
@@ -7749,6 +7794,52 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
           else{var w=fallTop(o);o.x=r6(w.x);o.y=r6(w.y);o.z=r6(w.z);o.dir=o.th;delete o.th;o.mode='free';}mark();buildProps();});
         btn(r,'複製一道',function(){pushUndo();var c=clone(o);if(c.mode==='free')c.x=r6(c.x+0.4);else c.th=r6(c.th+0.3);D.falls.push(c);sel={k:'fall',i:D.falls.length-1};mark();buildProps();});
         btn(r,'刪除這道瀑布',delSel,'seBtn seDel');}
+      else if(k==='hveil'){P.appendChild(el('h4',null,'大地圖的紗幔（第 '+(sel.i+1)+' 條）'));
+        range(P,'方位角（度）',function(){return o[0];},function(v){o[0]=v;},-180,180,0.1);
+        range(P,'離中心多遠',function(){return o[1];},function(v){o[1]=v;},12,60,0.1);
+        range(P,'下端高度',function(){return o[2];},function(v){o[2]=Math.min(v,o[11]-1);},-40,20,0.05);
+        range(P,'上端高度',function(){return o[11];},function(v){o[11]=Math.max(v,o[2]+1);},10,60,0.1);
+        range(P,'上寬',function(){return o[3];},function(v){o[3]=v;},0.05,12,0.05);
+        range(P,'下寬',function(){return o[4];},function(v){o[4]=v;},0.05,12,0.05);
+        range(P,'顏色（0 粉、1 綠）',function(){return o[5];},function(v){o[5]=v|0;},0,1,1);
+        range(P,'不透明度',function(){return o[6];},function(v){o[6]=v;},0,1,0.01);
+        range(P,'擺幅',function(){return o[7];},function(v){o[7]=v;},0,0.5,0.005);
+        range(P,'擺動快慢',function(){return o[8];},function(v){o[8]=v;},0,2,0.01);
+        range(P,'扭轉',function(){return o[9];},function(v){o[9]=v;},0,2.5,0.01);
+        range(P,'晃動（相位）',function(){return o[10];},function(v){o[10]=v;},0,6.28,0.01);
+        r=el('div','seBtns');P.appendChild(r);
+        btn(r,'複製一條',function(){pushUndo();var c=o.slice();c[0]=r6(c[0]+6);HDD.veils.push(c);sel={k:'hveil',i:HDD.veils.length-1};mark();buildProps();});
+        btn(r,'刪除這條紗幔',delSel,'seBtn seDel');}
+      else if(k==='hmist'){P.appendChild(el('h4',null,'霧（第 '+(sel.i+1)+' 層'+(o.dw?'，最底層':'')+'）'));
+        range(P,'高度',function(){return o.y;},function(v){o.y=v;},-40,5,0.05);
+        range(P,'濃淡',function(){return o.op;},function(v){o.op=v;},0,1,0.01);
+        range(P,'霧紋大小（越小越大團）',function(){return o.sc;},function(v){o.sc=v;},0.005,0.6,0.001);
+        range(P,'飄的快慢',function(){return o.spd;},function(v){o.spd=v;},0,0.05,0.001);
+        range(P,'往下看幾度開始出現',function(){return o.a0;},function(v){o.a0=v;},-2,1,0.01);
+        range(P,'往下看幾度全濃',function(){return o.a1;},function(v){o.a1=v;},-2,1,0.01);
+        range(P,'從哪裡開始淡掉（半徑）',function(){return o.rin;},function(v){o.rin=v;},0.5,300,0.5);
+        range(P,'淡到哪裡為止（半徑）',function(){return o.rout;},function(v){o.rout=v;},1,320,0.5);
+        range(P,'淡的地方留多少',function(){return o.lo;},function(v){o.lo=v;},0,1,0.005);
+        color(P,'濃的地方顏色',function(){return o.cHi;},function(v){o.cHi=v;});
+        color(P,'淡的地方顏色',function(){return o.cLo;},function(v){o.cLo=v;});
+        check(P,'最底層（擋住下面的東西）',function(){return o.dw;},function(v){o.dw=v;});
+        note(P,'「往下看幾度」是 sin 值：-2 表示不管怎麼看都在；0.24 大約是往下 14°。');
+        r=el('div','seBtns');P.appendChild(r);
+        btn(r,'複製一層',function(){pushUndo();var c=clone(o);c.y=r6(c.y-0.6);c.dw=0;HDD.mists.push(c);sel={k:'hmist',i:HDD.mists.length-1};mark();buildProps();});
+        btn(r,'刪除這層霧',delSel,'seBtn seDel');}
+      else if(k==='hcloud'){P.appendChild(el('h4',null,'祥雲（第 '+(sel.i+1)+' 朵）'));
+        range(P,'樣子（0～2）',function(){return o[0];},function(v){o[0]=v|0;},0,2,1);
+        check(P,'左右翻',function(){return o[1];},function(v){o[1]=v;});
+        range(P,'左右（x）',function(){return o[2];},function(v){o[2]=v;},-70,70,0.05);
+        range(P,'上下（y）',function(){return o[3];},function(v){o[3]=v;},-20,30,0.05);
+        range(P,'前後（z）',function(){return o[4];},function(v){o[4]=v;},-70,70,0.05);
+        range(P,'寬',function(){return o[5];},function(v){o[5]=v;},0.5,60,0.1);
+        range(P,'不透明度',function(){return o[6];},function(v){o[6]=v;},0,1,0.01);
+        check(P,'畫在太陽前面（不勾＝在紗幔後面）',function(){return o[7];},function(v){o[7]=v;});
+        range(P,'左右飄多遠',function(){return o[9];},function(v){o[9]=v;},0,3,0.01);
+        r=el('div','seBtns');P.appendChild(r);
+        btn(r,'複製一朵',function(){pushUndo();var c=o.slice();c[2]=r6(c[2]+2);HDD.clouds.push(c);sel={k:'hcloud',i:HDD.clouds.length-1};mark();buildProps();});
+        btn(r,'刪除這朵',delSel,'seBtn seDel');}
       else if(k==='vine'){P.appendChild(el('h4',null,'藤蔓（第 '+(sel.i+1)+' 條）'));
         range(P,'台緣位置（角度）',function(){return o[0];},function(v){o[0]=v;},0,6.28,0.005);
         range(P,'長度',function(){return o[1];},function(v){o[1]=v;},0.1,2.5,0.01);
@@ -7795,6 +7886,13 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
         range(Gp,'左右',function(){return su.x;},function(v){su.x=v;},-30,30,0.05);
         range(Gp,'上下',function(){return su.y;},function(v){su.y=v;},-10,30,0.05);
         range(Gp,'大小',function(){return su.s;},function(v){su.s=v;},0.5,40,0.05);}
+      else if(tab==='hveil'){Gp.appendChild(el('h4',null,'紗幔的兩種顏色'));
+        color(Gp,'0（粉）',function(){return HDD.veilCols[0];},function(v){HDD.veilCols[0]=v;});
+        color(Gp,'1（綠）',function(){return HDD.veilCols[1];},function(v){HDD.veilCols[1]=v;});
+        note(Gp,'一共 '+HDD.veils.length+' 條，圍在場景外圈一整圈；轉鏡頭看其他方向。');
+        r0=el('div','seBtns');Gp.appendChild(r0);btn(r0,'清掉全部紗幔',function(){pushUndo();HDD.veils=[];sel=null;mark();buildProps();},'seBtn seDel');}
+      else if(tab==='hmist'){Gp.appendChild(el('h4',null,'霧'));note(Gp,'一共 '+HDD.mists.length+' 層。每一層是一整片圓形的霧（不是一團一團），控制點放在鏡頭正前方。');}
+      else if(tab==='hcloud'){Gp.appendChild(el('h4',null,'祥雲'));note(Gp,'一共 '+HDD.clouds.length+' 朵；繞著島轉的 Q 版立體雲不在這裡（那是島的一部分）。');}
       else if(tab==='hmain'){palEditor(Gp,HDD.main,'主島的顏色');
         r0=el('div','seBtns');Gp.appendChild(r0);
         btn(r0,'從關卡大平台複製',fromBattle);btn(r0,'複製到關卡大平台',toBattle);btn(r0,'套用主島顏色到其他島',mainToIsles);
@@ -7832,12 +7930,14 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
       btn(r,'清掉全部藤蔓',function(){pushUndo();PL.vines=[];sel=null;mark();buildProps();},'seBtn seDel');}}
   // ---- 匯出／匯入 ----
   function valid(o){return !!o&&o.v===1&&o.sky&&o.sun&&Array.isArray(o.veilCols)&&['veils','clouds','mists','isles','falls'].every(function(k){return Array.isArray(o[k]);})&&o.plat&&Array.isArray(o.plat.vines)&&o.plat.turf&&Array.isArray(o.plat.stone);}
+  // 舊的草稿、場景碼（第一版大地圖）沒有紗幔、霧、祥雲：補上遊戲內建的
+  function fillH(o){['veils','veilCols','mists','clouds'].forEach(function(k){if(!Array.isArray(o[k]))o[k]=clone(hdev.DEF[k]);});return o;}
   function validH(o){return !!o&&o.v===1&&o.sky&&Array.isArray(o.sky.grad)&&Array.isArray(o.sky.h)&&o.sun&&o.main&&o.main.turf&&o.main.pink&&Array.isArray(o.main.mini)&&!!o.isles;}
   // 場景碼：FOXDAY2.＝關卡內（DAY_DEF）＋白天大地圖（HUB_DAY_DEF）一起；舊的 FOXDAY1.（只有關卡內）也收
   function exportCode(){return 'FOXDAY2.'+btoa(unescape(encodeURIComponent(JSON.stringify({v:2,b:D,h:HDD}))));}
   function importCode(txt){txt=String(txt||'').replace(/\s+/g,'');var m=/^FOXDAY([12])\.([A-Za-z0-9+/=]+)$/.exec(txt);if(!m)return false;var o;
     try{o=JSON.parse(decodeURIComponent(escape(atob(m[2]))));}catch(_){return false;}
-    if(m[1]==='1'){if(!valid(o))return false;pushUndo();D=o;}else{if(!o||o.v!==2||!valid(o.b)||!validH(o.h))return false;pushUndo();D=o.b;HDD=o.h;}
+    if(m[1]==='1'){if(!valid(o))return false;pushUndo();D=o;}else{if(!o||o.v!==2||!valid(o.b)||!validH(o.h))return false;pushUndo();D=o.b;HDD=fillH(o.h);}
     sel=null;mark();buildPanel();return true;}
   function buildIO(){var IO=panel.querySelector('#deIO');IO.innerHTML='';IO.appendChild(el('h4',null,'存檔'));
     note(IO,'每改一下都會自動存在這台電腦的瀏覽器裡（只在編輯器裡，遊戲不會讀它）。改好之後按「匯出場景碼」，把那串文字貼給遊星，寫進遊戲才會變成正式版本。');
@@ -7880,7 +7980,7 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   if(!(window.matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches)&&!/[?&]desktop/.test(location.search)){
     var m=document.createElement('div');m.className='sePhone';m.innerHTML='<b>白天場景編輯器要用電腦開</b><p>在電腦上打開這個網址，就可以拖、改顏色、加瀑布。</p>';document.body.appendChild(m);return;}
   // ---- 開起來：進第四關的戰鬥畫面（停住），套上這台電腦存的草稿 ----
-  function start(){try{var s2=JSON.parse(localStorage.getItem(DRAFT_KEY2)||'null');if(s2&&s2.v===2){if(valid(s2.b))D=s2.b;if(validH(s2.h))HDD=s2.h;}
+  function start(){try{var s2=JSON.parse(localStorage.getItem(DRAFT_KEY2)||'null');if(s2&&s2.v===2){if(valid(s2.b))D=s2.b;if(validH(s2.h))HDD=fillH(s2.h);}
       else{var sv=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');if(valid(sv))D=sv;}}catch(_){}   // 舊的草稿（只有關卡內）接過來
     G.APP.stage=3;G.startTrial();G.TEAM.dev().setAspect(aspect);
     ov=el('canvas');ov.id='deOv';ov.addEventListener('pointerdown',onDown);ov.addEventListener('pointermove',onMove);ov.addEventListener('pointerup',onUp);ov.addEventListener('pointercancel',onUp);
