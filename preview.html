@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>/* 預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
-   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（&ending=nobell 有信沒戴鈴；&story=lb 當作有信又戴金鈴來打，看第三段金鈴故事）；?easy BOSS 血量剩四分之一（CK 上班偷測用，最終戰每段 2500；換段、補血、金鈴停血都照常）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
+   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（&ending=nobell 有信沒戴鈴；&story=lb 當作有信又戴金鈴來打，看第三段金鈴故事）；&drops 測試網址打贏時演一次這關的掉落（不存檔）；?easy BOSS 血量剩四分之一（CK 上班偷測用，最終戰每段 2500；換段、補血、金鈴停血都照常）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);
 if(/[?&]easy/.test(location.search)){var EK=0.25,et=setInterval(function(){var g=window.__game;if(!g||!g.battle)return;clearInterval(et);var bt=g.battle,orig=bt.reset;function sc(){if(bt.bossMax>0&&bt.__easy!==bt.bossMax){bt.bossMax=Math.max(1,Math.round(bt.bossMax*EK));bt.bossHp=Math.min(bt.bossHp,bt.bossMax);bt.__easy=bt.bossMax;}}bt.reset=function(){var r=orig.apply(this,arguments);sc();return r;};sc();},30);}})();</script>
@@ -6616,14 +6616,20 @@ function onBossDown(woke){G.mode='won';var fin=CONFIG.stages[APP.stage].final||A
   var rw=fin?[]:rewardList(APP.stage),landed=!fin&&!downTalk(APP.stage)&&rw.length?wait(SPIN_HALF).then(function(){return REWARD.drop(rw);}).then(function(){return wait(REWARD_REST);}):null;   /* 轉圈消失到一半：這一局拿到的東西掉出來 */
   after(1.6,function(){if(fin){(fin==='true'?endingTrue:fin==='nobell'?endingNoBell:endingNormal)();return;}   // 最終 BOSS：沒有信＝一般結局、有信又戴金鈴＝真結局（都不跳結算）；有信沒戴鈴＝講兩句、照一般結算
     var tk=downTalk(APP.stage);if(!tk){if(landed)landed.then(function(){showResult('win');});else showResult('win');return;}
-    DLG.say(tk.who,tk.lines).then(function(){return vanishDrop(tk.mist,rw);}).then(function(){Save.data().story.lines[tk.id]=1;Save.save();showResult('win');});});}   // 章末 BOSS：留在台上講完話、淡出（淡出到一半掉東西），才結算
+    DLG.say(tk.who,tk.lines).then(function(){return vanishDrop(tk.mist,rw);}).then(function(){if(!APP.dropsTest){Save.data().story.lines[tk.id]=1;Save.save();}showResult('win');});});}   // 章末 BOSS：留在台上講完話、淡出（淡出到一半掉東西），才結算
 // 這一局打贏會拿到的東西（還沒寫進存檔）：跟 showResult 的 grantDrop、grantUlt、checkChal 同一套判斷、同一個順序，所以台上掉的跟結算寫的「獲得○○」對得上。
-//   測試網址（?letter、?ending=、?story=）、還沒放進章節的關不記通關，也不掉
-function rewardList(k){var st=CONFIG.stages[k],d=Save.data(),ch=st.chal,out=[];if(!inChapter(k)||APP.endTest||APP.storyTest)return out;
+//   測試網址（?letter、?ending=、?story=）、還沒放進章節的關不記通關，也不掉。chal：挑戰的飾品。
+//   網址 &drops（APP.dropsTest）：這一關三樣全部掉（不管拿過沒、挑戰有沒有達成），不存檔（showResult 照這個寫結算）
+function rewardList(k){var st=CONFIG.stages[k],d=Save.data(),ch=st.chal,out=[];
+  if(APP.dropsTest){if(st.drop)out.push({item:st.drop});if(st.ultDrop)out.push({ult:st.ultDrop});if(ch&&ch.drop)out.push({item:ch.drop,chal:true});return out;}
+  if(!inChapter(k)||APP.endTest||APP.storyTest)return out;
   if(st.drop&&!d.items[st.drop])out.push({item:st.drop});
   if(st.ultDrop&&!d.ults[st.ultDrop])out.push({ult:st.ultDrop});
-  if(ch&&ch.drop&&chalOpen()&&!d.chal[k]&&!d.items[ch.drop]&&chalMet(ch,k).ok)out.push({item:ch.drop});
+  if(ch&&ch.drop&&chalOpen()&&!d.chal[k]&&!d.items[ch.drop]&&chalMet(ch,k).ok)out.push({item:ch.drop,chal:true});
   return out;}
+// &drops 的結算：照掉下來的那幾樣寫，跟正式拿到時的字一樣（不存檔）
+function dropsLines(k){var ch=CONFIG.stages[k].chal;return rewardList(k).map(function(r){
+  return r.ult?'獲得大招變奏「'+CONFIG.ultAlt[r.ult].name+'」':r.chal?'挑戰達成「'+ch.text+'」\n獲得飾品「'+FOX_ITEMS[r.item].name+'」':'獲得飾品「'+FOX_ITEMS[r.item].name+'」';});}
 // 講完話淡出（bossVanish）到一半：這一局拿到的東西從她身上掉出來（dx：落地位置往右挪）；淡完、而且東西落地浮一下才 resolve
 function vanishDrop(col,rw,dx){var v=bossVanish(col);if(!rw.length)return v;
   return Promise.all([v,wait(VANISH/2).then(function(){return REWARD.drop(rw,dx);}).then(function(){return wait(REWARD_REST);})]);}
@@ -6634,7 +6640,7 @@ function endingNormal(){var T=CONFIG.talk['ending-normal'],first=!Save.data().st
   DLG.say(T.who,T.lines).then(function(){return vanishDrop(T.mist,rewardList(APP.stage),first?LETTER_DX:0);}).then(function(){return first?LETTER.show(bossScreen()):null;})   /* 淡出到一半掉勾玉（信要從台上正中間飄出來，勾玉落在右邊一點） */.then(function(){return wait(0.5);}).then(finishNormal);}
 // 一般結局看完：記下結局、跳結算（showResult 照一般關卡記通關、掉落、挑戰解鎖；回到庭院時 goGarden 才跳「挑戰任務已解鎖」）。
 //   測試網址 ?letter 借來的關、?story=…：不記通關（showResult 看 APP.endTest、APP.storyTest），?letter 回庭院時照樣跳提示看樣子
-function finishNormal(){if(CONFIG.stages[APP.stage].final&&!APP.endTest&&!APP.storyTest){Save.data().story.endings.normal=1;Save.save();}else if(APP.endTest)APP.chalNew=true;
+function finishNormal(){if(CONFIG.stages[APP.stage].final&&!APP.endTest&&!APP.storyTest&&!APP.dropsTest){Save.data().story.endings.normal=1;Save.save();}else if(APP.endTest)APP.chalNew=true;
   showResult('win');APP.endTest=false;}
 // 真結局（docs/03_design_story.md「劇情」第 6 條）：倒下那一刻鈴響（onBossDown，風鈴那樣叮噹幾聲）→ 九尾「……這鈴聲。」「……」「……長大了呢。」→ 暗掉 →
 //   月下主島（島本來的樣子，不另外打光）：小狐狸一個人坐在桂花樹下看月亮 → 畫面外一聲鈴響、耳朵一動往後看 → 看到是誰之前暗掉 →
@@ -6649,7 +6655,7 @@ function grantTrueDrop(k,real){var id=CONFIG.stages[k].trueDrop,d=Save.data();if
 var trueChalMsg=null;
 function trueChalToast(delay){var m=trueChalMsg;trueChalMsg=null;if(!m)return;
   ENDING.wait(delay).then(function(){document.getElementById('gWard').classList.toggle('new',Save.anyFresh());showGToast(m.replace('\n','　'),3600);});}
-function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait,k=APP.stage,real=!!CONFIG.stages[k].final&&!APP.endTest&&!APP.storyTest;
+function endingTrue(){var T=CONFIG.talk['ending-true'],W=ENDING.wait,k=APP.stage,real=!!CONFIG.stages[k].final&&!APP.endTest&&!APP.storyTest&&!APP.dropsTest;
   DLG.say(T.who,T.lines).then(function(){return bossVanish(T.mist);}).then(function(){return ENDING.fadeTo(1,1.2);})
   .then(function(){finishFinal('true');gameEl.classList.add('cine');GARDEN.ending.start();return W(0.6);})
   .then(function(){return ENDING.fadeTo(0,1.8);}).then(function(){return W(3.2);})
@@ -6668,7 +6674,7 @@ var VANISH=1;
 function bossVanish(col){BS.bossMist(col==null?0xf3d2ff:col);AudioFX.heal();return tween(VANISH,function(k){BS.boss.fade(k);},easeInOut).then(function(){BS.boss.fade(1);});}
 // 看完結局：通關、掉落、挑戰解鎖照記（跟結算一樣），回月下主島（loc −1）。
 // 測試網址 ?letter 借別關演（APP.endTest）：不記通關、不發掉落、不真的解鎖挑戰，只跳提示看樣子（信會記進存檔）。
-function finishFinal(kind){var real=!!CONFIG.stages[APP.stage].final&&!APP.endTest&&!APP.storyTest,d=Save.data();   /* ?test9&ending=…、?story=… 用真的最終關演也不記 */G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
+function finishFinal(kind){var real=!!CONFIG.stages[APP.stage].final&&!APP.endTest&&!APP.storyTest&&!APP.dropsTest,d=Save.data();   /* ?test9&ending=…、?story=… 用真的最終關演也不記 */G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
   if(real){markCleared(APP.stage);grantDrop(APP.stage);grantUlt(APP.stage);d.story.endings[kind]=1;trueChalMsg=kind==='true'?checkChal(APP.stage):null;   /* 真結局：挑戰照結算一樣檢查（回主島才跳那句） */
     if(!chalOpen()){d.seen.chal=1;APP.chalNew=true;}Save.save();}   // 第一次才解鎖、才跳提示（跟 showResult 一樣）
   else if(kind!=='true')APP.chalNew=true;   /* 測試網址也照正式流程：真結局一定是第二次以後打倒（要先有信＝一般結局已經解鎖過挑戰），不再跳（2026-09-29 CK） */
@@ -7098,13 +7104,14 @@ function showResult(kind){if(G.mode==='result')return;G.mode='result';S.sel=null
   var win=kind==='win';if(win)AudioFX.win();else AudioFX.lose();
   document.getElementById('rTitle').textContent=win?'勝利':'失敗';
   var bn=battle.boss.name;document.getElementById('rSub').textContent=win?bn+'被打倒了':kind==='time'?'時間到了，'+bn+'還撐著':'隊伍撐不住了';
-  var rec=win&&inChapter(APP.stage)&&!APP.endTest&&!APP.storyTest;   /* 測試網址 ?ending=nobell 借來的關、?story=… 也不記 */   // 還沒放進章節的關（第三章 A 段的第七、八關，只有 ?test7、?test8 進得來）：打贏不記通關、不發東西（預覽頁跟正式版共用存檔）
+  var rec=win&&inChapter(APP.stage)&&!APP.endTest&&!APP.storyTest&&!APP.dropsTest;   /* &drops：只演、不記 */   /* 測試網址 ?ending=nobell 借來的關、?story=… 也不記 */   // 還沒放進章節的關（第三章 A 段的第七、八關，只有 ?test7、?test8 進得來）：打贏不記通關、不發東西（預覽頁跟正式版共用存檔）
   if(rec){if(!clearedSet()[APP.stage])APP.newStar=APP.stage;markCleared(APP.stage);}
   var drop=rec?grantDrop(APP.stage):null,ud=rec?grantUlt(APP.stage):null,gl=[];   // 只在結算畫面寫出來；回庭院後只有換裝按鈕上的小紅點，不再跳文字
   if(drop)gl.push('獲得飾品「'+FOX_ITEMS[drop].name+'」');
   if(ud)gl.push('獲得大招變奏「'+CONFIG.ultAlt[ud].name+'」');
   var cl=rec?checkChal(APP.stage):null;if(cl)gl.push(cl);
-  if(win&&CONFIG.stages[APP.stage].final&&!chalOpen()){Save.data().seen.chal=1;Save.save();APP.chalNew=true;}   // 回庭院（看完結局）時跳「挑戰任務已解鎖」
+  if(win&&APP.dropsTest)gl=dropsLines(APP.stage);
+  if(win&&CONFIG.stages[APP.stage].final&&!chalOpen()&&!APP.dropsTest){Save.data().seen.chal=1;Save.save();APP.chalNew=true;}   // 回庭院（看完結局）時跳「挑戰任務已解鎖」
   document.getElementById('rDrop').textContent=gl.join('\n');
   document.getElementById('rDmg').textContent=battle.total.toLocaleString('zh-TW');
   document.getElementById('rCombo').textContent=battle.maxCombo;
@@ -7464,7 +7471,7 @@ function fly(e,from,to){var s0=0.2;
 var REWARD={
   drop:function(list,dx){if(!list||!list.length)return Promise.resolve();var n=list.length,from=BS.bossPoint(0,FROM);
     return Promise.all(list.map(function(r,i){var m=model(r),e={g:m.g,glow:m.glow,sway:m.sway,upd:m.upd,on:true,landed:false,base:null,ph:i*1.7};
-      var to=BS.bossPoint((i-(n-1)/2)*SPREAD+(dx||0),FLOAT);to.z=FRONT;
+      var to=BS.bossPoint((i-(n-1)/2)*SPREAD*(n>2?0.85:1)+(dx||0),FLOAT);to.z=FRONT;   /* 三樣（網址 &drops）時排近一點，兩邊才不會跑出台緣 */
       e.g.visible=false;e.g.position.copy(from);battleScene.add(e.g);live.push(e);
       return wait(i*GAP).then(function(){if(!e.on)return null;e.g.visible=true;return fly(e,from,to);});}));},
   update:function(dt,t){live.forEach(function(e){if(!e.landed)return;
@@ -7614,6 +7621,9 @@ layout();fillBoardStatic();updateBars();goGarden();startLoop();
 var QS=location.search;
 // ?story=lb｜l｜b｜0（開發用，可以跟 ?test9 一起用）：最終戰當作有信（l）、有狐狸戴金鈴（b）來打，看第三段金鈴和三種結局（見 src/final.js）；不記通關（一般結局的信照樣記進存檔，跟 ?letter 一樣）；要在開戰前讀
 var stQ=/[?&]story=(lb|l|b|0)/.exec(QS);if(stQ)APP.storyTest=stQ[1];
+// &drops（開發用，跟 ?test～?test9 一起用；2026-09-30 遊星：預覽頁的存檔大部分都拿過了，看不到掉落演出）：打贏時照這一關的「通關飾品＋大招變奏＋挑戰飾品」
+//   全部演一次從 BOSS 身上掉出來（不管拿過沒、挑戰有沒有達成），結算照樣寫「獲得○○」；這一場什麼都不存進存檔（通關、飾品、變奏、挑戰、講過的話）
+if(/[?&]drops(&|$)/.test(QS))APP.dropsTest=true;
 if(/[?&]test9/.test(QS)){APP.stage=8;startTrial();}else if(/[?&]test8/.test(QS)){APP.stage=7;startTrial();}else if(/[?&]test7/.test(QS)){APP.stage=6;startTrial();}else if(/[?&]test6/.test(QS)){APP.stage=5;startTrial();}else if(/[?&]test5/.test(QS)){APP.stage=4;startTrial();}else if(/[?&]test4/.test(QS)){APP.stage=3;startTrial();}else if(/[?&]test3/.test(QS)){APP.stage=2;startTrial();}else if(/[?&]test2/.test(QS)){APP.stage=1;startTrial();}else if(/[?&]test/.test(QS)){APP.stage=0;startTrial();}else if(/[?&]team/.test(QS)){goTeam(1);}
 // ?letter（開發用）：用網址直接看一般結局：進一關戰鬥（預設第三關；可以跟 ?test～?test9 一起用），一開打就讓 BOSS 倒下 →
 //   「……你是誰。」→ 信 → 回月下主島 →「挑戰任務已解鎖」。借來的這一關不記通關、不發掉落、不真的解鎖挑戰（信會記進存檔，換裝頁多「信」分頁）。
