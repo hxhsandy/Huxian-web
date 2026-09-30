@@ -5636,9 +5636,16 @@ var AudioFX=(function(){
     s.buffer=noiseBuf;f.type=ftype||'bandpass';f.Q.value=q||1.2;f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);
     g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
     s.connect(f);f.connect(g);g.connect(master);s.start(t);s.stop(t+dur+0.05);}
+  // 長音：頻率 f0 → f1（指數滑），音量線性淡入 a 秒、一直保持、最後 r 秒淡出——整段都聽得到（tone() 是敲擊型：出聲後就一路指數衰減，拉長也只有開頭聽得到）
+  function swell(f0,f1,dur,type,vol,when,a,r){if(!ok())return;var t=ctx.currentTime+(when||0),o=ctx.createOscillator(),g=ctx.createGain();a=a||0.08;r=r||0.2;
+    o.type=type||'sine';o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+a);g.gain.setValueAtTime(vol,t+Math.max(a,dur-r));g.gain.linearRampToValueAtTime(0,t+dur);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+0.05);}
   var SCALE=[0,2,4,7,9,12,14,16,19,21,24,26,28,31,33,36];
   function note(semi){return 523.25*Math.pow(2,semi/12);}
   return {init:init,isMuted:function(){return muted;},
+    // iPhone 上 AudioContext 會被系統打斷（切到別的 App、來電、鎖屏）變成 suspended／interrupted，要在點擊裡 resume 才會再出聲：每次點都看一下（flow.js）
+    wake:function(){if(ctx&&ctx.state!=='running'&&ctx.state!=='closed')ctx.resume();},
     setMuted:function(m){muted=m;try{localStorage.setItem('fox3-muted',m?'1':'0');}catch(_){}},
     clear:function(combo,when){var f=note(SCALE[Math.min(SCALE.length-1,Math.max(0,combo-1))]);
       tone(f,0.3,'sine',0.2,when);tone(f*2,0.16,'triangle',0.05,(when||0)+0.004);tone(f*1.5,0.24,'sine',0.04,(when||0)+0.03);},
@@ -5652,8 +5659,9 @@ var AudioFX=(function(){
     // 最後一擊（慢動作那一下，2026-09-30）：同一聲打擊拉長、壓低，像放慢的錄音（音高一半、長 5 倍），底下多一聲很低的悶響；不管 45 毫秒的節流
     lastHit:function(strong){var f=strong?240:280;lastHit=performance.now();tone(f*0.5,0.5,'triangle',0.11,0,f*0.25,0.02);noise(0.4,0.08,1100,420,0,1);tone(92,0.9,'sine',0.2,0,42,0.02);},
     heal:function(){tone(1046.5,0.35,'sine',0.07);tone(1318.5,0.35,'sine',0.05,0.06);},
-    // 對話框逐字（2026-09-29 CK：不要鍵盤聲、要輕柔；第一版字是「啵」、刪節號的點是細叮，CK 聽完：每個字都用那聲細叮）：很小聲、很短的高音叮
-    type:function(){tone(note(19),0.06,'sine',0.006,0,null,0.004);},
+    // 對話框逐字（2026-09-29 CK：不要鍵盤聲、要輕柔；第一版字是「啵」、刪節號的點是細叮，CK 聽完：每個字都用那聲細叮）：很短的高音叮
+    //   2026-09-30 CK 手機上聽不到：原本音量 0.006（手機喇叭幾乎沒聲）→ 0.024，尾巴長一點（0.06 → 0.09 秒），同一個音高
+    type:function(){tone(note(19),0.09,'sine',0.024,0,null,0.004);},
     charge:function(){tone(170,0.6,'sawtooth',0.035,0,420,0.05);},
     bossAttack:function(){tone(110,0.55,'sawtooth',0.1,0,55);noise(0.5,0.22,1300,200,0,0.8,'lowpass');},
     enrage:function(){tone(92,0.9,'sawtooth',0.1,0,70);tone(97,0.9,'sawtooth',0.07,0,72);},
@@ -5679,7 +5687,9 @@ var AudioFX=(function(){
     // 最終戰換段（src/final.js）：寶石膨脹時很輕的叮、第三次膨脹裂開時玻璃碎掉、血條慢慢補滿時一路往上升（d 秒）
     gemTap:function(){tone(note(28),0.08,'sine',0.02,0,null,0.003);},
     glass:function(){noise(0.3,0.16,4500,9000,0,0.9,'highpass');[31,35,38,43,40].forEach(function(s,k){tone(note(s),0.3-k*0.035,'sine',0.028,k*0.022,null,0.002);});},
-    refill:function(d){tone(262,d,'triangle',0.035,0,784,0.25);tone(523,d,'sine',0.016,0,1568,0.25);},
+    // 補血（d 秒）：2026-09-30 CK 手機上聽不到——原本是 262→784Hz 的 tone()：手機喇叭放不太出 300Hz 以下，而且出聲後一路指數衰減（0.6 秒後剩 1/13），
+    //   實際上只有開頭一小下。改成整段都在的長音（swell）往上滑 523→1568Hz，加上跟著血條一格一格往上的五聲音階小叮（10 聲）
+    refill:function(d){swell(523,1568,d,'triangle',0.045);swell(1046,3136,d,'sine',0.012);for(var k=0;k<10;k++)tone(note(12+SCALE[k]),0.14,'sine',0.03,d*k/10,null,0.004);},
     // 金鈴（最終戰第三段）：鈴把媚惑彈開時響一聲（v 1＝大聲）、戴鈴但還沒有信時很輕地叮一聲（v 小）。跟結局的風鈴同一種鈴聲，只敲一下
     goldBell:function(v){v=v==null?1:v;var f=note(19);noise(0.03,0.03*v,6000,null,0,2,'highpass');tone(f,1.6,'sine',0.06*v,0,null,0.003);tone(f*1.004,1.3,'sine',0.025*v,0,null,0.003);
       tone(f*2.76,0.7,'sine',0.016*v,0.002,null,0.002);tone(f*5.4,0.28,'sine',0.006*v,0.004,null,0.002);},
@@ -6974,6 +6984,7 @@ document.getElementById('backBtn').addEventListener('click',function(){AudioFX.i
 document.getElementById('homeBtn').addEventListener('click',goGarden);
 document.getElementById('homeBtn2').addEventListener('click',goGarden);
 document.addEventListener('pointerdown',function(){AudioFX.init();},{once:true});
+document.addEventListener('pointerdown',function(){AudioFX.wake();});   // iPhone 聲音被系統打斷後，下一次點擊就叫回來
 
 // ---- 開場、暫停、結算 ----
 var overlayEl=document.getElementById('overlay'),panels={start:document.getElementById('pStart'),pause:document.getElementById('pPause'),result:document.getElementById('pResult')};
@@ -7317,9 +7328,10 @@ el.addEventListener('click',function(){if(cred&&cred.t>1.5)cred.skip=true;});
 //   戴鈴的是哪幾隻（2026-09-30 CK：「有帶鈴鐺還是會被魅惑」——原本 b 一律只算水狐、不看存檔，畫面上戴鈴的那隻反而被迷住）：b＝存檔裡戴著 gold-bell 的那幾隻，
 //   都沒有才算水狐；畫面照這場的算法換（dressBells：水狐這場胸前掛一顆；沒有 b 時存檔裡戴著的先拿下來），只換這場戰鬥的狐狸、不存檔
 // 換段（CK 2026-09-29；2026-09-30 演出打磨：碎裂放慢到 2～3 秒、鏡頭推近，參考 FGO）：
-//   0 秒      盤面停、BOSS 不出手、時間停（G.mode＝'intro'），鏡頭往 BOSS 血條那顆寶石推近一點（ZOOM 倍，ZOOM_IN 秒）
-//   GEM_AT 秒 寶石開始膨脹縮小兩次、第三次慢慢脹大、發抖 → T_CRACK 秒裂開（玻璃聲、碎片、白光）：BOSS 震一下、橫幅寫第幾段，背景開始淡換成下一段的
-//   ZOOM_OUT_AT 秒 鏡頭拉回（ZOOM_OUT 秒）→ T_BREAK 秒碎完：換成下一段的招、血條慢慢補滿（T_FILL 秒，有往上升的聲音）→ 最後一段一補滿就狂暴，BOSS 腳底下一直冒火星。換段不說話。
+//   0 秒      盤面停、BOSS 不出手、時間停（G.mode＝'intro'），鏡頭開始往 BOSS 血條那顆寶石推（跟著寶石越推越近，見 ZOOM_KEYS）
+//   GEM_AT 秒 寶石開始膨脹縮小兩次、第三次慢慢脹大、發抖 → T_CRACK 秒裂開（玻璃聲、碎片、白光）：BOSS 震一下、橫幅寫第幾段，背景開始淡換成下一段的；
+//             鏡頭在這一下推到最近，接著 ZOOM_BACK 秒彈回原位 → T_BREAK 秒碎完：換成下一段的招、血條慢慢補滿（T_FILL 秒，有往上升的聲音）→
+//   最後一段一補滿就狂暴，BOSS 腳底下一直冒火星。換段不說話。
 // 背景倒著走回她的記憶（暫時的樣子，render/battle.js 的 segLook）：冥（青綠的天、青白的月、白色飄落物）→ 丘（桃粉暖光、暖色的月、桃花瓣）→
 //   月（第三關的紫藤血月、紅飄帶、紫藤花）。開戰時直接是「冥」；換段時 1.2 秒淡換，飄落物和紅飄帶在淡到一半時換。
 //   前一段留在盤面上的東西不清（CK 想先試）；預告了、還沒放上去的招，各包在 place 收到 null 時自己丟掉。
@@ -7334,20 +7346,30 @@ var barEl=document.getElementById('bossbar'),gemsEl=barEl.querySelector('.gems')
 var GEM=new THREE.Color(0xe9d8ff),WHITE=new THREE.Color(0xffffff);
 var BELL='gold-bell',FOXES=['fire','water','wood','light','dark','heart'],SLOTS=['head','neck','tail'];   // 金鈴（第三關妲己的掉落）；隊伍＝六隻狐狸
 var GEM_AT=0.35,T_CRACK=1.95,T_BREAK=2.8,T_FILL=1.6;   // 換段開始後幾秒寶石開始脹、幾秒裂開、幾秒碎完換招（開始補血）；血條補滿花幾秒
-// 鏡頭推近（2026-09-30）：#c（畫布）和 #frame（血條、珠盤、按鈕…）用同一個原點一起放大，看起來像整個鏡頭往寶石推近；ZOOM：放大幾倍。
-//   原點＝那顆寶石（安全框座標；畫布從螢幕頂畫起，要多加上面的安全區 L.st）。只在換段時有，縮回 1 時整個拿掉 transform（平常的畫面跟原本逐像素一樣）
-var ZOOM=1.1,ZOOM_IN=0.5,ZOOM_OUT_AT=2.25,ZOOM_OUT=0.55;
-var canvasEl=document.getElementById('c'),zoomK=0,zoomShown=0,zoomTw=0,zoomO={x:0,y:0};   // zoomK：推近多少（0～1）；zoomShown：畫面上現在套的是多少（−1＝暫停時先拿掉了）
-function applyZoom(){if(zoomShown===zoomK)return;zoomShown=zoomK;var on=zoomK>0,t=on?'scale('+(1+(ZOOM-1)*zoomK).toFixed(4)+')':'';
-  frameEl.style.transformOrigin=on?zoomO.x+'px '+zoomO.y+'px':'';canvasEl.style.transformOrigin=on?zoomO.x+'px '+(zoomO.y+L.st)+'px':'';
+// 鏡頭推近（2026-09-30；CK 看完第一版「推近 1.1 倍後停著」：要跟著寶石的演出越來越近、越來越聚焦那一邊，一路推到裂開那一下；碎完快快彈回、帶一點彈性）：
+//   #c（畫布）和 #frame（血條、珠盤、按鈕…）用同一個原點（那顆寶石；畫布從螢幕頂畫起，y 要多加上面的安全區 L.st）一起 CSS 放大，
+//   再把寶石往畫面中間挪一點（ZOOM_PAN；挪的量不讓畫面邊緣露出來），看起來像整個鏡頭往寶石推過去。
+//   ZOOM_KEYS：[換段開始後第幾秒, 放大倍數]，跟著寶石（GEM_PULSE 從 GEM_AT 開始）：先推一點 → 每次脹大往前推一段、縮回時停住 → 第三次脹大一路加速推到裂開
+//   裂開後 ZOOM_BACK 秒彈回：ZOOM_BOUNCE 秒就回到原位，再像彈簧小小彈一兩下（只往前彈、不會縮到比原本小）。回到 1 時整個拿掉 transform（平常的畫面跟原本逐像素一樣）
+var ZOOM_KEYS=[[0,1],[0.35,1.03],[0.6,1.07],[0.85,1.07],[1.15,1.13],[1.4,1.13],[1.95,1.3]],ZOOM_MAX=1.3,ZOOM_PAN=0.9,ZOOM_BACK=0.8,ZOOM_BOUNCE=0.16;
+var canvasEl=document.getElementById('c'),zoomZ=1,zoomShown=1,zoomTw=0,zoomO={x:0,y:0};   // zoomZ：現在放大幾倍（1＝沒推）；zoomShown：畫面上現在套的倍數（−1＝暫停時先拿掉了）
+function zoomAt(t){var K=ZOOM_KEYS;for(var i=1;i<K.length;i++){var a=K[i-1],b=K[i];if(t<=b[0]){var k=(t-a[0])/(b[0]-a[0]);k=i===K.length-1?k*k:k*k*(3-2*k);return a[1]+(b[1]-a[1])*k;}}return K[K.length-1][1];}   /* 最後一段（推到裂開）越推越快 */
+function applyZoom(){if(zoomShown===zoomZ)return;zoomShown=zoomZ;var z=zoomZ,on=z!==1,t='';
+  if(on){var p=ZOOM_PAN*(z-1)/(ZOOM_MAX-1),Ox=zoomO.x,Oy=zoomO.y+L.st,Ht=L.H+L.st+L.sb,   // 往畫面中間挪：左右最多挪到寶石在正中間，上下挪不多（寶石在最上面，往下挪會露出螢幕頂以上）
+    dx=Math.max(-(z-1)*(L.W-Ox),Math.min((z-1)*Ox,(L.W/2-Ox)*p)),dy=Math.max(-(z-1)*(Ht-Oy),Math.min((z-1)*Oy,(L.H*0.35-zoomO.y)*p));
+    t='translate('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px) scale('+z.toFixed(4)+')';}
+  frameEl.style.transformOrigin=on?zoomO.x+'px '+zoomO.y+'px':'';canvasEl.style.transformOrigin=on?zoomO.x+'px '+Oy+'px':'';
   frameEl.style.transform=canvasEl.style.transform=t;}
-function zoomTo(k,d){var from=zoomK,id=++zoomTw;return tween(d,function(v){if(id!==zoomTw)return;zoomK=from+(k-from)*v;applyZoom();},easeInOut);}
+// 換段的鏡頭：跟著寶石推到裂開（T_CRACK 秒）→ 彈回（|cos| 乘上很快衰減：ZOOM_BOUNCE 秒回到 1，之後小小彈起一兩下）
+function zoomRun(ses){var id=++zoomTw;
+  tween(T_CRACK,function(v){if(id!==zoomTw)return;zoomZ=zoomAt(v*T_CRACK);applyZoom();}).then(function(){if(id!==zoomTw||SES!==ses)return null;var z0=zoomZ;
+    return tween(ZOOM_BACK,function(v){if(id!==zoomTw)return;var t=v*ZOOM_BACK;zoomZ=v>=1?1:1+(z0-1)*Math.exp(-t/0.13)*Math.abs(Math.cos(Math.PI/2*t/ZOOM_BOUNCE));applyZoom();});});}
 var SEG_PETAL=['white','peach','daji'],SEG_RIBBON=[false,false,true];   // 各段的飄落物（effects.js 的 PETAL_STYLE）、紅飄帶
 var MOON_DIM=0,moonNow=1,moonTw=0;   // 第三段開始時月亮多暗（BS.moonLight 的 0～1）；moonNow：現在的亮度；moonTw：月亮變亮的補間（第幾次，新的蓋掉舊的）
 // 金鈴的故事（bellStory）：鎖住後幾秒第一次響；鈴響之後幾秒她開口；一句淡掉之後幾秒再響下一次；最後一句淡掉之後幾秒她清醒；每句字跑完停幾秒
 var BELL_FIRST=0.9,BELL_SAY=0.3,BELL_GAP=0.5,BELL_WAKE=0.7,BELL_HOLD=1.8;
 // 寶石在安全框裡的位置：鏡頭推近時 #frame 整個放大了，量到的距離要除回去
-function gemXY(el){var r=el.getBoundingClientRect(),f=frameEl.getBoundingClientRect(),z=zoomShown>0?1+(ZOOM-1)*zoomShown:1;return {x:(r.left+r.width/2-f.left)/z,y:(r.top+r.height/2-f.top)/z};}
+function gemXY(el){var r=el.getBoundingClientRect(),f=frameEl.getBoundingClientRect(),z=zoomShown>0?zoomShown:1;return {x:(r.left+r.width/2-f.left)/z,y:(r.top+r.height/2-f.top)/z};}
 // 寶石碎裂（CK 2026-09-29 第二輪，參考 FGO：原本太快，很難意識到換血了；2026-09-30 再放慢）：最右邊那顆還在的寶石原地膨脹縮小兩次（每次膨脹很輕地叮一聲），
 //   第三次慢慢脹大、越來越抖（GEM_SHAKE），脹到最大時裂開——玻璃碎掉的聲音、碎片光點噴開、一圈白光，寶石縮小淡掉（CSS .gone）。
 //   GEM_PULSE：[第幾秒, 大小] 的關鍵格，中間平滑內插；最後一格＝裂開（T_CRACK − GEM_AT）
@@ -7390,7 +7412,7 @@ function bellStory(){var ses=SES,n=CONFIG.talk['final-bell'].lines.length,bf=[],
   p.then(function(){if(SES===ses)onBossDown(true);});}
 function segDown(){var ses=SES,k=battle.seg+1,bp=bossScreen(),g=nextGem();G.mode='intro';
   BS.boss.attack();addShake(5);AudioFX.enrage();
-  zoomO=g?gemXY(g):{x:L.W/2,y:L.topH};zoomTo(1,ZOOM_IN);after(ZOOM_OUT_AT,function(){if(SES===ses)zoomTo(0,ZOOM_OUT);});   // 鏡頭往寶石推近，碎完拉回
+  zoomO=g?gemXY(g):{x:L.W/2,y:L.topH};zoomRun(ses);   // 鏡頭跟著寶石推近，裂開後彈回
   wait(GEM_AT).then(function(){return SES===ses?breakGem(g):null;}).then(function(){if(SES!==ses)return;   // 寶石裂開那一下：BOSS 才震、背景才開始換成下一段的記憶
     BS.boss.hit();addShake(12);ringFx(bp.x,bp.y,L.cs*0.6,L.cs*4,WHITE,0.6);showBanner('第 '+(k+1)+' 段「'+battle.boss.segs[k].name+'」');
     tween(1.2,function(v){BS.segLook(k-1,k,v);});after(0.6,function(){if(SES!==ses)return;setPetalStyle(SEG_PETAL[k]);BS.ribbons(SEG_RIBBON[k]);});   // 背景淡換
@@ -7401,10 +7423,10 @@ function segDown(){var ses=SES,k=battle.seg+1,bp=bossScreen(),g=nextGem();G.mode
   .then(function(){if(SES!==ses)return;var en=battle.segReady();updateBars();if(G.mode==='intro')G.mode='playing';if(en){onEnrage();BS.feetEmbers(true);}});   // 第三條血：狂暴＋BOSS 腳底下冒火星
 }
 var FINAL={
-  hud:function(st){moonNow=1;moonTw++;zoomTw++;zoomK=0;applyZoom();dressBells();barEl.classList.toggle('segs',!!st.segs);if(st.segs){BS.segLook(0,0,1);BS.ribbons(SEG_RIBBON[0]);setPetalStyle(SEG_PETAL[0]);}   /* 最終戰開場是「冥」 */   /* 開新的一場：月亮回到平常（BS.setStage 也會重設） */gemsEl.innerHTML=st.segs?st.segs.slice(1).map(function(){return '<i></i>';}).join(''):'';},   // 寶石＝後面還有幾條血（第一條就是血條本身）
+  hud:function(st){moonNow=1;moonTw++;zoomTw++;zoomZ=1;applyZoom();dressBells();barEl.classList.toggle('segs',!!st.segs);if(st.segs){BS.segLook(0,0,1);BS.ribbons(SEG_RIBBON[0]);setPetalStyle(SEG_PETAL[0]);}   /* 最終戰開場是「冥」 */   /* 開新的一場：月亮回到平常（BS.setStage 也會重設） */gemsEl.innerHTML=st.segs?st.segs.slice(1).map(function(){return '<i></i>';}).join(''):'';},   // 寶石＝後面還有幾條血（第一條就是血條本身）
   update:function(){if(battle.segDown&&G.mode==='playing'){battle.segDown=false;segDown();}applyZoom();},   // 暫停時拿掉的鏡頭推近，回來的第一格套回去
   // 暫停：鏡頭推近先拿掉（暫停面板也在 #frame 裡，不要跟著放大）；回來時 update 會套回去
-  pause:function(){if(zoomShown>0){frameEl.style.transform=canvasEl.style.transform='';zoomShown=-1;}},
+  pause:function(){if(zoomShown!==1){frameEl.style.transform=canvasEl.style.transform='';zoomShown=-1;}},
   down:function(){if(battle.boss.segs)BS.feetEmbers(false);},
   story:function(){var q=APP.storyTest,sv=savedBells();
     if(q){var b=q.indexOf('b')>=0;return {letter:q.indexOf('l')>=0,bells:b&&sv.some(Boolean)?sv:sv.map(function(x,i){return b&&i===1;})};}   /* 測試網址 ?story=…：b＝存檔裡戴鈴的，都沒有才算水狐 */
@@ -7425,7 +7447,7 @@ var FINAL={
 // ES module 深度優先、先執行被 import 的；照這條鏈，任何 module 被拜訪時後面的 module 都已在堆疊上，
 // 前面的區塊 import 後面的函式不會讓後面的先執行，所以整個遊戲的執行順序跟拆檔前一模一樣。新增 module 要接進鏈裡。
 // 測試用
-window.__game={bcam:bcam,TEAM:TEAM,WARD:WARD,Save:Save,goWard:function(){goWard();},board:board,views:views,S:S,G:G,battle:battle,BS:BS,GARDEN:GARDEN,foxScreen:foxScreen,tryUlt:tryUlt,LETTER:LETTER,petals:petals,APP:APP,goTeam:function(k){goTeam(k);},startTrial:function(){startTrial();},
+window.__game={AudioFX:AudioFX,bcam:bcam,TEAM:TEAM,WARD:WARD,Save:Save,goWard:function(){goWard();},board:board,views:views,S:S,G:G,battle:battle,BS:BS,GARDEN:GARDEN,foxScreen:foxScreen,tryUlt:tryUlt,LETTER:LETTER,petals:petals,APP:APP,goTeam:function(k){goTeam(k);},startTrial:function(){startTrial();},
   attemptSwap:function(r1,c1,r2,c2){attemptSwap(r1,c1,r2,c2);},L:L,PFL:PFL,DLG:DLG,showResult:function(k){showResult(k);},
   bossDown:function(){battle.bossHp=0;updateBars();onBossDown();},   // 測試用：BOSS 直接倒下（走正式的倒下流程：台詞、霧、淡出、結算）
   hitBoss:function(d){var r=battle.hitBoss(d==null?battle.bossHp:d);updateBars();if(r.killed)onBossDown();else if(r.held)FINAL.bellStory();return r;},   // 測試用：打 BOSS d（不給＝剛好打空這一條；最終戰前兩條打空＝換段；有信又戴金鈴、第三段打空＝鎖住演四句）
