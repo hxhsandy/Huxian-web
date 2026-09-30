@@ -40,8 +40,18 @@ window.ORB_LAB_DRAFTS = [
     size: 1.06, color: 0x30b978, plateColor: 0xe4b86d,
     material: function (L) {
       var m = softOrbMaterial(L, 0x30b978);
-      m.shininess = 8; m.specular.setHex(0x101010);
+      m.shininess = 18; m.specular.setHex(0x484848);
       return m;
+    },
+    faceSize: 0.82,
+    face: function (ctx, n) {
+      var x = n * 0.35, y = n * 0.34, r = n * 0.14;
+      var glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+      glow.addColorStop(0, 'rgba(255,255,234,1)');
+      glow.addColorStop(0.35, 'rgba(255,255,234,0.58)');
+      glow.addColorStop(1, 'rgba(255,255,234,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
     } },
   { key: 'light', name: '軟玉光珠', note: '圓鈍的四角金星。',
     shape: 'star', size: 1.06, color: 0xffc94e, plateColor: 0xe4b86d,
