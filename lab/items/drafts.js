@@ -512,8 +512,8 @@ window.ITEM_LAB_DRAFTS = [
         face.position.copy(flat).multiplyScalar(r + 0.025);
         face.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);
       }
-      paper.position.set(anchor.userData.thumb ? 0 : -0.018, 0.01, 0.025);
-      paper.rotation.set(-0.18, 0.12, -0.25);
+      paper.position.set(anchor.userData.thumb ? 0 : -0.018, 0.01, 0.035);
+      paper.rotation.set(-0.5, 0.12, -0.25);
       var shape = new T.Shape();
       shape.moveTo(-0.059, 0.107); shape.lineTo(0.059, 0.107);
       shape.lineTo(0.056, -0.1); shape.lineTo(0.032, -0.109);
@@ -535,14 +535,14 @@ window.ITEM_LAB_DRAFTS = [
       var ink = new T.Mesh(new T.PlaneGeometry(0.099, 0.181),
         new T.MeshBasicMaterial({ map: inkTex, transparent: true, depthWrite: false, side: T.DoubleSide }));
       ink.position.z = 0.01; paper.add(ink);
-      var glow = L.sprite(paper, L.glowTex, 0xf44343, 0.2, true);
-      glow.position.z = -0.015; glow.scale.set(0.29, 0.36, 1);
+      var glow = L.sprite(paper, L.glowTex, 0xf44343, 0.36, true);
+      glow.position.z = -0.015; glow.scale.set(0.36, 0.43, 1);
       g.userData.paper = paper; g.userData.glow = glow;
       return g;
     },
     upd: function (obj, t) {
       obj.userData.paper.rotation.z = -0.25 + 0.025 * Math.sin(t * 1.6);
-      obj.userData.glow.material.opacity = 0.15 + 0.075 * Math.sin(t * 1.8);
+      obj.userData.glow.material.opacity = 0.34 + 0.1 * Math.sin(t * 1.8);
     } },
 
   { id: 'osmanthus-sprig', slot: 'head', name: '桂花枝',
@@ -551,9 +551,6 @@ window.ITEM_LAB_DRAFTS = [
     build: function (anchor, L) {
       var T = L.THREE, H = L.HEAD_TOP, g = new T.Group();
       var green = L.toon(0x3b8652, { emissive: 0x173925 });
-      var stem = L.itemPart(new T.CylinderGeometry(0.005, 0.006, 0.17, 8),
-        L.toon(0x82603a, { emissive: 0x27180b }), false);
-      stem.rotation.z = -0.72; stem.position.set(0, 0.016, -0.017); g.add(stem);
       var leaves = [];
       [[-0.063, 0.071, 0.65], [0.016, 0.096, -0.52], [0.084, 0.05, -0.8]].forEach(function (p) {
         var leaf = L.SPH_LO.clone();
@@ -563,20 +560,21 @@ window.ITEM_LAB_DRAFTS = [
       });
       g.add(L.itemPart(L.mergeGeos(leaves), green, L.outlineMat(0x1e5135, 0.003)));
       var gold = L.toon(0xf5bd46, { emissive: 0x73400d });
-      var cream = L.toon(0xffdf7d, { emissive: 0x806026 });
+      var cream = L.toon(0xffd25c, { emissive: 0x705012 });
       var petalGeos = [[], []], centers = [];
       [[-0.046, 0.02, 0.032], [0.049, 0.026, 0.029]].forEach(function (f, n) {
+        var size = n ? 0.84 : 1;
         for (var i = 0; i < 4; i++) {
           var a = i * Math.PI / 2 + (n ? 0.3 : -0.2);
           var petal = L.SPH_LO.clone();
-          petal.applyMatrix4(new T.Matrix4().makeScale(0.024, 0.032, 0.018));
-          petal.rotateZ(a); petal.translate(f[0] + Math.sin(a) * 0.026,
-            f[1] + Math.cos(a) * 0.026, f[2]);
+          petal.applyMatrix4(new T.Matrix4().makeScale(0.024 * size, 0.032 * size, 0.018 * size));
+          petal.rotateZ(a); petal.translate(f[0] + Math.sin(a) * 0.026 * size,
+            f[1] + Math.cos(a) * 0.026 * size, f[2]);
           petalGeos[n].push(petal);
         }
         var center = L.SPH_LO.clone();
-        center.applyMatrix4(new T.Matrix4().makeScale(0.015, 0.015, 0.012));
-        center.translate(f[0], f[1], f[2] + 0.017); centers.push(center);
+        center.applyMatrix4(new T.Matrix4().makeScale(0.015 * size, 0.015 * size, 0.012 * size));
+        center.translate(f[0], f[1], f[2] + 0.017 * size); centers.push(center);
       });
       g.add(L.itemPart(L.mergeGeos(petalGeos[0]), gold, L.outlineMat(0xb87a24, 0.003)));
       g.add(L.itemPart(L.mergeGeos(petalGeos[1]), cream, L.outlineMat(0xc79432, 0.003)));
