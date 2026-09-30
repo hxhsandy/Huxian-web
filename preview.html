@@ -6,14 +6,13 @@
    ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（&ending=nobell 有信沒戴鈴；&story=lb 當作有信又戴金鈴來打，看第三段金鈴故事）；&drops 測試網址打贏時演一次這關的掉落（不存檔）；?easy BOSS 血量剩四分之一（CK 上班偷測用，最終戰每段 2500；換段、補血、金鈴停血都照常）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);
-if(/[?&]easy/.test(location.search)){var EK=0.25,et=setInterval(function(){var g=window.__game;if(!g||!g.battle)return;clearInterval(et);var bt=g.battle,orig=bt.reset;function sc(){if(bt.bossMax>0&&bt.__easy!==bt.bossMax){bt.bossMax=Math.max(1,Math.round(bt.bossMax*EK));bt.bossHp=Math.min(bt.bossHp,bt.bossMax);bt.__easy=bt.bossMax;}}bt.reset=function(){var r=orig.apply(this,arguments);sc();return r;};sc();},30);}})();</script>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+if(/[?&]easy/.test(location.search)){var EK=0.25,et=setInterval(function(){var g=window.__game;if(!g||!g.battle)return;clearInterval(et);var bt=g.battle,orig=bt.reset;function sc(){if(bt.bossMax>0&&bt.__easy!==bt.bossMax){bt.bossMax=Math.max(1,Math.round(bt.bossMax*EK));bt.bossHp=Math.min(bt.bossHp,bt.bossMax);bt.__easy=bt.bossMax;}}bt.reset=function(){var r=orig.apply(this,arguments);sc();return r;};sc();},30);}})();</script><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="/Huxian-web/apple-touch-icon.png">   <!-- 主畫面圖示（2026-09-29 繪星畫、CK 先試效果；檔案放在 Huxian-web 根目錄，原圖 assets/icon/） -->
 <link rel="icon" type="image/png" href="/Huxian-web/icon-192.png">
-<title>狐仙三消（預覽）</title>
+<title>狐仙三消</title>
 <script>/* 全螢幕（2026-09-29 第三輪）：加到主畫面開的（standalone）在 <html> 加 class，高度改用 100vh（見下面的 html.standalone）。
    CK 的 iPhone 12 實測：主畫面模式的 100dvh 只有 797（扣掉瀏海），底下少畫 47px；100vh 是 844＝整個螢幕。 */
 if(navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches))document.documentElement.classList.add('standalone');</script>
@@ -514,6 +513,10 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .wTab{flex:1;height:32px;border-radius:16px;border:1px solid var(--line);background:transparent;color:rgba(244,236,216,.72);font-size:13.5px;letter-spacing:.3em;text-indent:.3em;position:relative}
 .wTab.on{background:rgba(232,198,126,.16);color:var(--gold);border-color:var(--gold)}
 .wGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;overflow-y:auto;overflow-x:hidden;min-height:0;padding:8px;margin:-8px}   /* 留 8px 內距（再用負邊距抵掉）：右上角凸出去的小紅點不會撐出左右捲軸，選中卡片的光暈也不會被切成方框 */
+/* 格子放不下時手指上下捲（2026-09-30 CK：頸飾 8 格、頭飾 9 格看不到第三行）：整頁是 touch-action:none、touchmove 也擋掉（flow.js），格子這裡另外開；
+   捲到頭不帶動整頁（overscroll contain）。還沒捲到底時下緣 22px 淡出（.more，flow.js 的 wMore） */
+.wGrid{flex:1 1 auto;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;align-content:start}   /* 格子區撐滿面板剩下的高度：說明在每個分頁都釘在同一個位置 */
+.wGrid.more{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 22px),transparent)}
 .wItem{aspect-ratio:1;border-radius:14px;border:1px solid rgba(232,198,126,.3);background:rgba(20,30,68,.7);padding:0;display:grid;place-items:center;position:relative}
 .wItem img{width:84%;height:84%;display:block}
 .wItem svg{width:46%;height:46%;fill:none;stroke:rgba(232,198,126,.55);stroke-width:1.6}
@@ -521,6 +524,10 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .wItem.lock{background:rgba(10,16,40,.6);border-style:dashed}
 .wQ{display:block;font-size:26px;line-height:1;color:rgba(230,220,255,.7);animation:gbBell 2.9s steps(1,end) infinite}   /* 真結局的飾品還沒拿到：問號＋雜訊（閃、錯位，同冥界缺字的 gbBell） */
 .wHint{margin:0;min-height:1.5em;font-size:13px;letter-spacing:.08em;line-height:1.5;color:rgba(244,236,216,.82);text-align:center}
+/* 說明固定兩行高、放在格子下面（2026-09-30 CK：說明兩行時壓到格子）：高度固定，格子區自己縮、自己捲；萬一超過兩行，說明自己捲（不會蓋到格子） */
+.wHint{flex:none;height:3em;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;margin-top:4px}
+/* 全螢幕：面板的深色往下接到螢幕最底（底部橫條後面），沒有安全區時高度 0（同 #teamHud::after） */
+.wPanel::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--safe-bottom);background:rgba(11,19,48,.96)}
 @media (max-height:700px){.wFox{width:38px;height:38px}.wGrid{gap:6px}.wName{top:calc(57% - 58px)}.wName b{font-size:19px}}
 /* ---- 大招變奏 ---- */
 .chip.calm{background:rgba(214,196,255,.18);border:1px solid #cdb8ff;color:#efe6ff}
@@ -5346,10 +5353,16 @@ var TEAM=(function(){
    燈光跟戰鬥畫面同一套月光。飾品與狐狸頭像的小圖用同一個 renderer 拍（snap），沒拿到的飾品畫成剪影
    ===================================================================== */
 var WARD=(function(){
-  var sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(30,0.5,0.1,60);
+  var sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(30,0.5,0.1,60),bgMesh;
   (function(){var c=document.createElement('canvas');c.width=64;c.height=512;var g=c.getContext('2d'),gr=g.createLinearGradient(0,0,0,512);
     gr.addColorStop(0,'#060b22');gr.addColorStop(0.3,'#111b46');gr.addColorStop(0.56,'#16225a');gr.addColorStop(0.6,'#0d1638');gr.addColorStop(1,'#0b1330');g.fillStyle=gr;g.fillRect(0,0,64,512);
-    var t=new THREE.CanvasTexture(c);sc.background=t;})();
+    // 背景的漸層照畫面上的高度算（2026-09-30 CK 用 iPhone 全螢幕回報：上下安全區是另一個暗色）：原本放在 sc.background，three.js 每畫一塊就把整條漸層塞進那一塊，
+    //   全螢幕分三塊畫（layout.js 的 renderExt）時，瀏海後面、底部橫條後面那兩條各自擠了一整條漸層。改成一張蓋滿視窗的板子、用 gl_FragCoord 照安全框算
+    //   （uH＝安全框高、uB＝框下面那一截，裝置像素）：框裡跟原本一樣，框外接最上、最下的顏色（貼圖邊緣夾住）。每格在 update 更新
+    var t=new THREE.CanvasTexture(c),m=new THREE.ShaderMaterial({uniforms:{t:{value:t},uH:{value:1},uB:{value:0}},depthTest:false,depthWrite:false,
+      vertexShader:'void main(){ gl_Position=vec4(position.xy*2.0,1.0,1.0); }',
+      fragmentShader:'uniform sampler2D t; uniform float uH,uB; void main(){ gl_FragColor=texture2D(t,vec2(0.5,(gl_FragCoord.y-uB)/uH)); }'});
+    bgMesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),m);bgMesh.frustumCulled=false;bgMesh.renderOrder=-1000;sc.add(bgMesh);})();
   sc.add(new THREE.HemisphereLight(0x7486c6,0x1a1f3a,.6));sc.add(new THREE.AmbientLight(0x2a3566,.35));
   var ml=new THREE.DirectionalLight(0xfff0cc,.9);ml.position.copy(MOON).normalize().multiplyScalar(10);sc.add(ml);
   var fl=new THREE.DirectionalLight(0x8496d8,.42);fl.position.set(2,4,9);sc.add(fl);
@@ -5395,7 +5408,8 @@ var WARD=(function(){
     KEYS.forEach(function(k){var f=foxes[k];f.update(0,0);f.group.visible=true;var hb=new THREE.Box3().setFromObject(f.parts.head);PORT[k]=snap(f.group,hb);f.group.visible=false;});
     foxes[cur].group.visible=true;}
   function show(k){ensure();letterOn=false;if(letterG)letterG.visible=false;foxes[cur].group.visible=false;cur=k;foxes[k].group.visible=true;yaw=0;foxes[k].look(0,0);foxes[k].attack();}
-  function update(dt,t){if(!built)return;T=t;var f=foxes[cur];
+  function update(dt,t){var pr=renderer.getPixelRatio(),bu=bgMesh.material.uniforms;bu.uH.value=Math.floor(L.H*pr);bu.uB.value=Math.floor((L.sb||0)*pr);   /* 跟 renderer.setViewport 一樣取整 */
+    if(!built)return;T=t;var f=foxes[cur];
     if(!drag){idle+=dt;if(idle>1.2)yaw+=(0-yaw)*Math.min(1,dt*1.6);}
     if(letterOn){letterG.rotation.y=yaw;letterG.position.y=0.02*Math.sin(t*1.2);}   // 信：跟著拖的方向轉、輕輕浮
     f.look(yaw,0);f.update(dt,t);ring.material.opacity=0.72+0.13*Math.sin(t*2);halo.material.opacity=0.3+0.08*Math.sin(t*1.3);}
@@ -7006,6 +7020,10 @@ function goGarden(){FX2D.clear();showPanel(null);G.mode='menu';setScreen('garden
   if(APP.newStar>=0&&APP.newStar===GARDEN.getLoc())celebrate(APP.newStar);else {APP.newStar=-1;refreshGarden();if(!maybeReveal()&&!maybeChalNotice())showHint();}}
 // ---- 換裝頁 ----
 var wFoxesEl=document.getElementById('wFoxes'),wGridEl=document.getElementById('wGrid'),wHintEl=document.getElementById('wHint'),wSlot='head';APP.wardFox='little';
+var wKey='';   // 上一次填的是哪隻狐狸的哪個分頁：一樣（換了飾品）就留在原本捲到的地方，換分頁、換狐狸才回到最上面
+// 格子下面還有東西（還沒捲到底）：下緣淡出，看得出可以往下捲（2026-09-30 CK：飾品多了看不到、以為不能捲）
+function wMore(){wGridEl.classList.toggle('more',wGridEl.scrollTop+wGridEl.clientHeight<wGridEl.scrollHeight-4);}
+wGridEl.addEventListener('scroll',wMore,{passive:true});window.addEventListener('resize',wMore);
 var NONE_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/></svg>';
 function wInfo(k){if(k==='little')return {name:'小狐狸',sub:'月下庭院的小狐狸'};var u=CONFIG.ult[k],o=CONFIG.orbs.filter(function(x){return x.key===k;})[0];return {name:u.fox,sub:o.name+'屬性　大招「'+ultName(k,ultAltOn(k))+'」'};}
 // 大招分頁：原版與變奏兩張卡，點了就換；變奏還沒拿到是虛線卡，還沒做的狐狸寫「之後的旅程裡會找到」
@@ -7033,14 +7051,15 @@ function fillWard(){var f=APP.wardFox,info=wInfo(f),d=Save.data();document.getEl
   if(!d.story.letter&&wSlot==='letter')wSlot='head';document.querySelector('.wTab[data-slot=letter]').hidden=!d.story.letter;   // 拿到信才多一個「信」分頁
   WARD.showLetter(wSlot==='letter');document.querySelector('.wName').classList.toggle('letter',wSlot==='letter');
   Array.prototype.forEach.call(document.querySelectorAll('.wTab'),function(b){var s=b.getAttribute('data-slot');b.classList.toggle('on',s===wSlot);b.setAttribute('aria-selected',s===wSlot?'true':'false');b.classList.toggle('new',freshIn(f,s));});
-  wGridEl.innerHTML='';wGridEl.classList.toggle('ults',wSlot==='ult');wHintEl.hidden=wSlot==='ult';if(wSlot==='letter'){fillLetter();return;}/* 大招分頁不顯示下方說明：卡片上已經寫了 */if(wSlot==='ult'){fillUlt(f);document.getElementById('gWard').classList.toggle('new',Save.anyFresh());return;}
+  var key=f+'/'+wSlot,keep=key===wKey?wGridEl.scrollTop:0;wKey=key;
+  wGridEl.innerHTML='';wGridEl.classList.toggle('ults',wSlot==='ult');wHintEl.hidden=wSlot==='ult';if(wSlot==='letter'){fillLetter();wGridEl.scrollTop=0;wMore();return;}/* 大招分頁不顯示下方說明：卡片上已經寫了 */if(wSlot==='ult'){fillUlt(f);wGridEl.scrollTop=keep;wMore();document.getElementById('gWard').classList.toggle('new',Save.anyFresh());return;}
   var cur=Save.outfitOf(f)[wSlot]||'none';
   ['none'].concat(slotItems(f,wSlot)).forEach(function(id){var own=id==='none'||Save.owns(id),b=document.createElement('button');b.type='button';b.className='wItem';
     if(!own)b.classList.add('lock');if(id===cur)b.classList.add('on');
     b.innerHTML=id==='none'?NONE_SVG:!own&&FOX_ITEMS[id].from==='ending'?'<span class="wQ">？</span>':'<img alt="" src="'+WARD.thumb(id,!own)+'">';   /* 真結局的飾品還沒拿到：不給黑影（一看就知道是妲己的），改成問號加雜訊（docs/03） */
     b.setAttribute('aria-label',id==='none'?'不戴':own?FOX_ITEMS[id].name:'還沒取得');b.setAttribute('aria-pressed',id===cur?'true':'false');
     b.addEventListener('click',function(){pickItem(id,own);});wGridEl.appendChild(b);});
-  wHintEl.textContent=itemHint(cur);}
+  wGridEl.scrollTop=keep;wMore();wHintEl.textContent=itemHint(cur);}
 // 「信」分頁：一格信封小圖（選著），台子上放打開的信；名字、介紹在 CONFIG.letter。看過就拿掉小紅點
 function fillLetter(){var d=Save.data(),c=CONFIG.letter,b=document.createElement('button');document.getElementById('wName').textContent=c.name;document.getElementById('wSub').textContent='';
   b.type='button';b.className='wItem on';b.setAttribute('aria-label',c.name);b.setAttribute('aria-pressed','true');b.innerHTML='<img alt="" src="'+LETTER.thumb()+'">';
@@ -7177,7 +7196,7 @@ canvas.addEventListener('pointerup',function(e){if(!drag||drag.id!==e.pointerId)
     if(Math.abs(s[0]-cell[0])+Math.abs(s[1]-cell[1])===1){S.sel=null;attemptSwap(s[0],s[1],cell[0],cell[1]);return;}}
   S.sel=cell;});
 canvas.addEventListener('pointercancel',function(){drag=null;});
-document.addEventListener('touchmove',function(e){if(e.target.closest&&e.target.closest('.panel'))return;e.preventDefault();},{passive:false});
+document.addEventListener('touchmove',function(e){if(e.target.closest&&e.target.closest('.panel,.wGrid,.wHint'))return;e.preventDefault();},{passive:false});   // 面板、換裝頁的格子和說明可以用手指捲
 document.addEventListener('gesturestart',function(e){e.preventDefault();});
 document.addEventListener('dblclick',function(e){e.preventDefault();});
 
