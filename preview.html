@@ -655,13 +655,13 @@ var CONFIG={
      cover:{deck:'雲上天門',head:'照見你的樣子<br>也照見你的來處',tag:'天門的鏡子　從不說謊',skill:'天鏡',lore:'守在天門，替每一隻路過的狐狸照一照鏡子。',brief:'小圓鏡蓋住珠子，旁邊消兩次才碎；全碎了傷害 ×2。'}},
     // 第三章冥界（2026-09-29 A 段把機制搬進來、B 段放進 chapters＋庭院的島＋封面；最終戰在 C 段）。戰鬥場景先借第一章的夜晚（冥界的天空之後做）。血量、時限先比照第五、六關，屬性先寫 none（遊星問 CK）、掉落和挑戰先空著（繪星的第三章飾品還在做）。
     //   名字、封面文字、介紹照 docs/03_design_story.md 的草稿；外觀是現有狐狸模型換色（render/battle.js 的 LATE_BOSS），美化階段再做。
-    // 第七關：青燐的鬼火（src/mechanics/wisp.js）。CK 2026-09-29 試玩場定的數字：每 12 秒 3 團、狂暴後每 9 秒 4 團，倒數 10 秒（狂暴後 8 秒），
+    // 第七關：青燐的鬼火（src/mechanics/wisp.js）。CK 2026-09-29 試玩場定的數字：每 12 秒 3 團、狂暴後每 9 秒 4 團，倒數 10 秒（狂暴後 8 秒；2026-09-30 CK 看 v118 候選改 12／10 秒、扣血 50 → 30，每波只有第一團保證消得到），
     //   只附在「換一步就消得到」的珠上（fair），炸一次扣隊伍 50（5%），盤面最多 4 團；開場 first 秒第一次
     //   掉落（2026-09-29 繪星第四批）：通關小鬼火燈籠；挑戰「一顆鬼火都沒有炸開」（battle.wispBooms＝0）→ 燐火珠串
     {title:'第七關',name:'青燐',drop:'twin-wisps',chal:{kind:'zero',key:'wispBooms',unit:'團炸開',text:'一顆鬼火都沒有炸開',drop:'phosphor-beads'},style:'qinglin',attr:'none',attrName:'無',hp:17000,time:75,interval:8,enrageAt:0.5,enrageInterval:6,hitPct:0.2,charge:0.6,
      weak:'無',lore:'在冥界替迷路的魂提燈的狐狸。她說最近路上多了好多燈，不知道是誰點的。',
-     skill:'鬼火：每 12 秒丟 3 團鬼火附在珠上（狂暴後每 9 秒 4 團），倒數 10 秒（狂暴後 8 秒），最多 4 團；只會附在換一步就消得到的珠上。倒數內把那顆珠消掉就滅，沒消掉鬼火狐會衝出來撞隊伍，扣 50 血。',
-     wisp:{first:5,interval:12,enrageInterval:9,count:3,enrageCount:4,fuse:10,enrageFuse:8,dmg:50,max:4,fair:true},
+     skill:'鬼火：每 12 秒丟 3 團鬼火附在珠上（狂暴後每 9 秒 4 團），倒數 12 秒（狂暴後 10 秒），最多 4 團；每一波的第一團一定附在換一步就消得到的珠上，其他隨便附。倒數內把那顆珠消掉就滅，沒消掉鬼火狐會衝出來撞隊伍，扣 30 血。',
+     wisp:{first:5,interval:12,enrageInterval:9,count:3,enrageCount:4,fuse:12,enrageFuse:10,dmg:30,max:4,fair:true},   // 2026-09-30 CK 看 v118 候選：fuse 10/8 → 12/10、dmg 50 → 30（第二團起隨機附之後變難）
      cover:{deck:'黃泉燈路',head:'燈一盞一盞熄了<br>只剩她手上這盞',tag:'跟著火走　別回頭',skill:'鬼火',lore:'在冥界替迷路的魂提燈，她說最近路上多了好多燈。',brief:'鬼火附在珠上倒數，消掉那顆珠就滅，沒消掉就撞隊伍。'}},
     // 第八關：夢婆的忘川（src/mechanics/lethe.js）。CK 2026-09-29 試玩場定的數字：每 15 秒沖一排、狂暴後每 12 秒也一排，盤面最多 12 顆灰珠（滿了就不沖），
     //   預告 warn 秒、開場 first 秒第一次，優先沖彩色珠最多的那一排。灰珠照樣能消、照樣打 BOSS、照樣集能量，只是看不出顏色
@@ -4284,22 +4284,21 @@ var TEAM=(function(){
   var tMesh=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:tTex,transparent:true,depthWrite:false,fog:false}));tMesh.raycast=noRay;cam.add(tMesh);
   var TITLE_D=8.2,TL={top:44,h:110,w:360};
   // 冥界封面缺字（config.js 的 chapters[].garble，flow.js 的 coverGarbled）：名字其中一個字換成□或█、另一個字淡掉；gl＞0 時每個字錯位（偶爾抖一下，見 update）
-  //   大標題的缺字（□、█，第九關還沒打倒的名字「██」也是）不畫字（2026-09-30 CK：大字的「□」很像中文字「口」），那一格改成一塊靜電雜點、一直閃，
-  //   像訊號不良（CK 之後第三章想要小物件偶爾閃故障雜訊，同一個方向）。介紹文、資訊框的小字照舊用□█。
-  //   做法：每一格一張小板子（nz，貼在標題板上、跟著標題走、被 BOSS 擋得住），貼圖是 NZ×NZ 顆方點（NearestFilter），每 NZ_DT 秒重抽一次（update）；
-  //   點的顏色＝標題色（深淺不一）、少數是光暈色和白色的亮點，每次抽一兩條橫的撕裂線；邊上稀一點。亂數用自己的（nzR，不動 Math.random）
-  var NZ=18,NZ_DT=0.07,nzS=4099,nzT=0,nz=[];
-  function nzR(){nzS=(nzS*16807)%2147483647;return nzS/2147483647;}
-  function rgbOf(css){var m=/rgba?\(([^)]+)\)/.exec(css);if(!m)return new THREE.Color(css);var v=m[1].split(',');return new THREE.Color(+v[0]/255,+v[1]/255,+v[2]/255);}
-  function nzCell(j){if(nz[j])return nz[j];var d=new Uint8Array(NZ*NZ*4),t=new THREE.DataTexture(d,NZ,NZ,THREE.RGBAFormat);t.magFilter=t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;
-    var m=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,fog:false}));m.raycast=noRay;m.visible=false;tMesh.add(m);
-    return (nz[j]={m:m,d:d,t:t,col:new THREE.Color(),glow:new THREE.Color(),a:1});}
-  function nzFill(c){var d=c.d,t1=Math.floor(nzR()*NZ),t2=nzR()<0.5?Math.floor(nzR()*NZ):-1,W=new THREE.Color(1,1,1);
-    for(var y=0;y<NZ;y++){var tear=y===t1||y===t2,sh=tear?Math.floor(nzR()*5)-2:0;
-      for(var x=0;x<NZ;x++){var i=(y*NZ+((x+sh+NZ)%NZ))*4,e=Math.min(x,y,NZ-1-x,NZ-1-y),v=nzR(),on=v<(tear?0.9:e<2?0.28:0.55);   /* e：離邊幾顆（邊上稀一點） */
-        if(!on){d[i+3]=0;continue;}var q=nzR(),cc=q<0.08?W:q<0.26?c.glow:c.col,b=tear?1:0.45+0.55*nzR();
-        d[i]=Math.round(cc.r*b*255);d[i+1]=Math.round(cc.g*b*255);d[i+2]=Math.round(cc.b*b*255);d[i+3]=Math.round((tear?0.95:0.5+0.45*nzR())*255*c.a);}}
-    c.t.needsUpdate=true;}
+  //   大標題的缺字（□、█，第九關還沒打倒的名字「██」也是）不畫字（2026-09-30 CK：大字的「□」很像中文字「口」），那一格畫幾塊長方形色塊（CK 畫的樣子：
+  //   跟標題同色、半透明淡淡的，左右錯開疊成一個字的範圍，後面一層暗的柔影），而且會動，像訊號故障的切條——每 0.5～1.4 秒一次「故障」：
+  //   幾塊左右滑一下（BLK_SLIDE 秒）、整組重排、或閃一下（BLK_FLASH 秒）。介紹文、資訊框的小字照舊用□█。
+  //   色塊畫在標題的畫布上（跟字一樣會被 BOSS 擋住），只有故障那一下重畫，平常不重畫。位置用自己的亂數（blkR，不動 Math.random）
+  //   blk.cells[k]：第 k 個字那一格的色塊 [{x, y（中心，字級 fs 的倍數，格子中心是 0）, w, h, a（不透明度）, dx（滑開多少）, dx0, dx1（滑動的起點、終點）}]
+  var BLK_N=5,BLK_SLIDE=0.18,BLK_FLASH=0.1,blkS=4099,blk={cur:-1,cells:{},ev:'',u:0,t:0.8,flash:false};
+  function blkR(){blkS=(blkS*16807)%2147483647;return blkS/2147483647;}
+  function blkLayout(){var out=[];for(var i=0;i<BLK_N;i++){var w=0.34+0.3*blkR(),h=0.12+0.08*blkR(),y=-0.38+i*0.76/(BLK_N-1)+(blkR()-0.5)*0.08,side=i%2?1:-1,
+      x=side*(0.08+0.14*blkR());x=Math.max(-0.52+w/2,Math.min(0.52-w/2,x));out.push({x:x,y:y,w:w,h:h,a:0.5+0.3*blkR(),dx:0,dx0:0,dx1:0});}   // 一排一塊、左右交錯，不跑出那一格太多
+    return out;}
+  function blkEvent(){var cells=Object.keys(blk.cells).map(function(k){return blk.cells[k];});if(!cells.length)return;var r=blkR();
+    if(r<0.55){blk.ev='slide';blk.u=0;cells.forEach(function(c){c.forEach(function(b){b.dx0=b.dx1=b.dx;});for(var n=1+Math.floor(blkR()*2),q=0;q<n;q++){var b=c[Math.floor(blkR()*c.length)%c.length];
+      b.dx1=Math.max(-0.25,Math.min(0.25,b.dx+(blkR()<0.5?-1:1)*(0.08+0.14*blkR())));}});}   // 一格裡一兩塊往左或往右滑
+    else if(r<0.8){Object.keys(blk.cells).forEach(function(k){blk.cells[k]=blkLayout();});blk.ev='flash';blk.u=0;blk.flash=true;}   // 整組重排（順便閃一下）
+    else {blk.ev='flash';blk.u=0;blk.flash=true;}}
   function drawTitle(gl){var st=CONFIG.stages[cur],pal=STAGES[cur].pal,w=Math.round(TL.w*PR),h=Math.round(TL.h*PR),g=tCan.getContext('2d');
     tCan.width=w;tCan.height=h;g.clearRect(0,0,w,h);
     var txt=stageName(cur).split(''),al=txt.map(function(){return 1;}),gb=coverGarbled(cur);   /* 第九關：名字會回來（flow.js 的 stageName） */
@@ -4307,15 +4306,16 @@ var TEAM=(function(){
     var n=txt.length,gap=n<=2?0.62:n===3?0.2:0.06,fs=Math.min(h*0.9,w*0.98/(n+(n-1)*gap)),step=fs*(1+gap),x0=(w-(n*fs+(n-1)*gap*fs))/2+fs/2;
     g.font='900 '+fs.toFixed(1)+'px '+TITLE_FONT;g.textAlign='center';g.textBaseline='middle';
     g.shadowColor=pal.glow;g.shadowBlur=fs*0.16;g.fillStyle=pal.title;
-    var nj=0,col=new THREE.Color(pal.title),glc=rgbOf(pal.glow);
+    if(blk.cur!==cur){blk.cur=cur;blk.cells={};blk.ev='';blk.flash=false;}
     function miss(c){return c==='□'||c==='█';}
     function row(){for(var k=0;k<n;k++){if(miss(txt[k]))continue;g.globalAlpha=al[k];var dx=gl?Math.sin(k*7.3+gl*13)*fs*0.08:0,dy=gl?Math.cos(k*3.1+gl*9)*fs*0.05:0;g.fillText(txt[k],x0+k*step+dx,h*0.54+dy);}g.globalAlpha=1;}
     row();g.shadowBlur=0;row();
-    for(var k=0;k<n;k++){if(!miss(txt[k]))continue;var c=nzCell(nj++),dx=gl?Math.sin(k*7.3+gl*13)*fs*0.08:0,dy=gl?Math.cos(k*3.1+gl*9)*fs*0.05:0,sz=fs*0.82;   // 缺字那一格：雜點（跟字一樣錯位）
-      c.m.position.set((x0+k*step+dx)/w-0.5,0.5-(h*0.54+dy)/h,0.001);c.m.scale.set(sz/w,sz/h,1);c.m.visible=true;c.col.copy(col);c.glow.copy(glc);c.a=al[k];nzFill(c);}
-    for(;nj<nz.length;nj++)nz[nj].m.visible=false;
+    g.save();g.fillStyle=pal.title;g.shadowColor='rgba(4,10,8,.45)';g.shadowBlur=fs*0.14;   // 缺字那一格：幾塊半透明色塊（後面一層暗的柔影），跟字一樣錯位
+    for(var k=0;k<n;k++){if(!miss(txt[k]))continue;var c=blk.cells[k]||(blk.cells[k]=blkLayout()),cx=x0+k*step+(gl?Math.sin(k*7.3+gl*13)*fs*0.08:0),cy=h*0.54+(gl?Math.cos(k*3.1+gl*9)*fs*0.05:0);
+      c.forEach(function(b){g.globalAlpha=al[k]*Math.min(1,b.a*(blk.flash?1.5:1));g.fillRect(cx+(b.x+b.dx-b.w/2)*fs,cy+(b.y-b.h/2)*fs,b.w*fs,b.h*fs);});}
+    g.restore();
     tTex.needsUpdate=true;}
-  var glT=2.2,glOn=0;   // 缺字標題偶爾錯位抖一下：每 2～3 秒抖 0.14 秒
+  var glT=2.2,glOn=0,glAt=0;   // 缺字標題偶爾錯位抖一下：每 2～3 秒抖 0.14 秒
   (function(){var set={'□':1,'█':1};CONFIG.stages.forEach(function(s){var cv=s.cover||{},nm=s.names||{};(s.name+(nm.lost||'')+(nm.found||'')+(cv.deck||'')+(cv.head||'')+(cv.tag||'')+(cv.skill||'')+(cv.foundHead||'')+(cv.foundTag||'')).replace(/<br>|\s/g,'').split('').forEach(function(c){set[c]=1;});});   // □█：冥界封面缺字用；第九關真結局之後的名字、大標也要
     var txt=Object.keys(set).join('');
     var ln=document.createElement('link');ln.rel='stylesheet';ln.href='https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@700;900&display=swap&text='+encodeURIComponent(txt);
@@ -5349,8 +5349,12 @@ var TEAM=(function(){
     ndc.set(p.x/L.W*2-1,-(p.y/L.H)*2+1);ray.setFromCamera(ndc,cam);
     if(ray.intersectObject(B.boss.hit,false).length){B.boss.f.attack();pokeT=1;([AudioFX.hop,AudioFX.slash,AudioFX.charm,AudioFX.bloom,AudioFX.ward,AudioFX.mirror][cur]||AudioFX.hop)();}});
   function update(dt,t){var B=built[cur];if(!B)return;
-    if(coverGarbled(cur)){glT-=dt;if(glOn>0){glOn-=dt;if(glOn<=0)drawTitle();}else if(glT<=0){glT=2+((t*7.1)%1);glOn=0.14;drawTitle(t+0.5);}}
-    nzT-=dt;if(nzT<=0){nzT=NZ_DT;nz.forEach(function(c){if(c.m.visible)nzFill(c);});}   // 缺字的雜點一直閃
+    if(coverGarbled(cur)){glT-=dt;if(glOn>0){glOn-=dt;if(glOn<=0)drawTitle();}else if(glT<=0){glT=2+((t*7.1)%1);glOn=0.14;glAt=t+0.5;drawTitle(glAt);}}
+    if(coverGarbled(cur)&&Object.keys(blk.cells).length){var glNow=glOn>0?glAt:undefined;   // 缺字色塊的故障：滑一下／重排／閃一下
+      if(blk.ev==='slide'){blk.u=Math.min(1,blk.u+dt/BLK_SLIDE);var e=1-(1-blk.u)*(1-blk.u);Object.keys(blk.cells).forEach(function(k){blk.cells[k].forEach(function(b){b.dx=b.dx0+(b.dx1-b.dx0)*e;});});
+        if(blk.u>=1)blk.ev='';drawTitle(glNow);}
+      else if(blk.ev==='flash'){blk.u+=dt/BLK_FLASH;if(blk.u>=1){blk.ev='';blk.flash=false;drawTitle(glNow);}}
+      else {blk.t-=dt;if(blk.t<=0){blk.t=0.5+0.9*blkR();blkEvent();drawTitle(glNow);}}}
     sparks.forEach(function(s){var u=s.userData,k=Math.pow(Math.max(0,Math.sin(t*u.sp+u.ph)),3);s.scale.set(u.s*(0.4+0.6*k),u.s*(0.4+0.6*k),1);s.material.opacity=k*0.9;});
     halo2.material.opacity=(halo2.userData.o||0.28)*(0.92+0.1*Math.sin(t*0.8));
     cloudS.forEach(function(c,j){if(c.visible)c.position.x=c.userData.bx+Math.sin(t*0.05+j*2)*0.6;});
