@@ -21,8 +21,8 @@ function waterDrop(L) {
 function softLeaf(L) {
   var s = new L.THREE.Shape();
   s.moveTo(-0.86, -0.74);
-  s.bezierCurveTo(-0.95, 0.18, -0.33, 0.75, 0.89, 0.78);
-  s.bezierCurveTo(0.92, -0.18, 0.25, -0.83, -0.86, -0.74);
+  s.bezierCurveTo(-1.0, 0.22, -0.34, 0.82, 0.89, 0.78);
+  s.bezierCurveTo(0.96, -0.22, 0.28, -0.87, -0.86, -0.74);
   return s.getPoints(96).map(function (p) { return [p.x, p.y]; });
 }
 
@@ -35,17 +35,13 @@ window.ORB_LAB_DRAFTS = [
     outline: waterDrop,
     size: 0.98, color: 0x3c9fee, plateColor: 0xe4b86d,
     material: function (L) { return softOrbMaterial(L, 0x3c9fee); } },
-  { key: 'wood', name: '軟玉木珠', note: '斜長的綠葉與一條寬鬆葉脈。',
+  { key: 'wood', name: '軟玉木珠', note: '無葉脈、中央稍飽滿的綠葉。',
     outline: softLeaf,
     size: 1.06, color: 0x30b978, plateColor: 0xe4b86d,
-    material: function (L) { return softOrbMaterial(L, 0x30b978); },
-    faceSize: 0.82,
-    face: function (ctx, n) {
-      ctx.strokeStyle = 'rgba(15,100,62,0.55)';
-      ctx.lineWidth = n * 0.035; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(n * 0.22, n * 0.78);
-      ctx.quadraticCurveTo(n * 0.51, n * 0.47, n * 0.79, n * 0.22);
-      ctx.stroke();
+    material: function (L) {
+      var m = softOrbMaterial(L, 0x30b978);
+      m.shininess = 8; m.specular.setHex(0x101010);
+      return m;
     } },
   { key: 'light', name: '軟玉光珠', note: '圓鈍的四角金星。',
     shape: 'star', size: 1.06, color: 0xffc94e, plateColor: 0xe4b86d,
