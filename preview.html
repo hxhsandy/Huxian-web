@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <script>/* 預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
-   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（&ending=nobell 有信沒戴鈴；&story=lb 當作有信又戴金鈴來打，看第三段金鈴故事）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
+   ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（&ending=nobell 有信沒戴鈴；&story=lb 當作有信又戴金鈴來打，看第三段金鈴故事）；?easy BOSS 血量剩四分之一（CK 上班偷測用，最終戰每段 2500；換段、補血、金鈴停血都照常）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
-if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);})();</script>
+if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);
+if(/[?&]easy/.test(location.search)){var EK=0.25,et=setInterval(function(){var g=window.__game;if(!g||!g.battle)return;clearInterval(et);var bt=g.battle,orig=bt.reset;function sc(){if(bt.bossMax>0&&bt.__easy!==bt.bossMax){bt.bossMax=Math.max(1,Math.round(bt.bossMax*EK));bt.bossHp=Math.min(bt.bossHp,bt.bossMax);bt.__easy=bt.bossMax;}}bt.reset=function(){var r=orig.apply(this,arguments);sc();return r;};sc();},30);}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
 <meta name="apple-mobile-web-app-capable" content="yes">
