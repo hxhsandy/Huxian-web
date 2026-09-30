@@ -1,15 +1,59 @@
-// 珠子實驗室草稿（繪星改這個檔）。一種屬性一份：key 是 fire／water／wood／light／dark／heart。寫法見 README.md。
-// 下面這份是範例（example: true），網址加 &example=1 才會套上；繪星的草稿直接往陣列裡加。
+// 狐仙三消珠子 B 方向：圓潤、六種剪影與色彩都分開。仍是實驗室草稿。
+function softOrbMaterial(L, color) {
+  return new L.THREE.MeshPhongMaterial({
+    color: color,
+    shininess: 23,
+    specular: 0x595959,
+    emissive: new L.THREE.Color(color).multiplyScalar(0.09)
+  });
+}
+
+function waterDrop(L) {
+  var s = new L.THREE.Shape();
+  s.moveTo(0, 0.96);
+  s.bezierCurveTo(-0.24, 0.66, -0.73, 0.12, -0.73, -0.3);
+  s.bezierCurveTo(-0.73, -0.74, -0.39, -0.94, 0, -0.94);
+  s.bezierCurveTo(0.39, -0.94, 0.73, -0.74, 0.73, -0.3);
+  s.bezierCurveTo(0.73, 0.12, 0.24, 0.66, 0, 0.96);
+  return s.getPoints(96).map(function (p) { return [p.x, p.y]; });
+}
+
+function softLeaf(L) {
+  var s = new L.THREE.Shape();
+  s.moveTo(-0.86, -0.74);
+  s.bezierCurveTo(-0.95, 0.18, -0.33, 0.75, 0.89, 0.78);
+  s.bezierCurveTo(0.92, -0.18, 0.25, -0.83, -0.86, -0.74);
+  return s.getPoints(96).map(function (p) { return [p.x, p.y]; });
+}
+
 window.ORB_LAB_DRAFTS = [
-  { key: 'water', name: '範例：圓水珠＋笑臉', example: true,
-    note: '示範：輪廓用點、顏色、在珠子正面畫表情。',
-    outline: function (L) { var pts = []; for (var i = 0; i < 64; i++) { var a = i / 64 * Math.PI * 2; pts.push([Math.cos(a), Math.sin(a)]); } return pts; },
-    color: 0x439fe2,
-    face: function (c, n) {   // c 是 canvas 2D，n＝256；畫在正中間，外圍留透明
-      c.fillStyle = '#1b2a4a';
-      c.beginPath(); c.ellipse(n * 0.38, n * 0.46, n * 0.035, n * 0.05, 0, 0, Math.PI * 2); c.fill();
-      c.beginPath(); c.ellipse(n * 0.62, n * 0.46, n * 0.035, n * 0.05, 0, 0, Math.PI * 2); c.fill();
-      c.lineWidth = n * 0.025; c.strokeStyle = '#1b2a4a'; c.lineCap = 'round';
-      c.beginPath(); c.arc(n * 0.5, n * 0.55, n * 0.08, 0.2 * Math.PI, 0.8 * Math.PI); c.stroke();
-    } }
+  { key: 'fire', name: '軟玉火珠', note: '飽滿珊瑚橘三角，像小火苗。',
+    outline: function (L) { return L.roundedPoly(3, Math.PI / 2, 0.58, 0.43); },
+    size: 1.04, color: 0xf37758, plateColor: 0xe4b86d,
+    material: function (L) { return softOrbMaterial(L, 0xf37758); } },
+  { key: 'water', name: '軟玉水珠', note: '藍色胖水滴，圓底與尖頂和火珠分得開。',
+    outline: waterDrop,
+    size: 0.98, color: 0x3c9fee, plateColor: 0xe4b86d,
+    material: function (L) { return softOrbMaterial(L, 0x3c9fee); } },
+  { key: 'wood', name: '軟玉木珠', note: '斜長的綠葉與一條寬鬆葉脈。',
+    outline: softLeaf,
+    size: 1.06, color: 0x30b978, plateColor: 0xe4b86d,
+    material: function (L) { return softOrbMaterial(L, 0x30b978); },
+    faceSize: 0.82,
+    face: function (ctx, n) {
+      ctx.strokeStyle = 'rgba(15,100,62,0.55)';
+      ctx.lineWidth = n * 0.035; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(n * 0.22, n * 0.78);
+      ctx.quadraticCurveTo(n * 0.51, n * 0.47, n * 0.79, n * 0.22);
+      ctx.stroke();
+    } },
+  { key: 'light', name: '軟玉光珠', note: '圓鈍的四角金星。',
+    shape: 'star', size: 1.06, color: 0xffc94e, plateColor: 0xe4b86d,
+    material: function (L) { return softOrbMaterial(L, 0xffc94e); } },
+  { key: 'dark', name: '軟玉暗珠', note: '紫色圓角方塊。',
+    shape: 'square', size: 0.98, color: 0x9363df, plateColor: 0xe4b86d,
+    material: function (L) { return softOrbMaterial(L, 0x9363df); } },
+  { key: 'heart', name: '軟玉心珠', note: '桃粉色飽滿愛心。',
+    shape: 'heart', size: 1.02, color: 0xef6fae, plateColor: 0xe4b86d,
+    material: function (L) { return softOrbMaterial(L, 0xef6fae); } }
 ];
