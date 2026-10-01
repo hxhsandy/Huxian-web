@@ -250,15 +250,15 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #wispTags{top:0;height:100%}
 .wispTag{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .25s,transform .25s}
 .wispTag .gl{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(190,255,190,.45) 0%,rgba(110,230,140,.26) 42%,rgba(70,200,110,0) 70%);animation:wispGl .5s ease-in-out infinite alternate}
-/* Q 版鬼火（人魂）（2026-10-01 CK 給參考圖 CK參考_Q版鬼火.png 改第二版；第一版 9/30 是圓火團＋眼睛腮紅）：下半部圓圓、邊緣軟軟波浪的一團，往上收成一條細細彎成 S 的火尖；
-   靠下一圈淡色漩渦亮部、邊緣深一點的綠；沒有表情。蓋在珠子上、有一點半透明（中間比較透、邊緣比較實，看得到下面是什麼珠）：身體圓的那一團中心對準珠心，火尖伸到上面一格。
-   樣子是一張 SVG（viewBox 100×150，身體中心在 y 112＝75%），一直輕輕晃、一伸一縮 */
-.wispTag .fl{position:absolute;left:50%;top:50%;width:calc(var(--s) * .7);height:calc(var(--s) * 1.05);transform:translate(-50%,-75%);transform-origin:50% 75%;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 150'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50' cy='112' r='100' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23effff0' stop-opacity='.5'/%3E%3Cstop offset='.22' stop-color='%23bff5c6' stop-opacity='.58'/%3E%3Cstop offset='.5' stop-color='%238ce99f' stop-opacity='.78'/%3E%3Cstop offset='1' stop-color='%235ad47b' stop-opacity='.96'/%3E%3C/radialGradient%3E%3CradialGradient id='h' cx='50' cy='118' r='20' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23f7fff4' stop-opacity='.7'/%3E%3Cstop offset='.7' stop-color='%23e6ffe6' stop-opacity='.55'/%3E%3Cstop offset='1' stop-color='%23d8fbdc' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M64 2C70 7 69 16 62 24C57 30 57 36 62 42C67 48 70 54 71 60C77 64 82 70 81 78C80 84 83 88 86 93C91 101 91 111 88 118C90 126 86 136 77 142C70 147 60 149 51 148C42 148 32 145 25 139C17 134 12 126 13 118C10 111 10 102 15 96C14 88 17 82 22 78C21 70 25 63 31 58C35 52 38 46 41 40C45 32 50 27 54 20C57 14 60 9 59 5C60 3 62 1 64 2Z' fill='url%28%23g%29' stroke='%232fa655' stroke-width='2.4' stroke-linejoin='round'/%3E%3Cellipse cx='50' cy='118' rx='20' ry='17' fill='url%28%23h%29'/%3E%3Cpath d='M38 129C30 118 36 104 49 103C62 102 68 112 65 122C61 131 50 135 44 130C38 125 43 117 49 118' fill='none' stroke='%235fcf7e' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;animation:wispFl .45s ease-in-out infinite alternate}
+/* Q 版鬼火（2026-10-01 CK 第三版，參考剪影 shared/Huxian-review/CK參考_小鬼火_小狐魂剪影.png 左；CK：形狀對了就很像鬼火）：圓圓小小、矮胖的一團，上面一個短短微彎的尖火尖，
+   沒有漩渦、沒有表情；中間比較透、邊緣比較實（看得到下面是什麼珠），圓的那一團中心對準珠心、火尖稍微伸出珠子上緣。
+   樣子是一張 SVG（viewBox 100×130，圓的中心在 y 80＝62%），一直輕輕晃、一伸一縮。第一版（9/30）圓火團＋眼睛腮紅、第二版（10/01 凌晨）人魂＋漩渦 */
+.wispTag .fl{position:absolute;left:50%;top:50%;width:calc(var(--s) * .5);height:calc(var(--s) * .65);transform:translate(-50%,-62%);transform-origin:50% 62%;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 130'%3E%3Cdefs%3E%3CradialGradient id='g' cx='48' cy='86' r='62' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23effff0' stop-opacity='.5'/%3E%3Cstop offset='.3' stop-color='%23bff5c6' stop-opacity='.6'/%3E%3Cstop offset='.62' stop-color='%238ce99f' stop-opacity='.8'/%3E%3Cstop offset='1' stop-color='%235ad47b' stop-opacity='.96'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M57 3C53 12 58 18 62 24C66 30 70 32 74 36C86 46 91 62 90 80C90 104 72 123 50 123C27 123 10 104 10 82C10 62 22 48 36 40C44 35 47 28 47 21C47 14 52 8 57 3Z' fill='url%28%23g%29' stroke='%232fa655' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;animation:wispFl .45s ease-in-out infinite alternate}
 .wispTag b{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:800 calc(var(--s) * .34)/1 sans-serif;color:#fff;text-shadow:0 0 3px #173a10,0 0 3px #173a10,0 1px 2px #000}
 .wispTag.hot b{color:#ffdf6a}.wispTag.hot .fl{animation-duration:.14s}.wispTag.bye{opacity:0;transform:scale(1.6)}
 @keyframes wispGl{from{opacity:.75}to{opacity:1}}
-@keyframes wispFl{from{transform:translate(-50%,-75%) rotate(-4deg) scale(1.03,.97)}to{transform:translate(-50%,-76%) rotate(4deg) scale(.97,1.04)}}
+@keyframes wispFl{from{transform:translate(-50%,-62%) rotate(-4deg) scale(1.04,.96)}to{transform:translate(-50%,-63%) rotate(4deg) scale(.97,1.05)}}
 .charmLock{position:absolute;left:0;top:0;width:var(--lk,70px);height:var(--lk,70px);margin:calc(var(--lk,70px) / -2) 0 0 calc(var(--lk,70px) / -2);pointer-events:none;
   opacity:0;transform:scale(1.4);transition:opacity .18s,transform .25s cubic-bezier(.3,1.5,.5,1)}
 .charmLock.on{opacity:1;transform:none}
@@ -5857,6 +5857,13 @@ var _zA=new THREE.Vector3(0,0,1);
 function updateFx(dt){updateBits(dt);[beams,rings].forEach(function(pool){pool.forEach(function(f){if(f.life<=0)return;f.life-=dt;
   if(f.life<=0){f.m.visible=false;return;}var k=1-f.life/f.max,e=1-Math.pow(1-k,3);
   f.m.scale.set(f.l0+(f.l1-f.l0)*e,f.w0+(f.w1-f.w0)*e,1);f.m.material.opacity=Math.min(1,(1-k)*1.6);});});}
+// 晃動分三份（2026-10-01 硯衡驗鬼火第三版抓到）：主迴圈只要晃動還沒停，每格就抽兩次 Math.random（flow.js），盤面補珠也用 Math.random——
+//   晃動「什麼時候開始、什麼時候停」一變，後面補珠的顏色就整串不一樣。鬼火狐魂改成照距離到、被打的晃動跟著魂魄，但抽亂數的格數要跟原本一樣：
+//   shake       一般的晃動（抽 Math.random、畫面會晃）——除了鬼火都照舊用這個
+//   shakeGhost  只算亂數、不晃（原本光球到的那一刻記一筆 5，抽亂數的格數＝原本；跟 shake 用同樣的倍數衰減，兩個取大的＝原本那一個 shake）
+//   shakeVis    只晃、不抽 Math.random（魂魄撞到才晃，自己的亂數）
+var shakeGhost=0,shakeVis=0;function setShakeGhost(v){shakeGhost=v;}function setShakeVis(v){shakeVis=v;}
+function ghostShake(a){shakeGhost=Math.max(shakeGhost,a);}function visShake(a){shakeVis=Math.max(shakeVis,a);}
 var shake=0;/* 別的 module 要整個換掉 shake 用這個（import 進去的變數不能直接賦值） */function setShake(v){shake=v;}function addShake(a){shake=Math.max(shake,a);if(navigator.vibrate&&a>=6){try{navigator.vibrate(18);}catch(_){}}}
 
 // 飄落桂花（在底座後方）
@@ -6528,27 +6535,33 @@ var LETHE_VIEW={
 var GREEN=new THREE.Color(0xb8ff4a),GREEN2=new THREE.Color(0x7be05a);
 var box=document.getElementById('wispTags'),tags={};   // id → 標籤
 function tagFor(id){var t=tags[id];if(!t){t=document.createElement('div');t.className='wispTag';t.innerHTML='<i class="gl"></i><i class="fl"></i><b></b>';box.appendChild(t);tags[id]=t;}return t;}
-// 鬼火炸開衝出來的狐狸魂魄（2026-09-30 演出打磨第三批，CK 之前的點子：上半身是狐狸、下半身是火焰，半透明，衝向隊伍）：
-//   畫在一張 canvas 貼圖上（第一次要用才畫：狐狸頭朝上、兩隻耳朵，胸口往下收成一條細細彎成 S 的火尖；2026-10-01 CK：不要表情、尾巴像鬼火的火尖，原本是瞇瞇眼＋三條火舌），板子放在盤面那一層（boardScene，z 86）；
-//   從那顆珠沿一條往上拱的弧線衝向那隻狐狸，頭朝前進的方向、一路掉綠色火星，一邊閃。
-//   撞到的時機、還在飛的計數（inflight）、Math.random 抽的次數都照原本：原本的光球照樣射（fireShot，大小幾乎 0＝看不見），魂魄只是畫面，
-//   用自己的亂數（spR），時間一樣是 A.shot 秒——這樣盤面補珠的顏色跟原本一模一樣
+// 鬼火炸開衝出來的狐狸魂魄（2026-09-30 演出打磨第三批，CK 之前的點子：上半身是狐狸、下半身是火焰，半透明，衝向隊伍）。
+//   2026-10-01 CK 第三版（參考剪影 shared/Huxian-review/CK參考_小鬼火_小狐魂剪影.png 右）：小小的、狐狸頭兩隻尖耳朵＋身體往下收成狐火那樣尖的尾巴，沒有表情；
+//   畫在一張 96×192 的 canvas 貼圖上（第一次要用才畫），從炸開的那顆珠沿一條往上拱的弧線衝向被打的那隻狐狸，頭朝前進的方向、一路掉綠色火星，一邊閃。
+//   同一波一起炸開＝一顆一隻、各自從自己那顆珠出發（第二版以前池子有 bug：同一格叫兩次會拿到同一片板子，只看得到一隻）；
+//   飛的時間照距離（近的先到），撞到那隻狐狸才演被打（閃、圈、震、扣血數字、血條）→ 兩三顆一起炸，扣血演出會錯開一點點（CK 要的）。
+//   邏輯照原本：扣血在炸開那一格就算了（wisp.js）；原本的光球照樣射（fireShot，大小 1e-6 看不見，A.shot 秒），還在飛的計數（inflight）、
+//   Math.random 抽的次數、輸掉的時機（光球到的時候 teamHp≤0 → lost）都跟原本一樣；晃動：光球到的時候 ghostShake（只算亂數）、魂魄撞到 visShake（只晃）——
+//   主迴圈的晃動每格抽 Math.random，直接在魂魄到的時候 addShake 會讓抽的格數變（2026-10-01 硯衡抓到，見 effects.js）；魂魄用自己的亂數（spR）→ 盤面補珠的顏色跟原本一模一樣
 var SPIRIT=null,spirits=[],spS=13579;
 function spR(a,b){spS=(spS*16807)%2147483647;return a+(spS/2147483647)*(b-a);}
-function spiritTex(){if(SPIRIT)return SPIRIT;SPIRIT=canvasTex(128,160,function(g,w,h){var cx=w/2;g.shadowColor='rgba(150,255,90,.9)';g.shadowBlur=14;
-    var fl=g.createLinearGradient(0,50,0,h);fl.addColorStop(0,'rgba(215,255,160,.95)');fl.addColorStop(0.55,'rgba(150,245,95,.8)');fl.addColorStop(1,'rgba(110,225,80,.5)');g.fillStyle=fl;
-    g.beginPath();g.moveTo(cx-24,50);g.bezierCurveTo(cx-38,72,cx-28,100,cx-10,116);g.bezierCurveTo(cx-1,124,cx+7,133,cx+3,145);g.bezierCurveTo(cx+1,151,cx-4,155,cx-3,158);
-    g.bezierCurveTo(cx+7,155,cx+14,147,cx+13,136);g.bezierCurveTo(cx+12,124,cx+3,116,cx+11,106);g.bezierCurveTo(cx+26,98,cx+38,74,cx+24,50);g.closePath();g.fill();   // 胸口往下收成一條細細彎成 S 的火尖（跟鬼火的火尖一樣）
-    g.fillStyle='rgba(215,255,160,.95)';g.beginPath();g.moveTo(cx-30,34);g.lineTo(cx-34,4);g.lineTo(cx-12,22);g.closePath();g.fill();g.beginPath();g.moveTo(cx+30,34);g.lineTo(cx+34,4);g.lineTo(cx+12,22);g.closePath();g.fill();   // 耳朵
-    g.beginPath();g.ellipse(cx,44,32,27,0,0,Math.PI*2);g.fill();   // 頭（跟身體最上面同一個顏色、接起來；胸口那顆淡色橢圓拿掉了：沒有臉之後看起來像嘴巴）
-    g.shadowBlur=0;g.fillStyle='rgba(120,230,110,.7)';g.beginPath();g.moveTo(cx-26,30);g.lineTo(cx-29,11);g.lineTo(cx-17,24);g.closePath();g.fill();g.beginPath();g.moveTo(cx+26,30);g.lineTo(cx+29,11);g.lineTo(cx+17,24);g.closePath();g.fill();});return SPIRIT;}   // 耳朵裡；沒有表情（2026-10-01 CK）
+function spiritTex(){if(SPIRIT)return SPIRIT;SPIRIT=canvasTex(96,192,function(g,w,h){g.shadowColor='rgba(150,255,90,.9)';g.shadowBlur=10;
+    var fl=g.createLinearGradient(0,0,0,h);fl.addColorStop(0,'rgba(220,255,170,.95)');fl.addColorStop(0.45,'rgba(170,248,110,.88)');fl.addColorStop(1,'rgba(110,225,80,.55)');g.fillStyle=fl;
+    g.beginPath();g.moveTo(22,6);g.lineTo(37,26);g.quadraticCurveTo(48,22,59,26);g.lineTo(74,6);   // 兩隻尖耳朵、中間凹一點
+    g.bezierCurveTo(78,22,78,40,74,52);g.bezierCurveTo(70,62,62,66,60,70);g.bezierCurveTo(74,80,76,104,64,122);   // 頭右邊、脖子、身體右邊
+    g.bezierCurveTo(58,130,56,140,56,150);g.bezierCurveTo(56,162,50,172,42,182);g.bezierCurveTo(44,170,42,160,40,152);   // 往下收成尖尾巴（尖端往左彎）
+    g.bezierCurveTo(38,142,26,134,24,114);g.bezierCurveTo(22,94,24,80,36,70);g.bezierCurveTo(32,66,24,62,22,52);g.bezierCurveTo(18,40,18,22,22,6);g.closePath();g.fill();});return SPIRIT;}   // 身體左邊、頭左邊
+var SP_D=0.35,SP_K=1.3;   // 飛的時間＝A.shot ×（SP_D＋SP_K × 距離／9 格），夾在 0.7～1.7 倍
 function spirit(from,to){var m=null;for(var i=0;i<spirits.length;i++)if(!spirits[i].visible){m=spirits[i];break;}
-  if(!m){m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:spiritTex(),transparent:true,depthWrite:false,opacity:0.85}));m.visible=false;boardScene.add(m);spirits.push(m);}
-  var cx=(from.x+to.x)/2+spR(-L.W*0.1,L.W*0.1),cy=Math.min(from.y,to.y)-spR(20,60),px=from.x,py=from.y,sz=L.cs*2;
-  return tween(A.shot,function(k){var e=k*k*0.45+k*0.55,u=1-e,x=u*u*from.x+2*u*e*cx+e*e*to.x,y=u*u*from.y+2*u*e*cy+e*e*to.y;   // 跟原本的光球同一條弧線、同一個快慢
-    m.visible=true;m.position.set(x,-y,86);if(Math.hypot(x-px,y-py)>0.5)m.rotation.z=Math.atan2(-(y-py),x-px)-Math.PI/2;px=x;py=y;   // 頭朝前進的方向
-    var s=sz*(0.75+0.25*Math.min(1,k*3));m.scale.set(s*0.8,s,1);m.material.opacity=0.82+0.14*Math.sin(k*40);emit(x,y,spR(-20,20),spR(-20,20),0.25,L.cs*0.28,k*7%2<1?GREEN:GREEN2,0);})
+  if(!m){m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:spiritTex(),transparent:true,depthWrite:false,opacity:0.85}));boardScene.add(m);spirits.push(m);}
+  m.visible=true;m.position.set(from.x,-from.y,86);m.scale.set(0.001,0.001,1);   // 拿到就先佔住（同一格第二隻才不會拿到同一片）
+  var cx=(from.x+to.x)/2+spR(-L.W*0.1,L.W*0.1),cy=Math.min(from.y,to.y)-spR(20,60),px=from.x,py=from.y,sz=L.cs*1.3,
+    dur=A.shot*Math.min(1.7,Math.max(0.7,SP_D+SP_K*Math.hypot(to.x-from.x,to.y-from.y)/(L.cs*9)));
+  return tween(dur,function(k){var e=k*k*0.45+k*0.55,u=1-e,x=u*u*from.x+2*u*e*cx+e*e*to.x,y=u*u*from.y+2*u*e*cy+e*e*to.y;   // 跟原本的光球一樣的弧線和快慢曲線
+    m.position.set(x,-y,86);if(Math.hypot(x-px,y-py)>0.5)m.rotation.z=Math.atan2(-(y-py),x-px)-Math.PI/2;px=x;py=y;   // 頭朝前進的方向
+    var s=sz*(0.75+0.25*Math.min(1,k*3));m.scale.set(s*0.5,s,1);m.material.opacity=0.82+0.14*Math.sin(k*40);emit(x,y,spR(-14,14),spR(-14,14),0.22,L.cs*0.17,k*7%2<1?GREEN:GREEN2,0);})
   .then(function(){m.visible=false;});}
+function hitFox(e){var fp=foxScreen(e.fox);BS.foxes[e.fox].hit();ringFx(fp.x,fp.y,L.cs*0.3,L.cs*1.2,GREEN,0.4);visShake(5);popNum(fp.x,fp.y-14,'-'+e.dmg,'team','鬼火');updateBars();}   // 魂魄撞到那隻狐狸
 function drop$1(id,fade){var t=tags[id];if(!t)return;delete tags[id];if(fade){t.classList.add('bye');setTimeout(function(){t.remove();},260);}else t.remove();}
 function orbXY(v){return {x:L.bx+(v.col+0.5+v.ox)*L.cs,y:L.by+(v.row+0.5+v.oy)*L.cs};}
 function puff(x,y,n){for(var k=0;k<n;k++){var a=rand(0,6.283),sp=rand(0.8,2.6)*L.cs;emit(x,y,Math.cos(a)*sp,Math.sin(a)*sp-L.cs*1.2,rand(0.35,0.6),rand(0.1,0.2)*L.cs,k%2?GREEN:GREEN2,L.cs*3);}}
@@ -6564,10 +6577,8 @@ var WISP_VIEW={
   onEvent:function(e){   // 炸開：鬼火狐（綠光球）從珠上跳出去撞一隻狐狸
     if(e.type!=='wispBoom')return;
     var v=views.get(e.id),from=v?orbXY(v):{x:L.W/2,y:L.by};drop$1(e.id,true);puff(from.x,from.y,10);AudioFX.bossAttack();
-    spirit(from,foxScreen(e.fox));fireShot(from,foxScreen(e.fox),GREEN,0,function(){
-      var fp=foxScreen(e.fox);BS.foxes[e.fox].hit();ringFx(fp.x,fp.y,L.cs*0.3,L.cs*1.2,GREEN,0.4);addShake(5);
-      popNum(fp.x,fp.y-14,'-'+e.dmg,'team','鬼火');updateBars();
-      if(battle.teamHp<=0&&G.mode==='playing'){G.mode='lost';after(1.3,function(){showResult('hp');});}},1e-6);},   /* 光球大小 1e-6：看不見，只留時機 */
+    spirit(from,foxScreen(e.fox)).then(function(){hitFox(e);});   // 被打的演出跟著魂魄到（tweens 被清掉＝重開了，就不演）
+    fireShot(from,foxScreen(e.fox),GREEN,0,function(){ghostShake(5);if(battle.teamHp<=0&&G.mode==='playing'){G.mode='lost';after(1.3,function(){showResult('hp');});}},1e-6);},   /* 光球大小 1e-6：看不見，只留時機（輸掉的時機照原本） */
   hud:function(){   // 每一格：標籤跟著珠子走、秒數、最後 3 秒變黃、火跳得快
     var s=SES.mech.wisp,live={};
     if(s&&G.mode!=='result')s.list.forEach(function(w){var v=views.get(w.id);if(!v)return;live[w.id]=1;
@@ -6578,6 +6589,7 @@ var WISP_VIEW={
   douse:function(ids){ids.forEach(function(id){drop$1(id,true);});},   // 大招變奏淨流澆熄的：標籤淡掉（ults.js）
   reset:function(){Object.keys(tags).forEach(function(id){drop$1(id,false);});spirits.forEach(function(m){m.visible=false;});},   // 開新的一場：還在飛的魂魄也收掉（tweens 被清掉、飛完藏起來那一步不會跑）
   spiritsLive:function(){return spirits.filter(function(m){return m.visible;}).length;},   // 測試用：現在看得到幾個魂魄
+  spiritsAt:function(){return spirits.filter(function(m){return m.visible;}).map(function(m){return [Math.round(m.position.x),Math.round(-m.position.y)];});},   // 測試用：看得到的魂魄在畫面哪裡（px）
   coverSkill:function(c){return '每 '+c.interval+' 秒丟 '+c.count+' 團鬼火附在珠上，倒數 '+c.fuse+' 秒；把那顆珠消掉就滅，沒消掉鬼火狐會衝出來撞隊伍。狂暴後每 '+c.enrageInterval+' 秒 '+c.enrageCount+' 團、倒數 '+c.enrageFuse+' 秒。';}
 };
 
@@ -7075,7 +7087,7 @@ function applyAllOutfits(){WKEYS.forEach(applyOutfit);}
 applyAllOutfits();
 function setBossHud(){var st=CONFIG.stages[APP.stage];FINAL.hud(st);bossBarEl.querySelector('.name').textContent=st.name;var at=bossBarEl.querySelector('.attr');at.textContent=st.attrName;at.className='attr a-'+st.attr;}
 function resetBattleFx(){slowStop();ULTS.reset();REWARD.clear();FX2D.clear();DLG.clear();cdEl.classList.remove('sealed');tweens.length=0;MECH_VIEW_LIST.forEach(function(mv){if(mv.reset)mv.reset();});shotPool.forEach(function(q){q.on=false;q.m.visible=false;q.cb=null;});setInflight(0);motes.forEach(function(m){m.on=false;});parts.forEach(function(q){q.on=false;});clearBits();
-  [beams,rings].forEach(function(pool){pool.forEach(function(f){f.life=0;f.m.visible=false;});});setShake(0);bannerEl.classList.remove('show');toastEl.classList.remove('show');}
+  [beams,rings].forEach(function(pool){pool.forEach(function(f){f.life=0;f.m.visible=false;});});setShake(0);setShakeGhost(0);setShakeVis(0);bannerEl.classList.remove('show');toastEl.classList.remove('show');}
 // ---- 月下庭院：星星計數、關卡資訊框、傳送、第一次通關的收集動畫 ----
 var gHintEl=document.getElementById('gHint'),gToastEl=document.getElementById('gToast'),gToastT=0,gHintT=0,
     gStarsEl=document.getElementById('gStars'),gStarNumEl=document.getElementById('gStarNum'),gResetEl=document.getElementById('gReset'),
@@ -7455,7 +7467,8 @@ function syncOrbs(t){
 /* =====================================================================
    主迴圈（暫停或切到背景時停止渲染）
    ===================================================================== */
-var last$2=performance.now(),raf=0,running=false,shX=0,shY=0,shAcc=0;
+var last$2=performance.now(),raf=0,running=false,shX=0,shY=0,shAcc=0,vsX=0,vsY=0,vsAcc=0,vsS=97531;
+function vsR(){vsS=(vsS*16807)%2147483647;return vsS/2147483647*2-1;}   // shakeVis 自己的亂數（-1～1）
 // ?fps（開發用，跟 ?test 一樣是網址參數）：左下角小窗顯示每秒幾格、這一秒最慢的一格隔了幾毫秒、每格幾個 draw call
 // （一格裡所有 render 加起來，庭院的水面倒影也算）。給實機看全螢幕版的效能（2026-09-29）；沒帶 ?fps 時什麼都不做。
 var FPS=/[?&]fps/.test(location.search)?(function(){var el=document.createElement('div'),n=0,t0=performance.now(),t1=t0,worst=0;
@@ -7493,7 +7506,8 @@ function frame(now){
     if(mv){S.hint=mv.cells.map(function(p){return board.g[p[0]][p[1]].id;});S.hintAt=t;}}
   updateParticles(dt);updateFx(dt);updateMotes(dt);updateShots(dt);updatePetals(rdt,VT);BS.update(rdt,VT);REWARD.update(rdt,VT);syncOrbs(t);MECH_VIEW_LIST.forEach(function(mv){if(mv.update)mv.update(dt,t);});updateEnergy(rdt);updateHUD();
   FX2D.setBuff(fighting()?battle.buff:0);FX2D.update(rdt);
-  var sx=0,sy=0;if(shake>0.05){if(slowT<0||(shAcc+=rdt)>=1/60){shAcc=0;shX=(Math.random()*2-1)*shake;shY=(Math.random()*2-1)*shake;}sx=shX;sy=shY;setShake(shake*Math.pow(0.0005,rdt));}else setShake(0);   /* 慢動作時晃動也放慢（放慢的時間累積滿一格才換下一個晃的位置） */
+  var sx=0,sy=0;if(Math.max(shake,shakeGhost)>0.05){if(slowT<0||(shAcc+=rdt)>=1/60){shAcc=0;shX=(Math.random()*2-1)*shake;shY=(Math.random()*2-1)*shake;}sx=shX;sy=shY;var shF=Math.pow(0.0005,rdt);setShake(shake*shF);setShakeGhost(shakeGhost*shF);}else {setShake(0);setShakeGhost(0);}   /* 慢動作時晃動也放慢（放慢的時間累積滿一格才換下一個晃的位置）；shakeGhost 只決定要不要抽亂數、不晃（見 effects.js） */
+  if(shakeVis>0.05){if(slowT<0||(vsAcc+=rdt)>=1/60){vsAcc=0;vsX=vsR()*shakeVis;vsY=vsR()*shakeVis;}sx+=vsX;sy+=vsY;setShakeVis(shakeVis*Math.pow(0.0005,rdt));}else setShakeVis(0);   /* 只晃不抽 Math.random 的那一份（魂魄撞到） */
   ortho.position.set(-sx,sy,0);bcam.position.set(CAM.pos.x+sx*0.01,CAM.pos.y-sy*0.01,CAM.pos.z);bcam.lookAt(CAM.look);
   renderer.clear();renderExt(battleScene,bcam);renderer.clearDepth();renderExt(boardScene,ortho);if(FPS)FPS.end();
   raf=requestAnimationFrame(frame);}
@@ -7915,8 +7929,8 @@ window.__game={AudioFX:AudioFX,bcam:bcam,TEAM:TEAM,WARD:WARD,Save:Save,goWard:fu
   bossDown:function(){battle.bossHp=0;updateBars();onBossDown();},   // 測試用：BOSS 直接倒下（走正式的倒下流程：台詞、霧、淡出、結算）
   hitBoss:function(d){var r=battle.hitBoss(d==null?battle.bossHp:d);updateBars();if(r.killed)onBossDown();else if(r.held)FINAL.bellStory();return r;},   // 測試用：打 BOSS d（不給＝剛好打空這一條；最終戰前兩條打空＝換段；有信又戴金鈴、第三段打空＝鎖住演四句）
   shoot:function(d,i){shootBoss(d,i);},slow:function(){return slowNow();},   // 測試用：真的射一發打 BOSS（打死那一下會慢動作）；現在的慢動作倍數
-  wispBoom:function(fox){WISP_VIEW.onEvent({type:'wispBoom',id:-1,fox:fox||0,dmg:0});},shatter:function(x,y){shatterBits(x,y,L.cs);},   // 測試用：鬼火炸開（衝出狐狸魂魄、不扣血）、鏡片碎裂
-  fxLive:function(){return {spirits:WISP_VIEW.spiritsLive(),bits:bitsLive()};}};   // 測試用：還在飛的魂魄、還在掉的碎片
+  wispBoom:function(fox,id){WISP_VIEW.onEvent({type:'wispBoom',id:id==null?-1:id,fox:fox||0,dmg:0});},shatter:function(x,y){shatterBits(x,y,L.cs);},   // 測試用：鬼火炸開（從 id 那顆珠衝出狐狸魂魄、不扣血）、鏡片碎裂
+  fxLive:function(){return {spirits:WISP_VIEW.spiritsLive(),bits:bitsLive(),at:WISP_VIEW.spiritsAt()};}};   // 測試用：還在飛的魂魄、還在掉的碎片
 layout();fillBoardStatic();updateBars();goGarden();startLoop();
 var QS=location.search;
 // ?story=lb｜l｜b｜0（開發用，可以跟 ?test9 一起用）：最終戰當作有信（l）、有狐狸戴金鈴（b）來打，看第三段金鈴和三種結局（見 src/final.js）；不記通關（一般結局的信照樣記進存檔，跟 ?letter 一樣）；要在開戰前讀
