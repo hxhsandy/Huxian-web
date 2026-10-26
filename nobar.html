@@ -8229,6 +8229,9 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   var endIv=setInterval(function(){if(G.mode==='playing'){clearInterval(endIv);battle.bossHp=0;updateBars();onBossDown();}},100);}</script>
 </head>
 <body>
+<div id="edgeBand" aria-hidden="true" style="position:fixed;top:0;left:0;right:0;height:12px;background:#0b1330;-webkit-background-clip:text;background-clip:text;color:transparent;pointer-events:none;z-index:2147483647"></div>
+<!-- ↑ 頂端邊條（2026-10-26 測試）：iOS 26 會在 app 頂端糊一層模糊；WebKit 若在頂端找到「固定、≥90% 寬、>10px 高」的元素，就改用它的底色填，不再糊。
+     這條 12px、底色 #0b1330，但用 background-clip:text 讓它什麼都不畫（作法見 coder/coder PR 31027）。 -->
 <div id="safeProbe" aria-hidden="true"></div>
 <div id="game">
   <canvas id="c" aria-label="狐仙三消"></canvas>
@@ -8335,7 +8338,7 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
 <div id="nobarProbe" style="position:fixed;left:6px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:99999;font:11px/1.35 monospace;color:#f4ecd8;background:rgba(0,0,0,.6);padding:4px 6px;border-radius:6px;pointer-events:auto" onclick="this.remove()"></div>
 <script>/* 無霧測試版：左下角印量測數值，點一下就消失 */
 (function(){function m(css){var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;width:1px;visibility:hidden;'+css;document.body.appendChild(d);var v=d.getBoundingClientRect().height;d.remove();return Math.round(v)}
-function upd(){var p=document.getElementById('nobarProbe');if(!p)return;p.innerHTML='無霧測試版 · 點我關掉<br>standalone '+document.documentElement.classList.contains('standalone')+'<br>innerH '+innerHeight+' · screen '+screen.height+'<br>100vh '+m('height:100vh')+' · 100dvh '+m('height:100dvh')+'<br>safeTop '+m('height:env(safe-area-inset-top,0px)')+' · safeBot '+m('height:env(safe-area-inset-bottom,0px)')+'<br>body '+Math.round(document.body.getBoundingClientRect().height)}
+function upd(){var p=document.getElementById('nobarProbe');if(!p)return;p.innerHTML='無霧測試版2（加邊條） · 點我關掉<br>standalone '+document.documentElement.classList.contains('standalone')+'<br>innerH '+innerHeight+' · screen '+screen.height+'<br>100vh '+m('height:100vh')+' · 100dvh '+m('height:100dvh')+'<br>safeTop '+m('height:env(safe-area-inset-top,0px)')+' · safeBot '+m('height:env(safe-area-inset-bottom,0px)')+'<br>body '+Math.round(document.body.getBoundingClientRect().height)}
 upd();addEventListener('resize',upd);setTimeout(upd,800)})();</script>
 </body>
 </html>
