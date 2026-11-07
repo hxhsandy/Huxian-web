@@ -13,7 +13,8 @@
    ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（&ending=nobell 有信沒戴鈴；&story=lb 當作有信又戴金鈴來打，看第三段金鈴故事）；&drops 測試網址打贏時演一次這關的掉落（不存檔）；?easy BOSS 血量剩四分之一（CK 上班偷測用，最終戰每段 2500；換段、補血、金鈴停血都照常）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);
-if(/[?&]easy/.test(location.search)){var EK=0.25,et=setInterval(function(){var g=window.__game;if(!g||!g.battle)return;clearInterval(et);var bt=g.battle,orig=bt.reset;function sc(){if(bt.bossMax>0&&bt.__easy!==bt.bossMax){bt.bossMax=Math.max(1,Math.round(bt.bossMax*EK));bt.bossHp=Math.min(bt.bossHp,bt.bossMax);bt.__easy=bt.bossMax;}}bt.reset=function(){var r=orig.apply(this,arguments);sc();return r;};sc();},30);}})();</script><script>/* 全螢幕（2026-09-29 第三輪）：加到主畫面開的（standalone）在 <html> 加 class，高度改用 100vh（見下面的 html.standalone）。
+if(/[?&]easy/.test(location.search)){var EK=0.25,et=setInterval(function(){var g=window.__game;if(!g||!g.battle)return;clearInterval(et);var bt=g.battle,orig=bt.reset;function sc(){if(bt.bossMax>0&&bt.__easy!==bt.bossMax){bt.bossMax=Math.max(1,Math.round(bt.bossMax*EK));bt.bossHp=Math.min(bt.bossHp,bt.bossMax);bt.__easy=bt.bossMax;}}bt.reset=function(){var r=orig.apply(this,arguments);sc();return r;};sc();},30);}})();</script>
+<script>/* 全螢幕（2026-09-29 第三輪）：加到主畫面開的（standalone）在 <html> 加 class，高度改用 100vh（見下面的 html.standalone）。
    CK 的 iPhone 12 實測：主畫面模式的 100dvh 只有 797（扣掉瀏海），底下少畫 47px；100vh 是 844＝整個螢幕。 */
 if(navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches))document.documentElement.classList.add('standalone');</script>
 <style>
@@ -1862,6 +1863,10 @@ function fanOf(n){var f=[];for(var i=0;i<n;i++){var u=n>1?i/(n-1)*2-1:0;f.push([
 //   tailL、tailW 尾巴長度、粗細的倍數；size 整隻大小的倍數；headK 頭的大小倍數
 //   marks 額頭和臉頰的紋路；sly 丹鳳眼；shadow 眼影顏色；lash 睫毛；bells 耳邊金鈴；ribbons 金鈴下紅飄帶的顏色；eyeGrad 眼睛由下往上的漸層 [下, 上]；earFlower 耳前的花；outfit 戴的飾品
 //   face 捏臉（沒有＝原本的臉；見 createFox 的 o.face）；styles 其他樣式（例如夢婆的「紅眼」），只寫跟基本不一樣的地方，遊戲目前都用基本的
+//   forms 形態（2026-11-07 CK：夢婆平常笑臉、狂暴睜眼；九尾最終戰冥／丘／月各一個樣子）：形態的名字，第一個＝基本那份，其他的＝styles 裡同名的那一份；
+//     formAt 什麼時候換：'enrage' 狂暴時換第二個（render/battle.js bossForm、flow.js onEnrage）；'seg' 最終戰換段時換成那一段的（final.js segDown）。
+//     捏臉器裡每個形態是獨立一個按鈕；第九關介紹頁：還沒打倒、打倒過用第一個，真結局之後用第三個（render/team.js）
+//   wisps 介紹頁 BOSS 身邊那三團鬼火的顏色（第九關，還沒打倒的時候才有；沒有＝不放）
 var BOSS_LOOK_DEF=[
   {name:'白露',colors:{fur:0xf3efe9,chest:0xfcf9f4,paw:0x9d91c9,nose:0x4a3560,earIn:0xdccbf4,earTip:0x9a78d6,tip:0xc9b2f0,blush:0xf2a6c4,mark:0x9a78d6},
     glow:0xd6a8ff,fire:[0xa46cff,0xd88cff,0xb07cff],tails:3,tailFan:[[1.2,0.5,0],[-0.5,-0.12,0.42],[-1.2,-0.5,0]],tipFrac:0.2,marks:true},
@@ -1877,17 +1882,20 @@ var BOSS_LOOK_DEF=[
   // 第五關塗山、第六關天狐的暫時外觀（2026-09-28，照「九關 BOSS 企劃（草稿）」：塗山純白毛、玉綠眼、頸上一個紅結；天狐象牙金毛、天藍紋、尾巴像光芒一樣散開）
   {name:'塗山',colors:{fur:0x051933,chest:0xe6ecef,paw:0x2c4463,nose:0x6a3a48,earIn:0xd7dde0,earTip:0x38c3ff,tip:0x52c5ff,blush:0xff4268,mark:0xfafeff,outline:0xe8c27a,eye:0x00ccff},glow:0x80c8ff,fire:[0x4268ff,0x52bdff,0x6524ff],tails:5,tailFan:[[1.35,0.58,0],[0.7,0.3,0.28],[0,0,0.42],[-0.7,-0.3,0.28],[-1.35,-0.58,0]],tipFrac:0.62,tipSoft:true,marks:true,outfit:{neck:'red-cord'},eyeGrad:[0x00ccff,0x101010]},
   {name:'天狐',colors:{fur:0xffd152,chest:0xfffefa,paw:0xe46f21,nose:0x994d00,earIn:0xffa600,earTip:0xff8b1f,tip:0xb35000,blush:0xff7300,mark:0xffffff,outline:0xffcb6b,eye:0x47ffe0},glow:0xff8442,fire:[0xfe20f6,0xfeac20,0xffac38],tails:6,tailFan:[[1.55,0.66,0],[1,0.42,0.3],[0.34,0.14,0.46],[-0.34,-0.14,0.46],[-1,-0.42,0.3],[-1.55,-0.66,0]],tipFrac:0.45,tipSoft:true,marks:true,size:1.07,face:{eyeGlow:0.19,hls:1},eyeGrad:[0xce47ff,0x243dff]},
+  // 第七～九關（青燐、夢婆、九尾）：2026-11-07 CK 用捏臉器改的（FOXLOOK1 匯出、遊星貼進來）——青燐豎瞳＋一道淚痕、紅系狐火；夢婆瞇瞇笑眼＋睫毛、紅眼、小一點；九尾紅色漸層圓眼、冥界青綠狐火。底下是原本的註解
   // 第七關青燐（七尾）、第八關夢婆（八尾）：2026-09-29 第三章的暫時外觀——現有狐狸模型換色（docs/03「名字與樣子」）；造型、道具是美化階段的事
   //   青燐：墨綠毛、胸口淡玉色，尾尖、紋路、眼睛是冥界綠（黃綠螢光 #b8ff4a）；夢婆：藍身體、尾巴紅色漸層（tipFrac 大、tipSoft）
-  {name:'青燐',colors:{fur:0x245242,chest:0xd6ecdc,paw:0x16362b,nose:0x0d2219,earIn:0x6fbf8a,earTip:0xb8ff4a,tip:0xb8ff4a,blush:0x9fe8a8,mark:0xb8ff4a,eye:0x9dff3a},
-    glow:0xb8ff4a,fire:[0x9dff3a,0xe0ffb0,0xb8ff4a],tails:7,tailFan:fanOf(7),tipFrac:0.45,tipSoft:true,marks:true},
-  {name:'夢婆',colors:{fur:0x4f6fc8,chest:0xe6ecfb,paw:0x2e4688,nose:0x1a2750,earIn:0xf3b3c0,earTip:0xd8344a,tip:0xd8344a,blush:0xf0a4b4,mark:0xd8344a},
-    glow:0xff6a6a,fire:[0xff5a6a,0xffc0b8,0xff7a7a],tails:8,tailFan:fanOf(8),tipFrac:0.62,tipSoft:true,marks:true},
+  {name:'青燐',colors:{fur:0x245242,chest:0xd6ecdc,paw:0x16362b,nose:0x0d2219,earIn:0x6fbf8a,earTip:0xb8ff4a,tip:0xb8ff4a,blush:0xa6ff00,mark:0xb8ff4a,eye:0x9dff3a},
+    glow:0xb8ff4a,fire:[0xff0000,0xc4ff6b,0x54f948],tails:7,tailFan:fanOf(7),tipFrac:0.39,tipSoft:true,marks:true,face:{eye:'slit',hl:false,eyeGlow:0.27,pw:1.04,tears:{col:0xb8ff4a,n:1,len:0.076,w:0.0065,x:0.011,glow:0.53}}},
+  {name:'夢婆',colors:{fur:0x3359c1,chest:0xe5edff,paw:0x2e4688,nose:0x071955,earIn:0x99001f,earTip:0xd8344a,tip:0xd8344a,blush:0xff3863,mark:0xd8344a,eye:0xd60000},
+    glow:0xff0000,fire:[0xff0019,0x2b0fff,0xff0000],tails:8,tailFan:fanOf(8),tipFrac:0.62,tipSoft:true,size:0.95,marks:true,lash:true,face:{eye:'smile',tilt:0.37,ey:0.013,gap:0,eh:0.73,ew:1.22,eyeGlow:0.1,smileW:0.0075,markBrow:true,blush:true},
+    forms:['笑臉','睜眼'],formAt:'enrage',styles:{'睜眼':{face:{eye:'round',tilt:0,ey:0,gap:0,eh:1.08,ew:1,hl:true,eyeGlow:0.3}}}},   // 睜眼：先照捏臉器的「睜眼紅瞳」預設、眼睛位置回到原本的，CK 再調
   // 第九關最終妲己（最終 BOSS）：docs/03「名字與樣子」妲己的模型、九條尾巴。2026-09-29 CK：戰鬥和封面都用「同一個妲己」——第三關妲己的毛色、
   //   丹鳳眼、紅眼影、耳邊金鈴和紅飄帶都照舊，只是尾巴變九條（戰鬥 render/battle.js、封面 render/team.js 的 buildWisteria(G,8)）。尾尖的狐火是冥界的青綠（glow、fire）；
   //   介紹頁真結局之前的狐火、尾巴光照第三關妲己的，真結局之後換 fireEnd
-  {name:'九尾',colors:{fur:0x9277d2,chest:0xf4e8fb,paw:0x5a3f8f,nose:0x3a2450,earIn:0xf5b8d6,earTip:0x5b3a9c,tip:0x3a1f70,blush:0xf58fb6,mark:0xe0405a,eye:0x1d1420,outline:0xe8c27a},
-    glow:0x9fe6cf,fire:[0x9fe6cf,0xd9c2ff,0x7fe0c0],fireEnd:[0x7fe8c0,0xd8fff0,0x5fd8b0],tails:9,tailFan:fanOf(9),tipFrac:0.62,tipSoft:true,marks:true,sly:true,shadow:0xe0455c,bells:true,ribbons:0xd8344a}];
+  {name:'九尾',colors:{fur:0x9277d2,chest:0xf4e8fb,paw:0x5a3f8f,nose:0x3a2450,earIn:0xf5b8d6,earTip:0x5b3a9c,tip:0x3a1f70,blush:0xf58fb6,mark:0xe0405a,eye:0xb3001b,outline:0xe8c27a},
+    glow:0x00ffae,fire:[0x00ffae,0x00ff88,0xa64dff],fireEnd:[0x7fe8c0,0x962eff,0x00ffaa],tails:9,tailFan:fanOf(9),tipFrac:0.66,tipSoft:true,marks:true,sly:true,shadow:0xe0455c,bells:true,ribbons:0xd8344a,eyeGrad:[0xb3001b,0xff0000],face:{eye:'round'},
+    wisps:0xb8ff4a,forms:['冥','丘','月'],formAt:'seg',styles:{'丘':{},'月':{}}}];   // 丘、月一開始跟冥一樣，CK 再調；wisps＝介紹頁原本寫死的那三團冥界綠鬼火
 // 舊的名字（戰鬥、封面、美術分支都還在用）：就是上面那份裡的同一個物件
 var TAOYAO=BOSS_LOOK_DEF[3],TUSHAN=BOSS_LOOK_DEF[4],TIANHU=BOSS_LOOK_DEF[5],QINGLIN=BOSS_LOOK_DEF[6],MENGPO=BOSS_LOOK_DEF[7],NINE=BOSS_LOOK_DEF[8];
 // 長相 → createFox 的參數（只有長相；大小、姿勢、尾巴擺法由呼叫的地方給，放在這份後面蓋過去）。style：樣式名字（沒有＝基本）
@@ -2269,13 +2277,20 @@ var BS=(function(){
         dm.position.set(cx+ox*co2+oz*si,cy+oy,cz-ox*si+oz*co2);dm.rotation.set(0,psi,0);dm.scale.set(r,r*0.78,r);dm.updateMatrix();cm.setMatrixAt(n++,dm.matrix);});});
     cm.instanceMatrix.needsUpdate=true;}
   // BOSS：九關都照 characters.js 的 BOSS_LOOK_DEF（長相：毛色、眼睛、尾巴條數、飾品…；2026-09-30 搬過去給狐狸捏臉器用），這裡只給戰鬥的大小、坐姿、尾巴長度
-  function makeBoss(k){var L=BOSS_LOOK_DEF[k],b=createFox(Object.assign(lookOpts(L),{scale:2.2*(L.size||1),tailLen:0.8,tailR:0.2,tailFan:fitFan(L.tailFan,L.tails,L.spread),pose:{pivot:-0.5,head:0.64}}));
+  function makeBoss(k,st){var L=bossLook(k,st),b=createFox(Object.assign(lookOpts(L),{scale:2.2*(L.size||1),tailLen:0.8,tailR:0.2,tailFan:fitFan(L.tailFan,L.tails,L.spread),pose:{pivot:-0.5,head:0.64}}));
     b.group.position.set(0,0.02,0.05);b.group.userData.baseY=0.02;plat.add(b.group);return b;}
   var bossList=[makeBoss(0),makeBoss(1),makeBoss(2)];   // 第一到三關：白露、玄楓、妲己
   bossList.forEach(function(b,i){if(i)b.group.visible=false;});
   // 第四關之後的 BOSS 第一次進那一關才建（開遊戲時不多花記憶體，也不去動到開場那一串亂數）：桃夭、塗山（胸前紅繩的結）、天狐、青燐、夢婆、第九關最終妲己（九尾）
   var LATE_BOSS={};[3,4,5,6,7,8].forEach(function(k){LATE_BOSS[k]=function(){return makeBoss(k);};});
   var boss=bossList[0];
+  // BOSS 的形態（2026-11-07 CK：夢婆狂暴時睜眼、九尾最終戰冥／丘／月；BOSS_LOOK_DEF 的 forms／formAt）：進那一關時其他形態先全部建好藏著，
+  //   換的時候只換誰顯示（打的當下不建模型）。建的時候 Math.random 先換成固定種子的：createFox 會用亂數（眨眼），不能動到補珠那一串
+  var formList={};   // formList[k][i]：第 k 關第 i 個形態（i＝0 不放，基本那隻一直是 bossList[k]）
+  function ensureForms(k){var F=BOSS_LOOK_DEF[k].forms;if(!F||F.length<2||formList[k])return;var R0=Math.random,sd=k*7919+17;
+    Math.random=function(){sd=(sd*16807)%2147483647;return (sd-1)/2147483646;};
+    try{formList[k]=F.map(function(n,i){if(!i)return null;var b=makeBoss(k,n);b.group.visible=false;return b;});}finally{Math.random=R0;}}
+  function formFire(k,i){var F=BOSS_LOOK_DEF[k].forms;return i&&F&&F[i]?bossLook(k,F[i]).fire:FIRECOL[k];}
   var FIRECOL=BOSS_LOOK_DEF.map(function(L){return L.fire;});   // 每關尾尖狐火的顏色 [火星, 火星亮的, 尾尖那團光]（在 BOSS_LOOK_DEF 的 fire；第七關冥界綠、第八關紅、第九關冥界青綠＋淡紫）
   // 隊伍：六隻狐狸（同一個模型換毛色與小配件）
   var STYLE=FOX_STYLE;
@@ -2715,6 +2730,7 @@ var BS=(function(){
   api.dayDev=function(){return {DEF:DAY_DEF,cur:function(){return dayDef||DAY_DEF;},set:function(d){dayDef=d||null;if(dayBg){dayBg.dispose();dayBg=null;}if(curK>=0)api.setStage(curK);},
     bg:function(){return dayBg;},stage:function(){return curK;},plat:plat,rimN:rimN,cam:bcam,scene:sc};};
   api.setStage=function(k){curK=k;if(!bossList[k]&&LATE_BOSS[k]){bossList[k]=LATE_BOSS[k]();allTips[k]=bossList[k].tips();}
+    ensureForms(k);Object.keys(formList).forEach(function(j){formList[j].forEach(function(b){if(b)b.group.visible=false;});});   // 形態：每次進關都從基本那隻開始
     bossList.forEach(function(b,i){b.group.visible=i===k;});boss=bossList[k];api.boss=boss;tips=allTips[k];while(tipGlow.length<tips.length)tipGlow.push(tipGlowSprite());
     var dj=!!(CONFIG.stages[k]&&CONFIG.stages[k].style==='daji');sky.show(dj);
     stageDeco.forEach(function(d,j){if(d){d.show(j===k);d.layout();}});
@@ -2726,7 +2742,14 @@ var BS=(function(){
     stars.renderOrder=day?-7:0;sparks.forEach(function(sp){sp.renderOrder=day?-7:0;});   // 白天先畫星星，太陽和紗幔才蓋得住（跟外面一樣）
     cm.material=day?dayBg.cloudMat:nightCloudMat;co.material.uniforms.color.value.setHex(day?dayBg.DAY_OL:0xcaa972);islOl.uniforms.color.value.setHex(day?dayBg.DAY_OL:0xc9a660);rimLine.visible=!day;
     moonBase.setHex(dj?0xff6a5c:0xffffff);moonK=1;moon.material.color.copy(moonBase);skyMat.uniforms.tintK.value=0;api.feetEmbers(false);if(veil)veil.forEach(function(v){v.s.visible=false;});halos.forEach(function(h,j){h.material.color.setHex(dj?(j?0xff7a68:0xc86a86):(j?0xffe6b0:0x9fb0e0));});   // 第三關：偏紅的血月（場景打光不變）
-    var fc=FIRECOL[k]||FIRECOL[0];fireP.forEach(function(q,i){q.s.material.color.setHex(i%3?fc[0]:fc[1]);q.life=0;});tipGlow.forEach(function(g){g.material.color.setHex(fc[2]);});};
+    paintFire(FIRECOL[k]||FIRECOL[0]);};
+  function paintFire(fc){fireP.forEach(function(q,i){q.s.material.color.setHex(i%3?fc[0]:fc[1]);q.life=0;});tipGlow.forEach(function(g){g.material.color.setHex(fc[2]);});}
+  // 換成這一關的第 i 個形態（0＝基本）：狂暴的光、正在演的動作接著原本的；尾巴換一組、狐火換這個形態的顏色。這一關沒有那個形態就不動
+  api.bossForm=function(i){var k=curK,nb=i?formList[k]&&formList[k][i]:bossList[k];if(!nb||nb===boss)return;var old=boss;
+    nb.reset();nb.setGlow(old.glowLevel());nb.charge(0);old.group.visible=false;nb.group.visible=true;boss=nb;api.boss=nb;
+    tips=nb.tips();while(tipGlow.length<tips.length)tipGlow.push(tipGlowSprite());paintFire(formFire(k,i));};
+  api.enrageForm=function(){if(BOSS_LOOK_DEF[curK].formAt==='enrage')api.bossForm(1);};   // 狂暴時（flow.js onEnrage）：夢婆睜眼
+  api.segForm=function(i){if(BOSS_LOOK_DEF[curK].formAt==='seg')api.bossForm(i);};        // 最終戰換段時（final.js segDown）：九尾換成那一段的樣子
   // 捏臉器用（editor-fox.html；遊戲自己不呼叫）：BOSS_LOOK_DEF 第 k 個改了之後，把已經建好的那隻 BOSS 重建（正在這一關就馬上換上）
   //   DEF＝BOSS_LOOK_DEF；set(k, 長相)：換掉第 k 個的內容（原地換，TAOYAO 這些舊名字、FIRECOL 指的還是同一個物件）；createFox、lookOpts、fitFan 給捏臉器自己的轉台用
   function setLookInPlace(dst,src){Object.keys(dst).forEach(function(k){if(!(k in src))delete dst[k];});
@@ -2734,7 +2757,8 @@ var BS=(function(){
       if(Array.isArray(v)&&Array.isArray(d)&&k==='fire'){d.length=0;v.forEach(function(x){d.push(x);});}
       else if(v&&typeof v==='object'&&!Array.isArray(v)&&d&&typeof d==='object'&&!Array.isArray(d))setLookInPlace(d,v);
       else dst[k]=v&&typeof v==='object'?JSON.parse(JSON.stringify(v)):v;});}
-  api.bossDev=function(){return {DEF:BOSS_LOOK_DEF,createFox:createFox,disposeFox:disposeFox,lookOpts:lookOpts,fitFan:fitFan,set:function(k,L){setLookInPlace(BOSS_LOOK_DEF[k],L);},cur:function(){return curK;},rebuild:function(k){var old=bossList[k];if(!old)return;plat.remove(old.group);disposeFox(old);bossList[k]=makeBoss(k);allTips[k]=bossList[k].tips();
+  api.bossDev=function(){return {DEF:BOSS_LOOK_DEF,createFox:createFox,disposeFox:disposeFox,lookOpts:lookOpts,fitFan:fitFan,set:function(k,L){setLookInPlace(BOSS_LOOK_DEF[k],L);},cur:function(){return curK;},rebuild:function(k){var old=bossList[k];if(!old)return;plat.remove(old.group);disposeFox(old);
+    if(formList[k]){formList[k].forEach(function(b){if(b){plat.remove(b.group);disposeFox(b);}});delete formList[k];}bossList[k]=makeBoss(k);allTips[k]=bossList[k].tips();
     if(curK===k){api.setStage(k);boss.reset();}else bossList[k].group.visible=false;}};};
   return api;
 })();
@@ -5212,12 +5236,14 @@ var TEAM=(function(){
     B.seat.add(meshOf([xf(new THREE.CylinderGeometry(1,0.96,0.09,40),0,-0.235,0,0.8,1,0.6)].concat([[0.5,0.32],[-0.5,0.32],[0.5,-0.32],[-0.5,-0.32]].map(function(p2){return xf(new THREE.BoxGeometry(0.11,0.09,0.11),p2[0],-0.3,p2[1],1,1,1);})),M.wood,OLt));
     var shd=new THREE.Mesh(PLANE,new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false}));shd.rotation.x=-Math.PI/2;shd.position.y=-0.335;shd.scale.set(2.3,1.7,1);shd.raycast=noRay;B.seat.add(shd);
     // BOSS：妲己，側身坐、身體微微往一邊凹，抬起右前腳湊到嘴邊舔毛（臉跟戰鬥畫面一樣：丹鳳眼＋紅眼影）
-    //   長相：第九關用 BOSS_LOOK_DEF[8]（九尾），尾巴的光照第三關妲己的（真結局之前的封面跟第三關一樣）
-    var LK=BOSS_LOOK_DEF[FIN?8:2],fox=createFox(Object.assign(lookOpts(LK),{scale:LK.size||1,tailLen:0.8,tailR:0.2,glowColor:BOSS_LOOK_DEF[2].glow,
+    //   長相：第九關用 BOSS_LOOK_DEF[8]（九尾）的形態——還沒打倒、打倒過用第一個（冥），真結局之後用第三個（月）；尾巴的光、狐火都照那個形態
+    //   （2026-11-07 CK：原本九尾的尾巴光、狐火借第三關妲己的，血淚、鬼火寫死在這裡，捏臉器改了這頁不會跟著變 → 都改成讀 BOSS_LOOK_DEF）
+    var FPH=FIN&&finalPhase(SK)===3,LK=FIN?bossLook(8,FPH?(BOSS_LOOK_DEF[8].forms||[])[2]:null):BOSS_LOOK_DEF[2];B.lookPh=FIN?(FPH?3:1):0;
+    var fox=createFox(Object.assign(lookOpts(LK),{scale:LK.size||1,tailLen:0.8,tailR:0.2,glowColor:LK.glow,
       tailFan:fitFan(FIN?[0,1,2,3,4,5,6,7,8].map(function(i){var f=i/8;return [-1.35+1.95*f,-0.85+1.5*f,0.22-0.12*Math.sin(f*Math.PI)];}):[[-1.2,-0.75,0.25],[-0.35,-0.2,0.05],[0.5,0.6,0.15]],LK.tails,LK.spread),   /* 九尾：照三尾的方向往兩邊鋪開 */
       pose:{pivot:-0.4,head:0.4,tilt:-0.3,roll:-0.14,legF:[[0.4,-0.04,1],[-1.92,-0.08,1.6,0,0,0.05]]}}));
     B.boss=makeHolder(G,fox);
-    B.fire=makeFoxFire(G,fox,FIRECOL[2],function(){return STAGES[SK].fox.s/2.2*2.2;});   /* 最終妲己真結局之後換冥界色（B.phase） */
+    B.fire=makeFoxFire(G,fox,LK.fire,function(){return STAGES[SK].fox.s/2.2*2.2;});   /* 最終妲己真結局之後換 fireEnd（B.phase） */
     B.fall=makeFall(G,{n:30,geo:wistPetal,size:1.35,d:[5,9],colors:[0xb88ae8,0xd7b6f5,0x9f74dc,0xeedcff,0xffc8ea],drift:0.04,speed:0.8});
     // 簡易燈籠：方形木框地燈、六角小吊燈
     function boxLamp(){var L=new THREE.Group(),parts=[xf(new THREE.BoxGeometry(0.32,0.04,0.32),0,0.02,0,1,1,1),xf(new THREE.BoxGeometry(0.32,0.03,0.32),0,0.39,0,1,1,1)];
@@ -5339,17 +5365,16 @@ var TEAM=(function(){
       if(B.wisps&&B.wisps.g.visible)B.wisps.list.forEach(function(w,i){var a=t*0.7+w.ph;w.s.position.set(w.x+Math.cos(a)*0.08,w.y+Math.sin(t*1.3+w.ph)*0.08,w.z+Math.sin(a)*0.05);   // 鬼火：慢慢繞、上下浮、一閃一閃
         var br=0.75+0.25*Math.sin(t*5+i*2);w.s.scale.set(w.sz*br,w.sz*br*1.2,1);w.c.position.copy(w.s.position);w.c.scale.set(w.sz*0.4*br,w.sz*0.5*br,1);});};
     if(FIN){   // 第九關最終妲己的三個階段（docs/03「最終妲己封面的三個階段」；flow.js 的 finalPhase）：窗外的天、月亮在 STAGES[8].phases（setStage 換）
-      //   一 還沒打倒：冥界的詭異色調、臉上有血淚（先用兩道暗紅的淚痕當記號）、身邊有三團鬼火；二 打倒過：還是冥界色調，血淚、鬼火沒了；
-      //   三 真結局之後：溫暖的月下、小狐狸趴在她旁邊、尾巴的狐火變成冥界的青綠。心形（媚惑）只在三出現。飄窗台上窗外的光、室內的霧跟著窗外的色調
-      var head=fox.parts.head,tm=new THREE.MeshBasicMaterial({color:0x8a0c20});B.tears=[-1,1].map(function(sd){var g=new THREE.Group();g.position.set(0.112*sd,-0.03,0.232);head.add(g);
-        var st=new THREE.Mesh(SPH,tm);st.scale.set(0.008,0.034,0.005);g.add(st);var dp=new THREE.Mesh(SPH,tm);dp.scale.setScalar(0.011);dp.position.y=-0.036;g.add(dp);return g;});
+      //   一 還沒打倒：冥界的詭異色調、身邊有三團鬼火；二 打倒過：還是冥界色調，鬼火沒了；
+      //   三 真結局之後：溫暖的月下、小狐狸趴在她旁邊、尾巴的狐火換成 fireEnd。心形（媚惑）只在三出現。飄窗台上窗外的光、室內的霧跟著窗外的色調
+      //   臉（血淚也是）照形態的捏臉；鬼火的顏色是 BOSS_LOOK_DEF[8].wisps（沒有就不放）。原本寫死的兩道暗紅淚痕拿掉了（2026-11-07）
       B.wisps={g:new THREE.Group(),list:[]};B.boss.h.add(B.wisps.g);
-      [[-0.78,0.72,0.25,0.34],[0.82,1.02,0.05,0.3],[-0.46,1.32,-0.2,0.26]].forEach(function(a,i){var s=addSprite(B.wisps.g,glowTex,0xb8ff4a,0.9,true),c=addSprite(B.wisps.g,glowTex,0xf0ffe0,1,true);
+      if(LK.wisps!=null)[[-0.78,0.72,0.25,0.34],[0.82,1.02,0.05,0.3],[-0.46,1.32,-0.2,0.26]].forEach(function(a,i){var s=addSprite(B.wisps.g,glowTex,LK.wisps,0.9,true),c=addSprite(B.wisps.g,glowTex,0xf0ffe0,1,true);
         B.wisps.list.push({s:s,c:c,x:a[0],y:a[1],z:a[2],sz:a[3],ph:i*2.1});});
       B.kit=null;   // 小狐狸：第一次到三才建
-      var PH_LOOK={1:{win:0x2fa88a,mist:[0x6fd8bc,0x4aa894],fire:FIRECOL[2]},3:{win:0xe0905a,mist:[0xffc8a0,0xf2a8b8],fire:BOSS_LOOK_DEF[8].fireEnd}};
+      var PH_LOOK={1:{win:0x2fa88a,mist:[0x6fd8bc,0x4aa894],fire:LK.fire},3:{win:0xe0905a,mist:[0xffc8a0,0xf2a8b8],fire:LK.fireEnd||LK.fire}};
       B.ph=1;
-      B.applyPhase=function(){var ph=B.ph,L2=PH_LOOK[ph===3?3:1];B.tears.forEach(function(g){g.visible=ph===1;});B.wisps.g.visible=ph===1;B.noHearts=ph!==3;
+      B.applyPhase=function(){var ph=B.ph,L2=PH_LOOK[ph===3?3:1];B.wisps.g.visible=ph===1;B.noHearts=ph!==3;
         if(B.winGlow)B.winGlow.material.color.setHex(L2.win);(B.mist||[]).forEach(function(m,i){m.s.material.color.setHex(L2.mist[i%2]);});B.fire.setCols(L2.fire);
         if(ph===3&&!B.kit){B.kit=createFox({scale:0.9,tails:1,tailLen:0.58,tailR:0.165,colors:{blush:0xf29a8a,outline:0xe9c47c},
           pose:{pivot:0.05,lower:0.16,head:0.18,legF:[[-1.45,0,0.85],[-1.45,0,0.85]],legB:[[-1.5,0,0.8],[-1.5,0,0.8]]}});B.kit.group.position.set(-0.66,0.2,0.22);B.kit.group.rotation.y=0.75;B.seat.add(B.kit.group);}
@@ -5808,7 +5833,9 @@ var TEAM=(function(){
   // 先照這關的畫面大小再蓋場景（第四關蓋完才知道桃夭在哪，再算一次）；之前蓋好、畫面大小變了的要重擺
   // 有 phases 的封面（第九關最終妲己）：照 flow.js 的 finalPhase 換窗外的天、月亮、標題光（二跟一一樣），場景那一半叫 B.phase
   function setPhase(k){var S=STAGES[k];if(!S.phases)return;var ph=finalPhase(k),L2=S.phases[ph===2?1:ph];if(!S.base)S.base={pal:S.pal,sky:S.sky,glow:S.glow,fog:S.fog,moon:S.moon,stars:S.stars};
-    ['pal','sky','glow','fog','moon','stars'].forEach(function(f){S[f]=L2&&L2[f]||S.base[f];});if(built[k]&&built[k].phase)built[k].phase(ph);}
+    ['pal','sky','glow','fog','moon','stars'].forEach(function(f){S[f]=L2&&L2[f]||S.base[f];});
+    if(built[k]&&built[k].lookPh&&built[k].lookPh!==(ph===3?3:1)){sc.remove(built[k].G);built[k]=null;ensure(k);}   // BOSS 的形態跟著換（冥 → 月）：重蓋
+    if(built[k]&&built[k].phase)built[k].phase(ph);}
   function setStage(k){cur=k;var had=!!built[k],ch=fitView(k);ensure(k);setPhase(k);if(fitView(k)||(had&&ch)){var B=built[k];if(B.layout)B.layout();placeStage(k);}applyLook(k);var hud=document.getElementById('teamHud');if(hud){hud.setAttribute('data-stage',k);hud.classList.toggle('dayCv',!!STAGES[k].dayCv);}uiOff=false;syncUi();}
   var ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),glowT=0,pokeT=0;
   canvas.addEventListener('pointerdown',function(e){if(APP.screen!=='team')return;e.preventDefault();var p=localXY(e),B=built[cur];if(!B)return;
@@ -7300,7 +7327,7 @@ function onBossAttack(ev){
   addShake(10);teamBarEl.classList.remove('shake');void teamBarEl.offsetWidth;teamBarEl.classList.add('shake');
   popNum(L.W/2,L.teamY+L.teamH*0.66,'-'+ev.dmg,'team',ev.blocked?'護盾擋下 '+ev.blocked:'');updateBars();
   if(battle.teamHp<=0){G.mode='lost';after(1.3,function(){showResult('hp');});}}
-function onEnrage(){BS.boss.setGlow(1);AudioFX.enrage();bossBarEl.classList.add('enraged');var p=bossScreen();ringFx(p.x,p.y,L.cs*0.6,L.cs*4,BOSSCOL,0.6);addShake(6);showBanner(battle.boss.name+'狂暴了，攻擊變快');}
+function onEnrage(){BS.enrageForm();BS.boss.setGlow(1);AudioFX.enrage();bossBarEl.classList.add('enraged');var p=bossScreen();ringFx(p.x,p.y,L.cs*0.6,L.cs*4,BOSSCOL,0.6);addShake(6);showBanner(battle.boss.name+'狂暴了，攻擊變快');}
 // 戰場亮點（BOSS 身邊的裝飾：第五關的結界、第六關的大鏡子…），紅繩、天鏡的畫法會叫
 function stageFx(){return BS.deco(APP.stage)||{};}
 // 走完一步、整串連鎖都停下來：各機制檢查要不要觸發（天鏡：鏡片全部打碎 → 反照），要的話邏輯先算、再叫畫法
@@ -8308,7 +8335,7 @@ function segDown(){var ses=SES,k=battle.seg+1,bp=bossScreen(),g=nextGem();G.mode
   BS.boss.attack();addShake(5);AudioFX.enrage();
   zoomO=g?gemXY(g):{x:L.W/2,y:L.topH};zoomRun(ses);   // 鏡頭跟著寶石推近，裂開後彈回
   wait(GEM_AT).then(function(){return SES===ses?breakGem(g):null;}).then(function(){if(SES!==ses)return;   // 寶石裂開那一下：BOSS 才震、背景才開始換成下一段的記憶
-    BS.boss.hit();addShake(12);ringFx(bp.x,bp.y,L.cs*0.6,L.cs*4,WHITE,0.6);showBanner('第 '+(k+1)+' 段「'+battle.boss.segs[k].name+'」');
+    BS.segForm(k);BS.boss.hit();addShake(12);ringFx(bp.x,bp.y,L.cs*0.6,L.cs*4,WHITE,0.6);showBanner('第 '+(k+1)+' 段「'+battle.boss.segs[k].name+'」');   // 九尾換成這一段的形態（BOSS_LOOK_DEF forms），跟著白光一起換
     tween(1.2,function(v){BS.segLook(k-1,k,v);});after(0.6,function(){if(SES!==ses)return;setPetalStyle(SEG_PETAL[k]);BS.ribbons(SEG_RIBBON[k]);});   // 背景淡換
     if(k===battle.boss.segs.length-1)moonTo(MOON_DIM);});   // 第三段「月」：月亮被冥界的霧遮住
   return wait(T_BREAK).then(function(){if(SES!==ses)return null;
