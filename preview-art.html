@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<script>/* 美術預覽頁（2026-11-07 起＝第三章冥界大地圖第一版 art/ch3-underworld；?hub=3 直接站上第三章主島、?isle=7～9 關卡島、?ch3river=a／b／ab 換河）。預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
+<script>/* 美術預覽頁（2026-11-07 起＝第三章冥界大地圖 art/ch3-underworld（第二版 517db4f：預設兩種河一起、天頂瀑布不飄等寬）；?hub=3 直接站上第三章主島、?isle=7～9 關卡島、?ch3river=a／b 只看一種）。預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
    ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（&ending=nobell 有信沒戴鈴；&story=lb 當作有信又戴金鈴來打，看第三段金鈴故事）；&drops 測試網址打贏時演一次這關的掉落（不存檔）；?easy BOSS 血量剩四分之一（CK 上班偷測用，最終戰每段 2500；換段、補血、金鈴停血都照常）；?cover=4 直接開第四關介紹頁、?isle=4 直接跳到第四關的小島（美術預覽用，4～9 都可以）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);
@@ -2668,8 +2668,8 @@ var BS=(function(){
 /* =====================================================================
    冥界色調的主島（-3）、第七～九關的關卡島、天空、月亮、遠景；冥界之河兩種做法：
      a：從島上流下來——台面上一條發光的河（主島從中間後方的冥泉分兩條往左右），流到台緣變成瀑布（做法同第六關溢出去的瀑布）
-     b：天頂整圈流下來——做法同第二章外圍的紗幔（同一個 vertex shader），換成往下流的冥河水
-   網址 ?ch3river=a／b／ab 可以換（沒給就用 UW_DEF.river.mode）。點綴：小鬼火、鬼燈（台上立著的燈＋天上飄的燈）、彼岸花。
+     b：天頂整圈流下來——一圈直直的冥河瀑布（2026-11-07 第二版 CK：不要飄動、粗細從上到下一致；水往下流的動態照留）
+   兩種一起是預設（2026-11-07 第二版 CK 要的）；網址 ?ch3river=a／b 可以只看一種比較（ab＝兩種一起，跟沒給一樣）。點綴：小鬼火、鬼燈（台上立著的燈＋天上飄的燈）、彼岸花。
    這個檔載入時不做任何事（不建物件、不抽亂數）：garden.js 第一次去第三章（buildHub／buildIsle）才呼叫，
    要用庭院裡的零件時由 garden.js 傳一包進來（K，見 garden.js 的 uwKit）。亂數一律用固定種子 K.prng，不動 Math.random。
    顏色、數量都集中在 UW_DEF（像白天大地圖的 HUB_DAY_DEF），之後 CK 要調就改這一份。
@@ -2687,7 +2687,7 @@ var BS=(function(){
           （每條 {from 起點 [x,z], mid 經過的點, th 流出台緣的角度（弧度，0 往右、π/2 往前）, w 寬}；座標是「主島大小」的單位，關卡島會照島的大小縮）；
           always:1＝不管哪一種都有（第八關忘川就是這條河）；fall 瀑布的長、往外翻、下端變寬多少、寬度是河的幾倍（wk）；mist 瀑布和島底那幾團霧的顏色；spring 主島中間後方的冥泉
    skyFalls：天頂流下來的冥河水（b）。from／to 從哪個方位角排到哪個（度，0 是預設鏡頭看過去的正後方、正的往右）、skip 空著的那一塊（月亮在 8° 左右，不擋月亮）、
-          gap 每條的間隔、R 半徑、top／bot 上下端高度、w 上寬（下寬再乘 1.2～1.7）、op 不透明度、c1／c2 水的深淺
+          gap 每條的間隔、R 半徑、top／bot 上下端高度、w 寬（從上到下一樣寬）、op 不透明度、c1／c2 水的深淺
    wisps：小鬼火的顏色（輪流）、主島幾團、關卡島幾團、大小
    lanterns：鬼燈。col 燈紙的光、tassel 流蘇；stand 主島台上立著的燈 [x, z, 高]；fly 天上飄的燈幾盞、顏色、在哪一塊天空飄（中心、範圍）
    lily：彼岸花 [花瓣, 花蕊, 莖]；far：遠方一圈暗暗的祥雲（雲身兩色、描邊兩色、幾朵） */
@@ -2699,7 +2699,7 @@ var UW_DEF={v:1,
   land:{top:0x2a3c40,side:0x1c2c31,bot:0x050b0e,ol:0x5fd0b0,olW:0.03,crack:0x7ff5c8,peb:0x34484f},
   cloud:{col:0x203838,emi:0x081a18,ol:0x46a890},
   floater:{col:0x22363b,ol:0x5fd0b0},
-  river:{mode:'a',c1:[0.3,0.95,0.8],c2:[0.78,1,0.93],c3:[0.08,0.36,0.32],
+  river:{mode:'ab',c1:[0.3,0.95,0.8],c2:[0.78,1,0.93],c3:[0.08,0.36,0.32],
     hub:[{from:[-0.2,-1.18],mid:[-1.42,-0.5],th:2.68,w:0.3},{from:[0.2,-1.18],mid:[1.45,-0.5],th:0.46,w:0.34}],
     isles:{6:[{from:[-0.3,-1.1],mid:[-1.25,-0.62],th:2.82,w:0.26}],7:[{from:[1.3,-1.15],mid:[-0.2,-1.2],th:3.45,w:0.36,always:1}],8:[{from:[0.25,-1.35],mid:[1.3,-1.0],th:0.22,w:0.24}]},
     fall:{len:3.2,out:0.26,grow:1.3,wk:1.7},mist:0x2f8a74,spring:{x:0,z:-1.2,r:0.32}},
@@ -2709,7 +2709,7 @@ var UW_DEF={v:1,
   lily:[0xe0453f,0xf38474,0x2f5f3f],
   far:{tint:['#2c5a52','#0f2a27'],gold:['#5fd0b0','#3f9c86'],n:10}};
 
-// 網址 ?ch3river=a／b／ab（沒給就用 UW_DEF.river.mode）
+// 網址 ?ch3river=a／b／ab（沒給就用 UW_DEF.river.mode＝ab，兩種一起）
 function uwRiverMode(){var m=typeof location!=='undefined'&&/[?&]ch3river=(a|b|ab)(&|$)/.exec(location.search);return m?m[1]:UW_DEF.river.mode;}
 function hasA(){return uwRiverMode().indexOf('a')>=0;}
 function hasB(){return uwRiverMode().indexOf('b')>=0;}
@@ -2864,7 +2864,14 @@ function flyLanterns(W,K,anim){var D=UW_DEF.lanterns,rnd=K.prng(611),L=[],tex=la
   anim.push(function(dt,t){L.forEach(function(l){var f=(l.y0+t*l.v)%1,y=c[1]-R[1]+f*R[1]*2,o=Math.min(1,f*6,(1-f)*6);
     l.g.position.set(l.x+Math.sin(t*0.3+l.ph)*0.4,y,l.z+Math.cos(t*0.25+l.ph)*0.3);l.sp.material.opacity=o;l.gl.material.opacity=0.4*o*(0.85+0.15*Math.sin(t*2.3+l.ph));});});}
 
-/* ---------- 天頂整圈流下來的冥河水（b）：形狀用第二章紗幔的 vertex shader（VEIL_VS），水用自己的 ---------- */
+/* ---------- 天頂整圈流下來的冥河水（b）：一圈直直的瀑布，每條上下一樣寬、本身不擺（第一版借第二章紗幔的擺動，2026-11-07 CK 改成不動），水紋往下流 ----------
+   頂點只存 (u 橫向 -0.5~0.5, s 從上到下 0~1)（跟紗幔共用 veilGeo）；彎在半徑 R 的圓柱面上，方位角 a0、寬 w */
+var SKYFALL_VS=['uniform float R,a0,ytop,len,w; uniform vec3 ctr;',
+  'varying float vU,vS,vY;',
+  'void main(){ float u=position.x,s=position.y,y=ytop-s*len,an=a0+u*w/R;',
+  ' vec3 p=vec3(sin(an)*R,y,-cos(an)*R);',
+  ' vU=u;vS=s;vY=y;',
+  ' gl_Position=projectionMatrix*modelViewMatrix*vec4(p-ctr,1.0); }'].join('\n');
 var SKYFALL_FS=['uniform vec3 c1,c2; uniform float alpha,time,fy0,fy1;',
   'varying float vU,vS,vY;',
   'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
@@ -2876,13 +2883,13 @@ var SKYFALL_FS=['uniform vec3 c1,c2; uniform float alpha,time,fy0,fy1;',
   ' float a=alpha*smoothstep(0.5,0.36,abs(vU))*(0.55+0.45*flow)*(1.0-smoothstep(fy0,fy1,vY))*(1.0-smoothstep(4.0,18.0,-vY));',   /* 兩側柔邊；往上淡進天空、往下沉進霧 */
   ' gl_FragColor=vec4(col,a); }'].join('\n');
 function skyFalls(W,K,anim){var D=UW_DEF.skyFalls,rnd=K.prng(D.seed),spec=[],az=D.from,ms=[],c1=new THREE.Vector3().fromArray(D.c1),c2=new THREE.Vector3().fromArray(D.c2);
-  while(az<D.to){var w=rnd(D.w[0],D.w[1]);if(az>D.skip[0]&&az<D.skip[1]){az=D.skip[1];continue;}spec.push([az>180?az-360:az,rnd(D.R[0],D.R[1]),rnd(D.bot[0],D.bot[1]),w,w*rnd(1.2,1.7),rnd(D.op[0],D.op[1]),rnd(0,6.28)]);az+=rnd(D.gap[0],D.gap[1]);}
+  while(az<D.to){var w=rnd(D.w[0],D.w[1]);if(az>D.skip[0]&&az<D.skip[1]){az=D.skip[1];continue;}spec.push([az>180?az-360:az,rnd(D.R[0],D.R[1]),rnd(D.bot[0],D.bot[1]),w,rnd(1.2,1.7),rnd(D.op[0],D.op[1])]);rnd(0,6.28);   /* 第一版的下寬倍數、擺動相位：不用了但照樣抽，每條的位置才跟第一版一樣 */
+   az+=rnd(D.gap[0],D.gap[1]);}
   var geo=K.veilGeo();
   spec.forEach(function(v){var a0=v[0]*Math.PI/180,R=v[1],ytop=D.top,len=ytop-v[2],ctr=new THREE.Vector3(Math.sin(a0)*R,ytop-len*0.6,-Math.cos(a0)*R);
-    var m=new THREE.ShaderMaterial({uniforms:{time:{value:0},R:{value:R},a0:{value:a0},ytop:{value:ytop},len:{value:len},y0:{value:17},wT:{value:v[3]},wB:{value:v[4]},
-        sw:{value:0.012},fq:{value:0.5},tw:{value:0},ph:{value:v[6]},ctr:{value:ctr},c1:{value:c1},c2:{value:c2},alpha:{value:v[5]},fy0:{value:18},fy1:{value:34},
-        rt:{value:0},pw:{value:1.5},tl:{value:0},yp:{value:17}},
-      vertexShader:K.VEIL_VS,fragmentShader:SKYFALL_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide});
+    var m=new THREE.ShaderMaterial({uniforms:{time:{value:0},R:{value:R},a0:{value:a0},ytop:{value:ytop},len:{value:len},w:{value:v[3]},ctr:{value:ctr},
+        c1:{value:c1},c2:{value:c2},alpha:{value:v[5]},fy0:{value:18},fy1:{value:34}},
+      vertexShader:SKYFALL_VS,fragmentShader:SKYFALL_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide});
     var mesh=new THREE.Mesh(geo,m);mesh.position.copy(ctr);mesh.frustumCulled=false;mesh.raycast=noRay;mesh.renderOrder=-6;W.add(mesh);ms.push(m);});
   anim.push(function(dt,t){for(var i=0;i<ms.length;i++)ms[i].uniforms.time.value=t;});}
 
@@ -4473,7 +4480,7 @@ function dayFarScenery(W,H){var i;
 // 第三章冥界（garden_uw.js）要用到的庭院零件：第一次去第三章才用到
 var UWK=null;
 function uwKit(){return UWK||(UWK={islandGeo:islandGeo,landDetail:landDetail,rimNoise:rimNoise,prng:prng,makeCloudRing:makeCloudRing,makeFloaters:makeFloaters,
-  dayFallsMist:dayFallsMist,lily:lily,meshOf:meshOf,veilGeo:veilGeo,VEIL_VS:VEIL_VS});}
+  dayFallsMist:dayFallsMist,lily:lily,meshOf:meshOf,veilGeo:veilGeo});}
 // 其他章的主島：第一次去的時候才建。白天的章（look:'day'）照上面的青丘造景；冥界的章（look:'underworld'）照 garden_uw.js；其他還沒做的章先放一座空的夜晚石台
 function buildHub(c){var W=new THREE.Group();W.visible=false;scene.add(W);worlds[c]=W;
   var g=new THREE.Group();W.add(g);
