@@ -2,12 +2,14 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<script>/* 預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
+<script>/* 美術預覽頁（2026-11-07 起＝第三章冥界大地圖第一版 art/ch3-underworld；?hub=3 直接站上第三章主島、?isle=7～9 關卡島、?ch3river=a／b／ab 換河）。預覽頁專用（正式版沒有）：每次打開都讓打倒時的台詞可以重看（清掉存檔裡「講過了」的紀錄）；
    ?quick：進戰鬥後 BOSS 只剩 1 血；?ending=normal（同 ?letter）一般結局、?ending=true 真結局：從「打倒最終 BOSS」那一刻開始看；?test7 第七關青燐、?test8 第八關夢婆、?test9 最終戰九尾（&ending=nobell 有信沒戴鈴；&story=lb 當作有信又戴金鈴來打，看第三段金鈴故事）；&drops 測試網址打贏時演一次這關的掉落（不存檔）；?easy BOSS 血量剩四分之一（CK 上班偷測用，最終戰每段 2500；換段、補血、金鈴停血都照常）；?cover=4 直接開第四關介紹頁、?isle=4 直接跳到第四關的小島（美術預覽用，4～9 都可以）；?redo3 把第七、八關的通關和「往冥界的傳送陣開啟」拿掉（重看缺字封面和打完第六關的解鎖）。 */
 (function(){try{var k='fox3-save',s=JSON.parse(localStorage.getItem(k)||'null');if(s&&s.story&&s.story.lines){s.story.lines={};if(/[?&]redo3/.test(location.search)){if(s.cleared){delete s.cleared[6];delete s.cleared[7];}if(s.seen)delete s.seen.ch2;}localStorage.setItem(k,JSON.stringify(s));}}catch(e){}
 if(/[?&]quick/.test(location.search))setInterval(function(){var g=window.__game;if(g&&g.G.mode==='playing'&&g.battle.bossHp>g.battle.bossMax*0.05)g.battle.bossHp=1;},500);
 if(/[?&]easy/.test(location.search)){var EK=0.25,et=setInterval(function(){var g=window.__game;if(!g||!g.battle)return;clearInterval(et);var bt=g.battle,orig=bt.reset;function sc(){if(bt.bossMax>0&&bt.__easy!==bt.bossMax){bt.bossMax=Math.max(1,Math.round(bt.bossMax*EK));bt.bossHp=Math.min(bt.bossHp,bt.bossMax);bt.__easy=bt.bossMax;}}bt.reset=function(){var r=orig.apply(this,arguments);sc();return r;};sc();},30);}
-var CV=/[?&]cover=(\d)/.exec(location.search),IS=/[?&]isle=(\d)/.exec(location.search);if(CV||IS){var jt=setInterval(function(){var g=window.__game;if(!g||!g.GARDEN||!g.goTeam)return;clearInterval(jt);setTimeout(function(){if(CV)g.goTeam(+CV[1]-1);else{g.goGarden();g.GARDEN.setLoc(+IS[1]-1);}},300);},50);}})();</script><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+var CV=/[?&]cover=(\d)/.exec(location.search),IS=/[?&]isle=(\d)/.exec(location.search),HB=/[?&]hub=(\d)/.exec(location.search);if(CV||IS||HB){var jt=setInterval(function(){var g=window.__game;if(!g||!g.GARDEN||!g.goTeam)return;clearInterval(jt);setTimeout(function(){if(CV)g.goTeam(+CV[1]-1);else{g.goGarden();var AC={};for(var q=0;q<9;q++)AC[q]=true;if(g.GARDEN.setProgress)g.GARDEN.setProgress(AC,-1,-1);   /* 只在畫面上把每座島都亮出來（不寫存檔：正式版同一個網站，存檔共用） */
+if(HB)g.GARDEN.setLoc(-(+HB[1]));else if(+IS[1]>=7){g.GARDEN.setLoc(-3);setTimeout(function(){g.GARDEN.setLoc(+IS[1]-1);},1500);}else g.GARDEN.setLoc(+IS[1]-1);}},HB||(IS&&+IS[1]>=7)?1500:300);},50);}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1330">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -699,13 +701,13 @@ var CONFIG={
   ],
   // 章節：每章一座主島＋幾座關卡島。stages 是這章的關卡（CONFIG.stages 的索引，要連號）；
   //   place 是主島左上角的地名，col 是通往這章主島的傳送陣顏色。還沒做關卡的章 stages 留空，主島先放一座暫時的空島
-  //   look 是這章的天空與打光（'night' 月下／'day' 白天）；tree 是白天主島那棵花樹的花（sakura 粉色樹冠白花／peach 桃花／pear 梨花／jade 青葉白花）
+  //   look 是這章的天空與打光（'night' 月下／'day' 白天／'underworld' 冥界，2026-11-07 第一版：render/garden_uw.js）；tree 是白天主島那棵花樹的花（sakura 粉色樹冠白花／peach 桃花／pear 梨花／jade 青葉白花）
   chapters:[
     {name:'月下',place:'月下小院',stages:[0,1,2],col:0xffd98a,look:'night'},   // place：地圖上的章名、主島左上角的字（要不一樣的話可以另外給 title）
     {name:'青丘',place:'青丘',stages:[3,4,5],col:0xffb48f,look:'day',tree:'sakura'},
     // 冥界（2026-09-29 第三章 B 段第七、八關，C 段加第九關最終戰）：最後一章，打完第九關就是結局（沒有往下一章的傳送陣）。
     //   garble：第一次進去（還沒打倒）時封面的名字、介紹、標語是缺字和亂碼（docs/03「劇情」第 3 條；flow.js 的 coverGarbled）
-    {name:'冥界',place:'冥界',stages:[6,7,8],col:0xa9e0c8,garble:true}
+    {name:'冥界',place:'冥界',stages:[6,7,8],col:0xa9e0c8,garble:true,look:'underworld'}
   ],
   // 信（2026-09-29；docs/06_drops.md「信」、03_design_story.md 第 5 條）：第一次打倒最終 BOSS 拿到。信封上不寫字；lines＝信裡的三行（直書）。
   //   name／desc＝換裝頁「信」那一格的名字和介紹。字都是暫定，改這裡就好。演出在 src/letter.js。
@@ -1366,7 +1368,7 @@ var sparkTex=canvasTex(128,128,function(g,w){var c=w/2,gr=g.createRadialGradient
   gr.addColorStop(0,'rgba(255,240,205,.9)');gr.addColorStop(.18,'rgba(255,214,140,.3)');gr.addColorStop(1,'rgba(255,200,120,0)');g.fillStyle=gr;g.fillRect(0,0,w,w);
   var L=c*.96,s=c*.1;g.fillStyle='#fff3d2';g.beginPath();g.moveTo(c,c-L);
   g.quadraticCurveTo(c+s,c-s,c+L,c);g.quadraticCurveTo(c+s,c+s,c,c+L);g.quadraticCurveTo(c-s,c+s,c-L,c);g.quadraticCurveTo(c-s,c-s,c,c-L);g.fill();});
-var moonTex=canvasTex(512,512,function(g,w){var c=w/2,R=w*.43,i;
+var moonTex$1=canvasTex(512,512,function(g,w){var c=w/2,R=w*.43,i;
   g.save();g.shadowColor='rgba(255,236,190,.95)';g.shadowBlur=34;
   var gr=g.createRadialGradient(c-R*.3,c-R*.35,R*.1,c,c,R);gr.addColorStop(0,'#fff7df');gr.addColorStop(.65,'#f4e3b6');gr.addColorStop(1,'#e3cb93');
   g.fillStyle=gr;g.beginPath();g.arc(c,c,R,0,TAU);g.fill();g.restore();
@@ -2139,7 +2141,7 @@ var BS=(function(){
     sp.position.set(rand(-11,11),rand(4.5,22),rand(-56,-44));var ss=rand(0.5,1.15);sp.scale.set(ss,ss,1);sp.userData={s:ss,ph:rand(0,TAU),sp:rand(0.5,1.3)};sc.add(sp);sparks.push(sp);}
   var halos=[];[[34,.08],[16,.2],[9,.22]].forEach(function(h,k){var s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:k?0xffe6b0:0x9fb0e0,transparent:true,opacity:h[1],depthWrite:false,blending:THREE.AdditiveBlending}));
     s.position.copy(MOON).multiplyScalar(1.03);s.scale.set(h[0],h[0],1);s.userData.o=h[1];sc.add(s);halos.push(s);});
-  var moon=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex,transparent:true,depthWrite:false}));moon.position.copy(MOON);moon.scale.set(5.6,5.6,1);sc.add(moon);
+  var moon=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex$1,transparent:true,depthWrite:false}));moon.position.copy(MOON);moon.scale.set(5.6,5.6,1);sc.add(moon);
   var moonBase=new THREE.Color(0xffffff),moonK=1;   // 月亮原本的顏色；moonK：亮度（最終戰第三段被冥界的霧遮住會變暗，api.moonLight），換關時回到 1
   var clouds=[];function cloud(seed,x,y,z,w,tint,op){var s=new THREE.Sprite(new THREE.SpriteMaterial({map:xiangyunTex(seed,tint),transparent:true,opacity:op,depthWrite:false}));
     s.position.set(x,y,z);s.scale.set(w,w/2,1);s.userData={x:x,ph:rand(0,TAU),amp:rand(.3,.8)};sc.add(s);clouds.push(s);}
@@ -2662,6 +2664,289 @@ var BS=(function(){
   return api;
 })();
 
+// 第三章冥界的大地圖（render/garden_uw.js）：2026-11-07 CK 開的新件「第三章冥界大地圖 第一版」（遊星派）。
+/* =====================================================================
+   冥界色調的主島（-3）、第七～九關的關卡島、天空、月亮、遠景；冥界之河兩種做法：
+     a：從島上流下來——台面上一條發光的河（主島從中間後方的冥泉分兩條往左右），流到台緣變成瀑布（做法同第六關溢出去的瀑布）
+     b：天頂整圈流下來——做法同第二章外圍的紗幔（同一個 vertex shader），換成往下流的冥河水
+   網址 ?ch3river=a／b／ab 可以換（沒給就用 UW_DEF.river.mode）。點綴：小鬼火、鬼燈（台上立著的燈＋天上飄的燈）、彼岸花。
+   這個檔載入時不做任何事（不建物件、不抽亂數）：garden.js 第一次去第三章（buildHub／buildIsle）才呼叫，
+   要用庭院裡的零件時由 garden.js 傳一包進來（K，見 garden.js 的 uwKit）。亂數一律用固定種子 K.prng，不動 Math.random。
+   顏色、數量都集中在 UW_DEF（像白天大地圖的 HUB_DAY_DEF），之後 CK 要調就改這一份。
+   ===================================================================== */
+
+/* ---------- 冥界大地圖的資料 ----------
+   sky：天空。grad 由上往下三色、h 三個顏色所在的仰角（sin 值）；g1／g1k／e1 月亮旁邊那圈光（顏色、強度、收多快），g2 外面那圈淡的；
+        nb／na 雲紋的底色和深淺；mist／mistK 往下看變成冥河霧的顏色和程度
+   light：hemi [天光, 地光, 強度]、amb 環境光、key 月光、fill 補光
+   moon：月亮的位置、大小、顏色（貼圖本身是青白色，col 再乘上去）；halos 三圈光暈 [大小, 不透明度, 顏色]
+   spark：天上那些金色四芒星在冥界換成的顏色
+   land：島的石台——top 台面、side 側面、bot 底下、ol 描邊和粗細 olW、crack 發光的裂紋、peb 台緣小石子
+   cloud／floater：繞島的雲、小浮石
+   river：冥界之河。mode 預設哪一種；c1／c2 河水的深淺兩色、c3 瀑布下段（r,g,b 0～1）；hub 主島的河、isles 各關卡島的河
+          （每條 {from 起點 [x,z], mid 經過的點, th 流出台緣的角度（弧度，0 往右、π/2 往前）, w 寬}；座標是「主島大小」的單位，關卡島會照島的大小縮）；
+          always:1＝不管哪一種都有（第八關忘川就是這條河）；fall 瀑布的長、往外翻、下端變寬多少、寬度是河的幾倍（wk）；mist 瀑布和島底那幾團霧的顏色；spring 主島中間後方的冥泉
+   skyFalls：天頂流下來的冥河水（b）。from／to 從哪個方位角排到哪個（度，0 是預設鏡頭看過去的正後方、正的往右）、skip 空著的那一塊（月亮在 8° 左右，不擋月亮）、
+          gap 每條的間隔、R 半徑、top／bot 上下端高度、w 上寬（下寬再乘 1.2～1.7）、op 不透明度、c1／c2 水的深淺
+   wisps：小鬼火的顏色（輪流）、主島幾團、關卡島幾團、大小
+   lanterns：鬼燈。col 燈紙的光、tassel 流蘇；stand 主島台上立著的燈 [x, z, 高]；fly 天上飄的燈幾盞、顏色、在哪一塊天空飄（中心、範圍）
+   lily：彼岸花 [花瓣, 花蕊, 莖]；far：遠方一圈暗暗的祥雲（雲身兩色、描邊兩色、幾朵） */
+var UW_DEF={v:1,
+  sky:{grad:[0x010407,0x061a1c,0x0f3630],h:[0.5,0.02,-0.3],g1:[0.6,1,0.84],g1k:0.3,e1:28,g2:[0.16,0.55,0.46],g2k:0.16,e2:5,nb:0.88,na:0.22,mist:[0.03,0.12,0.11],mistK:0.6},
+  light:{hemi:[0x5a948a,0x060c0b,0.5],amb:[0x12302c,0.34],key:[0xf2fff8,0.9],fill:[0x22806a,0.3]},
+  moon:{x:4.5,y:8,z:-32,s:7.6,col:0xffffff,halos:[[46,0.16,0x2fa88a],[21,0.3,0x8ff0d0],[12,0.3,0xd0fff0]]},
+  spark:0x9ff5d0,
+  land:{top:0x2a3c40,side:0x1c2c31,bot:0x050b0e,ol:0x5fd0b0,olW:0.03,crack:0x7ff5c8,peb:0x34484f},
+  cloud:{col:0x203838,emi:0x081a18,ol:0x46a890},
+  floater:{col:0x22363b,ol:0x5fd0b0},
+  river:{mode:'a',c1:[0.3,0.95,0.8],c2:[0.78,1,0.93],c3:[0.08,0.36,0.32],
+    hub:[{from:[-0.2,-1.18],mid:[-1.42,-0.5],th:2.68,w:0.3},{from:[0.2,-1.18],mid:[1.45,-0.5],th:0.46,w:0.34}],
+    isles:{6:[{from:[-0.3,-1.1],mid:[-1.25,-0.62],th:2.82,w:0.26}],7:[{from:[1.3,-1.15],mid:[-0.2,-1.2],th:3.45,w:0.36,always:1}],8:[{from:[0.25,-1.35],mid:[1.3,-1.0],th:0.22,w:0.24}]},
+    fall:{len:3.2,out:0.26,grow:1.3,wk:1.7},mist:0x2f8a74,spring:{x:0,z:-1.2,r:0.32}},
+  skyFalls:{seed:3031,from:-34,to:326,skip:[-2,18],gap:[8,14],R:[23,30],top:42,bot:[-26,-14],w:[1.8,3.6],op:[0.42,0.58],c1:[0.12,0.5,0.42],c2:[0.62,1,0.88]},
+  wisps:{cols:[0xb8ff4a,0x7af0c8,0x8fe8ff,0xb8ff4a,0x6fd8bc],hub:10,isle:5,size:0.24},
+  lanterns:{col:0xbfffe0,tassel:0xd8344a,stand:[[-1.5,-0.35,1.15],[1.52,-0.3,1.05],[0.62,-1.62,1.25]],fly:10,flyCol:0xffb27a,flyAt:[2,3,-9],flyR:[11,7,11]},
+  lily:[0xe0453f,0xf38474,0x2f5f3f],
+  far:{tint:['#2c5a52','#0f2a27'],gold:['#5fd0b0','#3f9c86'],n:10}};
+
+// 網址 ?ch3river=a／b／ab（沒給就用 UW_DEF.river.mode）
+function uwRiverMode(){var m=typeof location!=='undefined'&&/[?&]ch3river=(a|b|ab)(&|$)/.exec(location.search);return m?m[1]:UW_DEF.river.mode;}
+function hasA(){return uwRiverMode().indexOf('a')>=0;}
+function hasB(){return uwRiverMode().indexOf('b')>=0;}
+function hex3(h){var c=new THREE.Color(h);return [c.r,c.g,c.b];}
+
+// 冥界的天空與打光（garden.js 的 LOOKS.underworld；換到第三章時 applyLook 套上去）
+function uwLook(){var D=UW_DEF,S=D.sky,L=D.light,M=[D.moon.x,D.moon.y,D.moon.z];
+  return {sky:{top:hex3(S.grad[0]),mid:hex3(S.grad[1]),low:hex3(S.grad[2]),g1:S.g1,g1k:S.g1k,e1:S.e1,g2:S.g2,g2k:S.g2k,e2:S.e2,nb:S.nb,na:S.na},
+    grad:{top:S.grad[0],mid:S.grad[1],low:S.grad[2],h:S.h},hemi:L.hemi,amb:L.amb,key:L.key,fill:L.fill,keyAt:M,glowAt:M,mist:[S.mist,S.mistK]};}
+
+/* ---------- 共用的材質、貼圖（第一次用到才建） ---------- */
+var UWC={};
+function mats(){if(UWC.land)return UWC;var D=UW_DEF;
+  UWC.land=toon(0xffffff,{vertexColors:true});UWC.landOl=outlineMat(D.land.ol,D.land.olW);
+  UWC.crack=new THREE.MeshBasicMaterial({color:D.land.crack});UWC.peb=toon(D.land.peb);UWC.pebOl=outlineMat(D.land.ol,0.016);
+  UWC.cloud=toon(D.cloud.col,{emissive:D.cloud.emi});UWC.cloudOl=outlineMat(D.cloud.ol,0.022);
+  UWC.float=toon(D.floater.col);UWC.floatOl=outlineMat(D.floater.ol,0.02);
+  UWC.rock=toon(0x26343a);UWC.rockOl=outlineMat(D.land.ol,0.014);
+  UWC.lily=D.lily.map(function(c,i){return toon(c,i<2?{emissive:new THREE.Color(c).multiplyScalar(0.35)}:{});});
+  return UWC;}
+function uwCloudMats(){var C=mats();return [C.cloud,C.cloudOl];}
+function uwFloaterMats(){var C=mats();return [C.float,C.floatOl];}
+// 石台：跟主島同一個形狀（islandGeo 複製一份），只換頂點色——台面暗石青、側面往下變黑
+function landGeo(K){if(UWC.landGeo)return UWC.landGeo;var D=UW_DEF.land,g=K.islandGeo.clone(),pa=g.attributes.position,col=new Float32Array(pa.count*3),
+    cT=new THREE.Color(D.top),cS=new THREE.Color(D.side),cB=new THREE.Color(D.bot),c=new THREE.Color();
+  for(var i=0;i<pa.count;i++){var x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i);
+    if(y>-0.025)c.copy(cT);else c.copy(cS).lerp(cB,Math.min(1,(-y-0.1)/2.6));
+    var h=Math.sin(x*12.9898+y*78.233+z*37.719)*43758.5453;h=0.86+0.22*(h-Math.floor(h));col[i*3]=c.r*h;col[i*3+1]=c.g*h;col[i*3+2]=c.b*h;}
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));UWC.landGeo=g;return g;}
+// 青白色的月亮（照 common.js 的 moonTex 畫法，換成冥界的顏色；坑洞用固定種子）
+function moonTex(K){if(UWC.moonTex)return UWC.moonTex;var rnd=K.prng(733);
+  UWC.moonTex=canvasTex(512,512,function(g,w){var c=w/2,R=w*.43,i;
+    g.save();g.shadowColor='rgba(170,255,225,.95)';g.shadowBlur=34;
+    var gr=g.createRadialGradient(c-R*.3,c-R*.35,R*.1,c,c,R);gr.addColorStop(0,'#f4fffa');gr.addColorStop(.65,'#cdf2e3');gr.addColorStop(1,'#98d8c2');
+    g.fillStyle=gr;g.beginPath();g.arc(c,c,R,0,TAU);g.fill();g.restore();
+    g.save();g.beginPath();g.arc(c,c,R,0,TAU);g.clip();
+    for(i=0;i<80;i++){var a=rnd(0,TAU),d=Math.sqrt(rnd(0,1))*R,r=5+rnd(0,R*.2);
+      g.fillStyle='rgba('+(80+rnd(0,30)|0)+','+(150+rnd(0,30)|0)+','+(130+rnd(0,25)|0)+','+(.05+rnd(0,.09)).toFixed(3)+')';g.beginPath();g.arc(c+Math.cos(a)*d,c+Math.sin(a)*d,r,0,TAU);g.fill();}
+    g.restore();});
+  return UWC.moonTex;}
+// 小鬼火：圓圓小小的一團＋往上一點點彎的短火尖（2026-10-01 CK 定的小鬼火樣子），白色畫、用材質顏色上色
+function wispTex(){if(UWC.wispTex)return UWC.wispTex;
+  UWC.wispTex=canvasTex(64,96,function(g,w,h){var cx=w/2,cy=h*0.64,r=w*0.24;
+    var gl=g.createRadialGradient(cx,cy,0,cx,cy,w*0.5);gl.addColorStop(0,'rgba(255,255,255,.5)');gl.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gl;g.fillRect(0,0,w,h);
+    var gr=g.createRadialGradient(cx,cy+r*0.2,r*0.1,cx,cy,r*1.5);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.6,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(255,255,255,.55)');
+    g.fillStyle=gr;g.beginPath();g.moveTo(cx+r,cy);g.arc(cx,cy,r,0,Math.PI,false);
+    g.quadraticCurveTo(cx-r*0.95,cy-r*1.25,cx+r*0.28,cy-r*2.35);g.quadraticCurveTo(cx+r*0.55,cy-r*1.05,cx+r,cy);g.fill();});
+  return UWC.wispTex;}
+// 天上飄的鬼燈：圓筒形的紙燈籠（燈紙、上下兩個蓋子、燈骨、底下一條流蘇），白色畫、用材質顏色上色
+function lanternTex(){if(UWC.lanTex)return UWC.lanTex;
+  UWC.lanTex=canvasTex(64,96,function(g,w,h){var cx=w/2,cy=h*0.48,rx=w*0.34,ry=h*0.27,i;
+    var gr=g.createRadialGradient(cx,cy,2,cx,cy,rx*1.2);gr.addColorStop(0,'#ffffff');gr.addColorStop(1,'#f2d8c4');g.fillStyle=gr;
+    g.beginPath();g.ellipse(cx,cy,rx,ry,0,0,TAU);g.fill();
+    g.strokeStyle='rgba(120,60,40,.35)';g.lineWidth=1.4;for(i=-2;i<=2;i++){g.beginPath();g.ellipse(cx,cy,Math.abs(i)*rx*0.42+0.5,ry,0,0,TAU);g.stroke();}
+    g.fillStyle='#4a3028';g.fillRect(cx-rx*0.62,cy-ry-3,rx*1.24,6);g.fillRect(cx-rx*0.62,cy+ry-3,rx*1.24,6);
+    g.strokeStyle='#4a3028';g.lineWidth=2;g.beginPath();g.moveTo(cx,cy+ry+3);g.lineTo(cx,h-6);g.stroke();});
+  return UWC.lanTex;}
+function glowSp(parent,col,s,op){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:col,transparent:true,opacity:op,depthWrite:false,blending:THREE.AdditiveBlending}));sp.scale.set(s,s,1);sp.raycast=noRay;parent.add(sp);return sp;}
+
+/* ---------- 石台（主島、關卡島共用；關卡島外面再縮成 S）：島身、發光的裂紋、台緣小石子。回傳石台本體（點地板走路用） ---------- */
+function uwLand(parent,S,K){var C=mats(),g=new THREE.Group();g.scale.setScalar(S);parent.add(g);
+  var land=new THREE.Mesh(landGeo(K),C.land);addOutline(land,C.landOl);g.add(land);
+  var ln=new THREE.Mesh(K.landDetail.lines,C.crack);ln.raycast=noRay;g.add(ln);
+  var pb=new THREE.Mesh(K.landDetail.peb,C.peb);pb.raycast=noRay;addOutline(pb,C.pebOl);g.add(pb);
+  return land;}
+function uwIsleLand(root,S,K){return uwLand(root,S,K);}
+
+/* ---------- 冥界之河（a）：台面上的河＋流出台緣的瀑布 ---------- */
+var RIVER_FS=['uniform float time,len; uniform vec3 c1,c2,c3; varying vec2 vUv;',
+  'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+  'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}',
+  'void main(){ float x=vUv.x,v=vUv.y;',
+  ' float flow=n(vec2(x*3.0,v*len*1.4-time*1.3));',
+  ' float fine=n(vec2(x*9.0+3.0,v*len*4.2-time*2.5));',
+  ' float mid=1.0-abs(x-0.5)*2.0;',
+  ' vec3 col=mix(c3,c1,smoothstep(0.0,0.7,mid));',                                   /* 兩岸深、中間亮 */
+  ' col=mix(col,c2,flow*0.55)+c2*smoothstep(0.62,0.9,fine*0.6+flow*0.4)*0.5;',        /* 往下游流的水紋與亮點 */
+  ' float a=smoothstep(0.0,0.2,x)*smoothstep(1.0,0.8,x)*(0.78+0.22*flow)*smoothstep(0.0,0.1,v);',
+  ' gl_FragColor=vec4(col,a); }'].join('\n');
+var RIVER_VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }';
+function rimPt(K,th,r){var q=r*K.rimNoise(th);return [Math.cos(th)*q,Math.sin(th)*q];}
+// 一條河：從 from 經過 mid 流到台緣（th），寬 w；起點那一端慢慢收細（從泉眼冒出來）。回傳中心線（給橋、彼岸花用）
+function riverStrip(g,K,rv,anim){var R=UW_DEF.river,e=rimPt(K,rv.th,1.93),
+    curve=new THREE.CatmullRomCurve3([new THREE.Vector3(rv.from[0],0.006,rv.from[1]),new THREE.Vector3(rv.mid[0],0.006,rv.mid[1]),new THREE.Vector3(e[0],0.006,e[1])]),
+    N=48,P=curve.getSpacedPoints(N),pos=[],uv=[],idx=[],i,L=curve.getLength();
+  for(i=0;i<=N;i++){var t=i/N,a=P[Math.max(0,i-1)],b=P[Math.min(N,i+1)],tx=b.x-a.x,tz=b.z-a.z,tl=Math.hypot(tx,tz)||1,nx=-tz/tl,nz=tx/tl,
+      ww=rv.w*(0.35+0.65*Math.min(1,t/0.18))/2;
+    pos.push(P[i].x+nx*ww,P[i].y,P[i].z+nz*ww,P[i].x-nx*ww,P[i].y,P[i].z-nz*ww);uv.push(0,t,1,t);
+    if(i<N)idx.push(i*2,i*2+1,i*2+2,i*2+1,i*2+3,i*2+2);}
+  var geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setIndex(idx);
+  var mt=new THREE.ShaderMaterial({uniforms:{time:{value:0},len:{value:L/rv.w},c1:{value:new THREE.Vector3().fromArray(R.c1)},c2:{value:new THREE.Vector3().fromArray(R.c2)},c3:{value:new THREE.Vector3().fromArray(R.c3)}},
+    vertexShader:RIVER_VS,fragmentShader:RIVER_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide});
+  var m=new THREE.Mesh(geo,mt);m.raycast=noRay;m.renderOrder=1;g.add(m);anim.push(function(dt,t){mt.uniforms.time.value=t;});
+  return P;}
+// 好幾條河＋各自流出台緣的瀑布、島底的霧（瀑布照第六關「從台面溢出去」的做法，水和霧換成冥河的顏色）
+function rivers(g,K,list,anim,seed){if(!list.length)return [];var R=UW_DEF.river,F=R.fall,track=[];
+  var lines=list.map(function(rv){return riverStrip(g,K,rv,anim);});
+  K.dayFallsMist(g,list.map(function(rv){return {th:rv.th,w:rv.w*F.wk,ov:1,len:F.len,out:F.out,grow:F.grow,op:1,c1:R.c1,c2:R.c2,c3:R.c3,mist:1};}),anim,K.prng(seed),track);
+  track.forEach(function(o){if(o.isSprite)o.material.color.setHex(R.mist);});
+  return lines;}
+// 冥泉：主島中間後方一小池發光的泉水（兩條河的源頭），一圈黑石、往上冒的小光點
+function spring(g,K,anim,obst){var S=UW_DEF.river.spring,C=mats(),R=UW_DEF.river,i;
+  var tex=canvasTex(128,128,function(x,w){var c=w/2,gr=x.createRadialGradient(c,c,0,c,c,c);gr.addColorStop(0,'rgba(200,255,232,1)');gr.addColorStop(0.45,'rgba(90,220,180,.85)');gr.addColorStop(0.85,'rgba(30,110,96,.7)');gr.addColorStop(1,'rgba(20,70,64,0)');x.fillStyle=gr;x.fillRect(0,0,w,w);});
+  var pool=new THREE.Mesh(new THREE.CircleGeometry(S.r,32),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));pool.rotation.x=-Math.PI/2;pool.position.set(S.x,0.008,S.z);pool.raycast=noRay;pool.renderOrder=1;g.add(pool);
+  var ico=new THREE.IcosahedronGeometry(1,1),rim=[];
+  for(i=0;i<14;i++){var a=i/14*TAU+0.2;if(Math.abs(Math.sin(a))<0.4)continue;   /* 左右兩邊空著：兩條河從這裡流出去 */
+    var s=0.045+0.02*((i*5)%3)/2;rim.push(xf(ico,S.x+Math.cos(a)*S.r*1.05,0.03,S.z+Math.sin(a)*S.r*1.05,s,s*0.7,s,0,a,0));}
+  g.add(K.meshOf(rim,C.rock,C.rockOl));
+  var rnd=K.prng(97),bub=[];for(i=0;i<4;i++){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xbfffe8,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));sp.raycast=noRay;g.add(sp);
+    bub.push({sp:sp,a:rnd(0,TAU),r:rnd(0.05,0.2),ph:rnd(0,1),v:rnd(0.18,0.3)});}
+  anim.push(function(dt,t){bub.forEach(function(b){var f=(t*b.v+b.ph)%1;b.sp.position.set(S.x+Math.cos(b.a+t*0.4)*b.r,0.05+f*0.9,S.z+Math.sin(b.a+t*0.4)*b.r);var s=0.12*(1-f*0.6);b.sp.scale.set(s,s,1);b.sp.material.opacity=Math.sin(f*Math.PI)*0.85;});
+    pool.material.opacity=0.88+0.12*Math.sin(t*1.7);});
+  obst.push({x:S.x,z:S.z,r:S.r+0.12});
+  return R;}
+// 彼岸花（沿著河岸一叢一叢）：pts 是 [x, z, 高, 朝向]
+function lilies(g,K,pts){var C=mats(),L={stem:[],pet:[],sta:[]};pts.forEach(function(p){K.lily(L,p[0],p[1],p[2],p[3]);});
+  g.add(K.meshOf(L.stem,C.lily[2]));g.add(K.meshOf(L.pet,C.lily[0]));g.add(K.meshOf(L.sta,C.lily[1]));}
+// 沿著河的中心線，在兩岸每隔幾格種一叢（固定種子）
+function bankLilies(g,K,P,seed,every){var rnd=K.prng(seed),pts=[];
+  for(var i=4;i<P.length-6;i+=every){var a=P[i-1],b=P[i+1],tx=b.x-a.x,tz=b.z-a.z,tl=Math.hypot(tx,tz)||1,sd=(i/every)%2?1:-1,off=0.22+rnd(0,0.1);
+    pts.push([P[i].x-tz/tl*off*sd,P[i].z+tx/tl*off*sd,rnd(0.2,0.3),rnd(0,TAU)]);}
+  lilies(g,K,pts);}
+
+/* ---------- 小鬼火：一團團飄在島邊、慢慢上下浮、閃 ---------- */
+function wisps(parent,K,n,seed,rIn,rOut,yLo,yHi,size,anim){var D=UW_DEF.wisps,rnd=K.prng(seed),W=[],tex=wispTex();
+  for(var i=0;i<n;i++){var a=rnd(0,TAU),r=rnd(rIn,rOut),col=D.cols[i%D.cols.length],s=size*rnd(0.75,1.2);
+    var g=new THREE.Group();g.position.set(Math.cos(a)*r,rnd(yLo,yHi),Math.sin(a)*r);parent.add(g);
+    var gl=glowSp(g,col,s*3,0.28);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:col,transparent:true,opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending}));sp.scale.set(s,s*1.5,1);sp.raycast=noRay;g.add(sp);
+    W.push({g:g,sp:sp,gl:gl,x:g.position.x,y:g.position.y,z:g.position.z,s:s,ph:rnd(0,TAU),sp2:rnd(0.6,1.1)});}
+  anim.push(function(dt,t){W.forEach(function(w){var q=t*w.sp2+w.ph;w.g.position.set(w.x+Math.sin(q*0.7)*0.1,w.y+Math.sin(q)*0.14,w.z+Math.cos(q*0.6)*0.1);
+    var k=0.5+0.5*Math.sin(t*3.1+w.ph*3)*Math.sin(t*1.7+w.ph);w.sp.scale.set(w.s*(0.92+0.1*k),w.s*1.5*(0.9+0.16*k),1);w.sp.material.opacity=0.7+0.25*k;w.gl.material.opacity=0.18+0.14*k;});});
+  return W;}
+
+/* ---------- 鬼燈：台上立著的燈（木桿＋橫木＋吊著的圓燈籠＋紅流蘇）、天上慢慢往上飄的燈 ---------- */
+function standLantern(g,K,x,z,H,ph,anim,obst){var D=UW_DEF.lanterns,wood=toon(0x2e2622),dark=toon(0x1c1614);
+  var p=new THREE.Group();p.position.set(x,0,z);p.rotation.y=Math.atan2(-x,-z)+Math.PI;g.add(p);
+  p.add(K.meshOf([xf(new THREE.CylinderGeometry(0.022,0.03,H,6),0,H/2,0,1),xf(new THREE.CylinderGeometry(0.014,0.014,0.3,5),0.13,H-0.02,0,1,1,1,0,0,Math.PI/2),xf(SPH_LO,0,0.02,0,0.06,0.03,0.06)],wood,outlineMat(UW_DEF.land.ol,0.01)));
+  var hang=new THREE.Group();hang.position.set(0.25,H-0.03,0);p.add(hang);
+  hang.add(K.meshOf([xf(new THREE.CylinderGeometry(0.003,0.003,0.1,4),0,-0.05,0,1)],dark));
+  var body=new THREE.Mesh(SPH_LO,new THREE.MeshBasicMaterial({color:D.col}));body.scale.set(0.1,0.13,0.1);body.position.y=-0.22;body.raycast=noRay;hang.add(body);
+  hang.add(K.meshOf([xf(new THREE.CylinderGeometry(0.05,0.06,0.025,10),0,-0.1,0,1),xf(new THREE.CylinderGeometry(0.06,0.05,0.025,10),0,-0.345,0,1)],dark));
+  hang.add(K.meshOf([xf(new THREE.CylinderGeometry(0.004,0.004,0.06,4),0,-0.385,0,1),xf(new THREE.CylinderGeometry(0.008,0.022,0.08,6),0,-0.45,0,1)],toon(D.tassel,{emissive:0x3a0810})));
+  var gl=glowSp(hang,D.col,0.9,0.5);gl.position.y=-0.22;
+  anim.push(function(dt,t){hang.rotation.z=Math.sin(t*0.9+ph)*0.07;hang.rotation.x=Math.sin(t*0.7+ph*1.3)*0.05;gl.material.opacity=0.42+0.12*Math.sin(t*2.1+ph);});
+  obst.push({x:x,z:z,r:0.18});}
+function flyLanterns(W,K,anim){var D=UW_DEF.lanterns,rnd=K.prng(611),L=[],tex=lanternTex(),c=D.flyAt,R=D.flyR;
+  for(var i=0;i<D.fly;i++){var g=new THREE.Group();W.add(g);var s=rnd(0.28,0.42);
+    var gl=glowSp(g,D.flyCol,s*3,0.4);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:D.flyCol,transparent:true,depthWrite:false}));sp.scale.set(s,s*1.5,1);sp.raycast=noRay;g.add(sp);
+    L.push({g:g,sp:sp,gl:gl,x:c[0]+rnd(-R[0],R[0]),z:c[2]+rnd(-R[2],R[2]),y0:rnd(0,1),ph:rnd(0,TAU),v:rnd(0.035,0.06)});}
+  anim.push(function(dt,t){L.forEach(function(l){var f=(l.y0+t*l.v)%1,y=c[1]-R[1]+f*R[1]*2,o=Math.min(1,f*6,(1-f)*6);
+    l.g.position.set(l.x+Math.sin(t*0.3+l.ph)*0.4,y,l.z+Math.cos(t*0.25+l.ph)*0.3);l.sp.material.opacity=o;l.gl.material.opacity=0.4*o*(0.85+0.15*Math.sin(t*2.3+l.ph));});});}
+
+/* ---------- 天頂整圈流下來的冥河水（b）：形狀用第二章紗幔的 vertex shader（VEIL_VS），水用自己的 ---------- */
+var SKYFALL_FS=['uniform vec3 c1,c2; uniform float alpha,time,fy0,fy1;',
+  'varying float vU,vS,vY;',
+  'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+  'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}',
+  'void main(){ float x=vU+0.5;',
+  ' float flow=n(vec2(x*5.0,vY*0.32+time*1.5));',                                          /* 水紋往下流 */
+  ' float fine=n(vec2(x*16.0+2.0,vY*1.05+time*3.0));',
+  ' vec3 col=mix(c1,c2,flow*0.8)+vec3(0.85,1.0,0.95)*smoothstep(0.62,0.9,fine*0.55+flow*0.5)*0.32;',
+  ' float a=alpha*smoothstep(0.5,0.36,abs(vU))*(0.55+0.45*flow)*(1.0-smoothstep(fy0,fy1,vY))*(1.0-smoothstep(4.0,18.0,-vY));',   /* 兩側柔邊；往上淡進天空、往下沉進霧 */
+  ' gl_FragColor=vec4(col,a); }'].join('\n');
+function skyFalls(W,K,anim){var D=UW_DEF.skyFalls,rnd=K.prng(D.seed),spec=[],az=D.from,ms=[],c1=new THREE.Vector3().fromArray(D.c1),c2=new THREE.Vector3().fromArray(D.c2);
+  while(az<D.to){var w=rnd(D.w[0],D.w[1]);if(az>D.skip[0]&&az<D.skip[1]){az=D.skip[1];continue;}spec.push([az>180?az-360:az,rnd(D.R[0],D.R[1]),rnd(D.bot[0],D.bot[1]),w,w*rnd(1.2,1.7),rnd(D.op[0],D.op[1]),rnd(0,6.28)]);az+=rnd(D.gap[0],D.gap[1]);}
+  var geo=K.veilGeo();
+  spec.forEach(function(v){var a0=v[0]*Math.PI/180,R=v[1],ytop=D.top,len=ytop-v[2],ctr=new THREE.Vector3(Math.sin(a0)*R,ytop-len*0.6,-Math.cos(a0)*R);
+    var m=new THREE.ShaderMaterial({uniforms:{time:{value:0},R:{value:R},a0:{value:a0},ytop:{value:ytop},len:{value:len},y0:{value:17},wT:{value:v[3]},wB:{value:v[4]},
+        sw:{value:0.012},fq:{value:0.5},tw:{value:0},ph:{value:v[6]},ctr:{value:ctr},c1:{value:c1},c2:{value:c2},alpha:{value:v[5]},fy0:{value:18},fy1:{value:34},
+        rt:{value:0},pw:{value:1.5},tl:{value:0},yp:{value:17}},
+      vertexShader:K.VEIL_VS,fragmentShader:SKYFALL_FS,transparent:true,depthWrite:false,side:THREE.DoubleSide});
+    var mesh=new THREE.Mesh(geo,m);mesh.position.copy(ctr);mesh.frustumCulled=false;mesh.raycast=noRay;mesh.renderOrder=-6;W.add(mesh);ms.push(m);});
+  anim.push(function(dt,t){for(var i=0;i<ms.length;i++)ms[i].uniforms.time.value=t;});}
+
+/* ---------- 天上：青白的月亮與月暈、遠方一圈暗暗的祥雲（月下那兩朵靠月亮的先不放：暗色的雲擋在畫面正中間太重） ---------- */
+function skyBits(W,K,anim){var D=UW_DEF,M=D.moon,i;
+  var halos=M.halos.map(function(h){var sp=glowSp(W,h[2],h[0],h[1]);sp.position.set(M.x,M.y,M.z).multiplyScalar(1.03);sp.renderOrder=-5;return {sp:sp,o:h[1]};});
+  var moon=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex(K),color:M.col,transparent:true,depthWrite:false}));moon.position.set(M.x,M.y,M.z);moon.scale.set(M.s,M.s,1);moon.renderOrder=-5;moon.raycast=noRay;W.add(moon);
+  var rnd=K.prng(1213),F=D.far,cl=[];
+  function add(seed,x,y,z,w,op,ro){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:xiangyunTex(seed,F.tint,F.gold),transparent:true,opacity:op,depthWrite:false}));sp.position.set(x,y,z);sp.scale.set(w,w/2,1);sp.renderOrder=ro;sp.raycast=noRay;W.add(sp);cl.push({sp:sp,x:x,ph:rnd(0,TAU),amp:rnd(0.4,1)});}
+  for(i=0;i<F.n;i++){var a=i/F.n*TAU+rnd(-0.2,0.2),r=rnd(38,50);add(100+i*37,Math.cos(a)*r,rnd(-7,-2.5),Math.sin(a)*r,rnd(14,22),0.8,-6.2);}
+  anim.push(function(dt,t){halos.forEach(function(h,k){h.sp.material.opacity=h.o*(0.9+0.1*Math.sin(t*0.7+k));});cl.forEach(function(c){c.sp.position.x=c.x+Math.sin(t*0.05+c.ph)*c.amp;});});}
+
+/* ---------- 第三章主島（-3）：garden.js 的 buildHub 呼叫；傳送陣、小狐狸由 buildHub 照舊放 ---------- */
+function decorateUwHub(H,K){var W=H.W,g=H.g,R=UW_DEF.river,C=mats();H.S=1;
+  H.land=uwLand(g,1,K);
+  spring(g,K,H.anim,H.obst);
+  if(hasA()){var P=rivers(g,K,R.hub,H.anim,41);P.forEach(function(p,i){bankLilies(g,K,p,71+i,7);});}
+  else lilies(g,K,[[-0.55,-1.3,0.26,0.4],[-0.42,-1.48,0.22,1.9],[0.5,-1.32,0.27,2.6],[0.66,-1.12,0.22,0.9]]);
+  UW_DEF.lanterns.stand.forEach(function(s,i){standLantern(g,K,s[0],s[1],s[2],i*1.9,H.anim,H.obst);});
+  wisps(W,K,UW_DEF.wisps.hub,515,2.3,4.4,-2.2,1.6,UW_DEF.wisps.size,H.anim);
+  wisps(g,K,3,516,0.6,1.5,0.7,1.3,UW_DEF.wisps.size*0.8,H.anim);
+  flyLanterns(W,K,H.anim);
+  skyBits(W,K,H.anim);
+  if(hasB())skyFalls(W,K,H.anim);
+  H.floaters=K.makeFloaters(W,[[3.0,-0.1,-1.3,.26],[-2.9,0.5,1.1,.2],[-2.3,-1.7,-1.9,.34],[2.4,-2.2,1.4,.22]],C.float,C.floatOl);
+  H.clouds=K.makeCloudRing(W,1,7,C.cloud,C.cloudOl);}
+
+/* ---------- 第七～九關的關卡島：garden.js 的 buildIsle 在造景、燈、傳送陣都放好之後呼叫——河、小鬼火 ---------- */
+function uwIsleExtras(I,K){var R=UW_DEF.river,list=(R.isles[I.k]||[]).filter(function(rv){return rv.always||hasA();});
+  if(list.length){var g=new THREE.Group();g.scale.setScalar(I.S);I.root.add(g);var P=rivers(g,K,list,I.anim,I.k*13+5);
+    P.forEach(function(p,i){bankLilies(g,K,p,I.k*7+i,8);});
+    if(I.def.deco==='uwBridge')bridge(g,K,P[0],I);}
+  wisps(I.root,K,UW_DEF.wisps.isle,I.k*29+3,1.6*I.S/0.82,2.6*I.S/0.82,-1.6,1.2,UW_DEF.wisps.size,I.anim);}
+
+// 第八關（夢婆、忘川）：河上一座小小的拱橋（奈何橋），橋在河的正中間、跟河垂直
+function bridge(g,K,P,I){var C=mats(),i=Math.round(P.length*0.42),a=P[i-2],b=P[i+2],c=P[i],ang=Math.atan2(b.x-a.x,b.z-a.z),parts=[],rails=[],N=9,L=0.62,Wd=0.2;
+  var grp=new THREE.Group();grp.position.set(c.x,0,c.z);grp.rotation.y=ang+Math.PI/2;g.add(grp);
+  for(var k=0;k<N;k++){var u=(k+0.5)/N-0.5,y=0.13*Math.cos(u*Math.PI)+0.01,sl=-0.13*Math.PI*Math.sin(u*Math.PI)/L;
+    parts.push(xf(new THREE.BoxGeometry(Wd,0.035,L/N*1.04),0,y,u*L,1,1,1,Math.atan(sl),0,0));
+    if(k%2===0)[-1,1].forEach(function(sd){rails.push(xf(new THREE.CylinderGeometry(0.012,0.012,0.12,5),sd*Wd*0.46,y+0.07,u*L,1));});}
+  [-1,1].forEach(function(sd){for(var k=0;k<N-1;k++){var u0=(k+0.5)/N-0.5,u1=(k+1.5)/N-0.5,y0=0.13*Math.cos(u0*Math.PI)+0.13,y1=0.13*Math.cos(u1*Math.PI)+0.13,
+      d=Math.hypot(L/N,y1-y0);rails.push(xf(new THREE.CylinderGeometry(0.009,0.009,d,4),sd*Wd*0.46,(y0+y1)/2,(u0+u1)/2*L,1,1,1,Math.PI/2-Math.atan2(y1-y0,L/N),0,0));}});
+  grp.add(K.meshOf(parts,toon(0x4f6366),C.rockOl));grp.add(K.meshOf(rails,toon(0x8a2a2a,{emissive:0x2a0808})));
+  I.obst.push({x:c.x*I.S,z:c.z*I.S,r:0.2});}
+
+/* ---------- 冥界關卡島的造景（ISLES[k].deco）：garden.js 的 buildIsle 照名字呼叫 ---------- */
+var UW_DECO={
+  // 第七關（青燐）：右後方一座青燐火盆（石盆裡一團冥界綠的火）、幾顆黑石、一叢彼岸花
+  uwFire:function(top,I,K){var C=mats(),bx=0.78,bz=-0.55;
+    top.add(K.meshOf([xf(new THREE.CylinderGeometry(0.2,0.12,0.14,10),bx,0.07,bz,1),xf(new THREE.CylinderGeometry(0.06,0.09,0.1,8),bx,0.02,bz,1)],toon(0x3a4a4e),C.rockOl));
+    var fire=new THREE.Group();fire.position.set(bx,0.2,bz);top.add(fire);var gl=glowSp(fire,0xb8ff4a,1.3,0.5),tex=wispTex(),fl=[];
+    [[0,0,0.34,0xb8ff4a],[0.05,-0.02,0.24,0xe2ffb0],[-0.06,-0.03,0.22,0x7af0c8]].forEach(function(f,i){var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:f[3],transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+      sp.position.set(f[0],f[1]+f[2]*0.5,0);sp.scale.set(f[2],f[2]*1.6,1);sp.raycast=noRay;fire.add(sp);fl.push({sp:sp,s:f[2],ph:i*2.1});});
+    I.anim.push(function(dt,t){fl.forEach(function(f){var k=Math.sin(t*5+f.ph)*0.5+Math.sin(t*8.3+f.ph*2)*0.5;f.sp.scale.set(f.s*(1+0.06*k),f.s*1.6*(1+0.12*k),1);});gl.material.opacity=0.42+0.1*Math.sin(t*4.2);});
+    var ico=new THREE.IcosahedronGeometry(1,1);
+    top.add(K.meshOf([xf(ico,-1.0,0.12,-0.4,0.16,0.2,0.15,0.2,0.6,0.1),xf(ico,-0.86,0.05,-0.18,0.08,0.06,0.08,0.4,1,0),xf(ico,1.15,0.06,0.0,0.09,0.07,0.09,0,2,0)],C.rock,C.rockOl));
+    lilies(top,K,[[0.55,-0.95,0.26,0.3],[0.72,-0.9,0.22,1.7],[1.05,-0.62,0.27,2.4],[-0.75,0.1,0.24,0.8],[-0.9,0.28,0.2,2.9]]);
+    I.obst.push({x:bx,z:bz,r:0.32},{x:-1.0,z:-0.4,r:0.26});},
+  // 第八關（夢婆、忘川）：一條斜過島的忘川（UW_DEF.river.isles[7]，不管哪一種都有）、河上的奈何橋（uwIsleExtras 照河的位置蓋）、燈移到右邊（不擋橋）
+  uwBridge:function(top,I,K){var C=mats();I.lampAt=[0.62,-0.3];I.spawn=[-0.3,0.35];
+    var ico=new THREE.IcosahedronGeometry(1,1);
+    top.add(K.meshOf([xf(ico,1.18,0.1,-0.22,0.13,0.16,0.12,0.2,0.6,0.1),xf(ico,-0.4,0.05,0.05,0.07,0.05,0.07,0.4,1,0)],C.rock,C.rockOl));}
+};
+
 // 庭院（render/garden.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 /* =====================================================================
    render/garden.js：月下庭院（主畫面與選關）
@@ -2755,7 +3040,7 @@ var moonHalos=[];
   [[46,.16],[21,.32],[12,.3]].forEach(function(h,i){
     var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:i?0xffe6b0:0x9fb0e0,transparent:true,opacity:h[1],depthWrite:false,blending:THREE.AdditiveBlending}));
     sp.position.copy(MOON).multiplyScalar(1.03);sp.scale.set(h[0],h[0],1);sp.userData.o=h[1];scene.add(sp);moonHalos.push(sp);nightEnv.push(sp);});
-  var moon=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex,transparent:true,depthWrite:false}));
+  var moon=new THREE.Sprite(new THREE.SpriteMaterial({map:moonTex$1,transparent:true,depthWrite:false}));
   moon.position.copy(MOON);moon.scale.set(7.6,7.6,1);scene.add(moon);nightEnv.push(moon);
 })();
 
@@ -2838,9 +3123,9 @@ var landDetail={};
 
 // 小浮石
 var floatIco=new THREE.IcosahedronGeometry(1,1),floatMat=toon(0x2a3462),floatOl=outlineMat(0xd9b46a,0.02);
-function makeFloaters(parent,list){return list.map(function(f){
-  var m=new THREE.Mesh(floatIco,floatMat);m.position.set(f[0],f[1],f[2]);m.scale.set(f[3],f[3]*.8,f[3]);m.rotation.set(rand(0,3),rand(0,3),0);m.raycast=noRay;
-  addOutline(m,floatOl);m.userData={y:f[1],ph:rand(0,TAU)};parent.add(m);return m;});}
+function makeFloaters(parent,list,mat,ol){return list.map(function(f){   // mat、ol：換材質（第三章冥界）；沒給就是月下的
+  var m=new THREE.Mesh(floatIco,mat||floatMat);m.position.set(f[0],f[1],f[2]);m.scale.set(f[3],f[3]*.8,f[3]);m.rotation.set(rand(0,3),rand(0,3),0);m.raycast=noRay;
+  addOutline(m,ol||floatOl);m.userData={y:f[1],ph:rand(0,TAU)};parent.add(m);return m;});}
 function updateFloaters(list,dt,t){list.forEach(function(f){f.position.y=f.userData.y+Math.sin(t*0.7+f.userData.ph)*0.12;f.rotation.y+=dt*0.15;});}
 var floaters=makeFloaters(W0,[[3.0,-0.1,-1.3,.26],[-2.9,0.5,1.1,.2],[-2.3,-1.7,-1.9,.34],[2.4,-2.2,1.4,.22]]);
 
@@ -3056,7 +3341,7 @@ function hitBall(parent,r,y){var h=new THREE.Mesh(new THREE.SphereGeometry(r,8,6
 //   isle    關卡島中心（世界座標；主島在原點）
 //   col     通往這一關的傳送陣光色；dark:true 時改用一般混色畫出偏黑的傳送陣，ink 是陣紋與光柱的顏色
 //   lamp    燈點亮之後的顏色
-//   deco    島上造景：'bamboo'（竹子＋青苔石）、'pond'（會反射的淺水池＋睡蓮＋蘆葦＋螢火蟲＋黑石＋彼岸花＋楓樹）、'wisteria'（紫藤花架）
+//   deco    島上造景：'bamboo'（竹子＋青苔石）、'pond'（會反射的淺水池＋睡蓮＋蘆葦＋螢火蟲＋黑石＋彼岸花＋楓樹）、'wisteria'（紫藤花架）；冥界的 'uwFire'、'uwBridge' 在 garden_uw.js 的 UW_DECO
 // 選填（不給就用現在的預設值；之後重新設計某座島時改這裡就好）：
 //   size    石台大小（預設 ISLE_S＝0.82，主島是 1）。可走範圍、雲圈、落葉落點、傳送陣位置、鏡頭距離都會跟著等比例變
 //   backAt  回程傳送陣的位置 [x,z]（預設在左前方）；nextAt 往前的傳送陣位置（預設在右前方）
@@ -3074,10 +3359,11 @@ var ISLES=[
   // 第五關塗山、第六關天狐（2026-09-28 先做玩法）：放在第一章第二、三關的位置；島先用主島的複製，造景暫時。傳送陣：塗山玉綠、天狐金色（畫法同第四關）
   {isle:[3.3,2.6,-14.5],col:0x9fe8d2,ink:0x2fae8c,dark:true,day:true,lamp:0xb8f4e2,deco:'dayRope'},
   {isle:[8.8,3.4,-16.5],col:0xffe08a,ink:0xe0a022,dark:true,day:true,lamp:0xffe6a0,deco:'dayMirror',falls:[{th:0.45,w:0.34,ov:1,len:2.76,out:0.26},{th:1.72,w:0.2,ov:1,len:2.76,out:0.26},{th:2.78,w:0.27,ov:1,len:2.76,out:0.26},{th:4.55,w:0.15,ov:1,len:2.76,out:0.26}]},
-  // 第三章冥界（2026-09-29 B 段，暫時的島）：放在第一章第一、二關的位置、用夜晚的石台（冥界還沒有自己的 look），造景借竹林、池塘；
-  //   傳送陣與燈：青燐冥界綠、夢婆忘川的青藍。CK 之後可能把整張地圖改成「一片冥界河、島浮在河上」，所以先不做細
-  {isle:[-1.8,6.75,-11.2],col:0xb8ff4a,lamp:0xd2ff9a,deco:'bamboo'},
-  {isle:[3.3,2.6,-14.5],col:0x7ad8ff,ink:0x0c2238,dark:true,lamp:0xb8ecff,deco:'pond'},
+  // 第三章冥界（2026-09-29 B 段，暫時的島）：放在第一章第一、二關的位置；傳送陣與燈：青燐冥界綠、夢婆忘川的青藍。
+  //   2026-11-07 冥界大地圖第一版（遊星派、CK 要先看感覺）：石台換冥界的顏色（look:'underworld'，garden_uw.js），
+  //   第七關的造景換成青燐火盆＋彼岸花（uwFire）、第八關換成斜過島的忘川＋奈何橋（uwBridge）
+  {isle:[-1.8,6.75,-11.2],col:0xb8ff4a,lamp:0xd2ff9a,deco:'uwFire'},
+  {isle:[3.3,2.6,-14.5],col:0x7ad8ff,ink:0x0c2238,dark:true,lamp:0xb8ecff,deco:'uwBridge'},
   // 第九關九尾（2026-09-29 C 段，暫時的島）：第一章第三關的位置、造景借妲己的紫藤（九尾就是她）；傳送陣與燈是淡紫
   {isle:[8.8,3.4,-16.5],col:0xd0a8ff,lamp:0xeadcff,deco:'wisteria'}
 ];
@@ -3516,25 +3802,27 @@ function portalOf(root,at,ln,R,H,rnd){var P=makePortal(root,at[0],at[1],{R:R,H:H
 function buildIsle(def,k){
   var p=def.isle,S=def.size||ISLE_S,f=S/ISLE_S,c=chapterOfStage(k),root=new THREE.Group();root.position.set(p[0],p[1],p[2]);worlds[c].add(root);
   var I={def:def,k:k,ch:c,S:S,root:root,pos:new THREE.Vector3(p[0],p[1],p[2]),obst:[],anim:[],props:[],lampAt:[0.05,-0.5],spawn:[-0.32,0.3],appear:1,ph:k*1.9,liftPx:null};
-  var day=CONFIG.chapters[c].look==='day';I.day=day;
+  var day=CONFIG.chapters[c].look==='day',uw=CONFIG.chapters[c].look==='underworld';I.day=day;I.uw=uw;
   if(day){   // 白天的章：整座複製白天主島的島身——石台＋圓弧草皮＋蜜桃粉描邊、嵌在島邊的石頭、兩道瀑布、島底的霧（整座縮成 S）；主島的花樹不複製（2026-09-28 使用者：每一關會不一樣）
     var dg=new THREE.Group();dg.scale.setScalar(S);root.add(dg);var dOl=outlineMat(DAY_OL,0.032),dSm=toon(0xffffff,{vertexColors:true}),dTm=toon(0xffffff,{vertexColors:true});
     var ipal=palOf(k);I.dayBody=[];I.land=dayLand(dg,isleFalls(def),dOl,dSm,dTm,ipal,I.dayBody);I.land.userData.isle=k;dayLedges(dg,dOl,dSm,dTm,ipal,I.dayBody);
     I.fallObjs=[];I.fallSt=dayFallsMist(dg,isleFalls(def),I.anim,prng(k*17+3),I.fallObjs);I.vineObjs=[];I.vineSt=isleVines(def)?dayVines(dg,isleVines(def),I.anim,I.vineObjs):null;}   // ipal：這一關的島的調色盤（HUB_DAY_DEF.isles[k]，沒有就跟主島一樣）；瀑布、藤蔓見 isleFalls／isleVines
+  else if(uw){I.land=uwIsleLand(root,S,uwKit());I.land.userData.isle=k;}   // 冥界的章（第三章）：同一個石台形狀換冥界的顏色（garden_uw.js）
   else {
   var land=new THREE.Mesh(islandGeo,isleLandMat);land.scale.setScalar(S);land.userData.isle=k;addOutline(land,isleLandOl);root.add(land);I.land=land;
   var det=new THREE.Group();det.scale.setScalar(S);root.add(det);
   var ln=new THREE.Mesh(landDetail.lines,landDetail.lineMat);ln.raycast=noRay;det.add(ln);
   var pb=new THREE.Mesh(landDetail.peb,landDetail.pebMat);pb.raycast=noRay;addOutline(pb,landDetail.pebOl);det.add(pb);}
-  if(def.deco==='bamboo')decoBamboo(root,I);else if(def.deco==='pond')decoPond(root,I);else if(def.deco==='wisteria')decoWisteria(root,I);else if(def.deco==='dayTemp')decoDayTemp(root,I,def.bush);else if(def.deco==='dayPeach')decoDayPeach(root,I);else if(def.deco==='dayRope')decoDayRope(root,I);else if(def.deco==='dayMirror')decoDayMirror(root,I);
+  if(def.deco==='bamboo')decoBamboo(root,I);else if(def.deco==='pond')decoPond(root,I);else if(def.deco==='wisteria')decoWisteria(root,I);else if(def.deco==='dayTemp')decoDayTemp(root,I,def.bush);else if(def.deco==='dayPeach')decoDayPeach(root,I);else if(def.deco==='dayRope')decoDayRope(root,I);else if(def.deco==='dayMirror')decoDayMirror(root,I);else if(UW_DECO[def.deco])UW_DECO[def.deco](root,I,uwKit());
   var la=I.lampAt,lY=I.lampY||0;I.lamp=makeLantern(root,la[0],la[1],def.lamp);I.lamp.g.position.y=lY;I.lamp.hit.userData.lamp=k;I.obst.push({x:la[0],z:la[1],r:0.38});   // lampY：燈放在台子上（第五關的祭壇）
   I.star=makeStageStar(root,la[0],1.32+lY,la[1]);
   var lk=isleLinks(k),ba=def.backAt||[BACK_AT[0]*f,BACK_AT[1]*f],na=def.nextAt||[NEXT_AT[0]*f,NEXT_AT[1]*f];
   I.back=portalOf(root,ba,lk.back,0.24,0.95);
   I.next=lk.next?portalOf(root,na,lk.next,0.24,0.95,lk.next.to<0?prng(k+1):null):null;
   I.portals=[I.back,I.next].filter(Boolean);
-  // 星星、月亮小擺飾（不多，飄在島的兩側；白天的島不放）
-  I.orn=(day?[]:[[-1.62*f,0.95*f,0.3*f,'moon',0.9],[1.66*f,1.12*f,-0.25*f,'star',0.66],[0.95*f,1.9*f,-0.95*f,'star',0.48]]).map(function(o,i){
+  if(uw)uwIsleExtras(I,uwKit());   // 冥界：島上的河、流出去的瀑布、小鬼火（garden_uw.js）
+  // 星星、月亮小擺飾（不多，飄在島的兩側；白天、冥界的島不放）
+  I.orn=(day||uw?[]:[[-1.62*f,0.95*f,0.3*f,'moon',0.9],[1.66*f,1.12*f,-0.25*f,'star',0.66],[0.95*f,1.9*f,-0.95*f,'star',0.48]]).map(function(o,i){
     var g=new THREE.Group();g.position.set(o[0],o[1],o[2]);root.add(g);
     var m=new THREE.Mesh(o[3]==='moon'?ornGeo.moon:ornGeo.star,ornGold);m.scale.setScalar(o[4]);if(o[3]==='moon')m.rotation.z=0.55;m.raycast=noRay;g.add(m);
     var h=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffd583,transparent:true,opacity:.45,depthWrite:false,blending:THREE.AdditiveBlending}));h.scale.set(0.6*o[4],0.6*o[4],1);h.raycast=noRay;g.add(h);
@@ -3548,6 +3836,7 @@ function buildIsle(def,k){
     // 場景編輯器改了瀑布、藤蔓：草皮（瀑布的缺口）、瀑布和島底的霧、藤蔓整組重建（霧的相位用同一個固定種子）
     I.rebuildBody=function(){dropTracked(I.fallObjs,I.anim,I.fallSt);dropTracked(I.vineObjs,I.anim,I.vineSt);I.repaint(palOf(k));
       I.fallSt=dayFallsMist(dg,isleFalls(def),I.anim,prng(k*17+3),I.fallObjs);I.vineSt=isleVines(def)?dayVines(dg,isleVines(def),I.anim,I.vineObjs):null;};}   // 白天：雲亮面白、暗面藍；浮石是圓弧小石台＋草皮
+  else if(uw){var ucm=uwCloudMats(),ufm=uwFloaterMats();I.clouds=makeCloudRing(root,S,5,ucm[0],ucm[1]);I.floaters=makeFloaters(root,FL,ufm[0],ufm[1]);}
   else {I.clouds=makeCloudRing(root,S,5);I.floaters=makeFloaters(root,FL);}
   I.ctx={g:root,S:S,obst:I.obst};
   return I;
@@ -3568,7 +3857,9 @@ var LOOKS={
   //   太陽周圍的暖光也照戰場收小、偏粉橘（g1、g1k、e1），上面的深藍才留得住；top、mid、low 是之前的青藍天空，grad 蓋掉之後就用不到
   day:{sky:{top:[0.15,0.52,0.81],mid:[0.28,0.58,0.84],low:[0.43,0.68,0.855],g1:[1,0.72,0.6],g1k:0.28,e1:40,g2:[0,0,0],g2k:0,e2:5,nb:0.97,na:0.06},
     grad:{top:0x004abb,mid:0x6c6cd6,low:0xf6a8c8,h:[0.3,0.02,-0.2]},
-    hemi:[0xeaf2ff,0x8a9a80,0.33],amb:[0xfff4e6,0.12],key:[0xfff2da,0.6],fill:[0xcfe0fc,0.18],keyAt:[-4,9,6],glowAt:[6,8,-32.1],back:[0xfff2e0,0.45],mist:[[0.97,0.98,1],1]}};   // back：背面補光的顏色與最亮的強度   // glowAt：天空的亮光中心在太陽右邊一點（參考圖右上比較亮；太陽搬到月亮的位置後跟著搬，一樣在太陽右邊 1.5）
+    hemi:[0xeaf2ff,0x8a9a80,0.33],amb:[0xfff4e6,0.12],key:[0xfff2da,0.6],fill:[0xcfe0fc,0.18],keyAt:[-4,9,6],glowAt:[6,8,-32.1],back:[0xfff2e0,0.45],mist:[[0.97,0.98,1],1]},   // back：背面補光的顏色與最亮的強度   // glowAt：天空的亮光中心在太陽右邊一點（參考圖右上比較亮；太陽搬到月亮的位置後跟著搬，一樣在太陽右邊 1.5）
+  // 冥界（第三章，2026-11-07）：資料在 garden_uw.js 的 UW_DEF（天空、燈光、月亮都在那裡改）
+  underworld:uwLook()};
 function applyLook(name){var L=LOOKS[name]||LOOKS.night,u=skyMat.uniforms,s=L.sky;
   u.top.value.fromArray(s.top);u.mid.value.fromArray(s.mid);u.low.value.fromArray(s.low);u.g1.value.fromArray(s.g1);u.g2.value.fromArray(s.g2);
   u.g1k.value=s.g1k;u.g2k.value=s.g2k;u.nb.value=s.nb;u.na.value=s.na;u.mistK.value=L.mist?L.mist[1]:0;if(L.mist)u.mistC.value.set(L.mist[0][0],L.mist[0][1],L.mist[0][2]);u.e1.value=s.e1||30;u.e2.value=s.e2||5;   // e1、e2：光暈收得多快（月下 30、5）
@@ -3579,7 +3870,9 @@ function applyLook(name){var L=LOOKS[name]||LOOKS.night,u=skyMat.uniforms,s=L.sk
   if(L.back){backFill.color.setHex(L.back[0]);backFillMax=L.back[1];}else backFillMax=0;if(L.backP)BACKP=L.backP;updateBackFill();
   nightEnv.forEach(function(o){o.visible=name==='night';});
   // 星空兩種天空都有；白天先畫星星，太陽和紗幔才蓋得住它（月下維持原本的畫法）
-  skyStars.forEach(function(o){o.visible=true;o.renderOrder=name==='night'?0:-7;});}
+  skyStars.forEach(function(o){o.visible=true;o.renderOrder=name==='night'?0:-7;});
+  // 金色四芒星：冥界換成冥界的顏色（月下、白天照原本的 0xffe2a0）
+  var spk=name==='underworld'?UW_DEF.spark:0xffe2a0;skySparks.forEach(function(s){s.material.color.setHex(spk);});}
 
 /* ---------- 白天的主島（第二章青丘）：照使用者給的兩張參考圖——灰藍石台＋圓弧草皮、金色裂紋、圓弧石階、兩道小瀑布、
    淺藍帶亮金邊的雲、淡金色的太陽、島底的霧。遠景（青色的山、亭子、飄帶祥雲、雲海）做好了但先不放（dayFarScenery） ---------- */
@@ -4177,11 +4470,16 @@ function dayFarScenery(W,H){var i;
     var w3=rand(13,19);sp3.position.set(Math.cos(a3)*r3,rand(-9,-6),Math.sin(a3)*r3);sp3.scale.set(w3,w3/2,1);sp3.renderOrder=-2;W.add(sp3);sea.push({sp:sp3,x:sp3.position.x,ph:rand(0,TAU),amp:rand(0.4,1)});}
   H.anim.push(function(dt,t){ribbons.forEach(function(r2){r2.sp.position.x=r2.x+Math.sin(t*0.05+r2.ph)*r2.amp;});sea.forEach(function(c2){c2.sp.position.x=c2.x+Math.sin(t*0.05+c2.ph)*c2.amp;});});}
 
-// 其他章的主島：第一次去的時候才建。白天的章（look:'day'）照上面的青丘造景；其他還沒做的章先放一座空的夜晚石台
+// 第三章冥界（garden_uw.js）要用到的庭院零件：第一次去第三章才用到
+var UWK=null;
+function uwKit(){return UWK||(UWK={islandGeo:islandGeo,landDetail:landDetail,rimNoise:rimNoise,prng:prng,makeCloudRing:makeCloudRing,makeFloaters:makeFloaters,
+  dayFallsMist:dayFallsMist,lily:lily,meshOf:meshOf,veilGeo:veilGeo,VEIL_VS:VEIL_VS});}
+// 其他章的主島：第一次去的時候才建。白天的章（look:'day'）照上面的青丘造景；冥界的章（look:'underworld'）照 garden_uw.js；其他還沒做的章先放一座空的夜晚石台
 function buildHub(c){var W=new THREE.Group();W.visible=false;scene.add(W);worlds[c]=W;
   var g=new THREE.Group();W.add(g);
   var H={ch:c,W:W,g:g,portals:[],props:[],obst:[],anim:[]};H.ctx={g:g,S:1,obst:H.obst};
   if(CONFIG.chapters[c].look==='day')decorateDayHub(H,c);
+  else if(CONFIG.chapters[c].look==='underworld')decorateUwHub(H,uwKit());   // 冥界（第三章）：garden_uw.js
   else {var land=new THREE.Mesh(islandGeo,isleLandMat);addOutline(land,isleLandOl);g.add(land);H.land=land;
     var ln=new THREE.Mesh(landDetail.lines,landDetail.lineMat);ln.raycast=noRay;g.add(ln);
     var pb=new THREE.Mesh(landDetail.peb,landDetail.pebMat);pb.raycast=noRay;addOutline(pb,landDetail.pebOl);g.add(pb);}
@@ -4536,7 +4834,7 @@ var TEAM=(function(){
       g.fillStyle='rgba('+(120+Math.random()*40|0)+','+(20+Math.random()*25|0)+','+(30+Math.random()*20|0)+','+(.06+Math.random()*.1).toFixed(3)+')';g.beginPath();g.arc(c+Math.cos(a)*d,c+Math.sin(a)*d,r,0,TAU);g.fill();}
     g.restore();});
   var MOON_D=60,moonG=new THREE.Group();cam.add(moonG);
-  var halo1=addSprite(moonG,glowTex,0xffffff,0.14,true),halo2=addSprite(moonG,glowTex,0xffffff,0.3,true),moon=addSprite(moonG,moonTex,0xffffff,1,false);
+  var halo1=addSprite(moonG,glowTex,0xffffff,0.14,true),halo2=addSprite(moonG,glowTex,0xffffff,0.3,true),moon=addSprite(moonG,moonTex$1,0xffffff,1,false);
   // 星光（閃爍四芒星，放在很遠的地方）
   var sparks=[];for(i=0;i<18;i++){var sp=addSprite(sc,sparkTex,i%3?0xfff0cc:0xcfdcff,0,true);sp.userData={u:R(-1,1),v:R(0.05,1),s:R(0.35,0.8),ph:R(0,TAU),sp:R(0.5,1.3)};sparks.push(sp);}
   // 燈光跟戰鬥畫面一樣是月光：主光從月亮那邊（後上方）打過來，前面只補一點柔和的藍紫光，不會把白毛打爆
@@ -5701,7 +5999,7 @@ var TEAM=(function(){
     sc.fog.color.setHex(S.fog[0]);sc.fog.near=S.fog[1];sc.fog.far=S.fog[2];renderer.setClearColor(S.sky[1],1);
     var L0=S.light;hemi.color.setHex(L0.hemi[0]);hemi.groundColor.setHex(L0.hemi[1]);hemi.intensity=L0.hemi[2];amb.color.setHex(L0.amb[0]);amb.intensity=L0.amb[1];
     key.color.setHex(L0.key[0]);key.intensity=L0.key[1];rim.color.setHex(L0.rim[0]);rim.intensity=L0.rim[1];rim.position.fromArray(L0.rim[2]);
-    moon.material.map=S.moon.tex==='blood'?bloodMoonTex:S.moon.tex==='sun'?GARDEN.dayKit().dayTextures().sun:moonTex;moon.material.color.setHex(S.moon.col);moon.material.needsUpdate=true;halo1.material.color.setHex(S.moon.halo);halo2.material.color.setHex(S.moon.halo);halo1.material.opacity=S.moon.halo1!=null?S.moon.halo1:0.14;halo2.userData.o=S.moon.halo2!=null?S.moon.halo2:0.28;
+    moon.material.map=S.moon.tex==='blood'?bloodMoonTex:S.moon.tex==='sun'?GARDEN.dayKit().dayTextures().sun:moonTex$1;moon.material.color.setHex(S.moon.col);moon.material.needsUpdate=true;halo1.material.color.setHex(S.moon.halo);halo2.material.color.setHex(S.moon.halo);halo1.material.opacity=S.moon.halo1!=null?S.moon.halo1:0.14;halo2.userData.o=S.moon.halo2!=null?S.moon.halo2:0.28;
     sparks.forEach(function(s,j){s.material.color.setHex(S.stars[j%2]);});
     cloudS.forEach(function(c,j){var cd=S.clouds&&S.clouds[j];c.visible=!!cd;if(!cd)return;var ck=cd.seed+(cd.tint||'');if(!cloudTex[ck])cloudTex[ck]=xiangyunTex(cd.seed,cd.tint||['#e8dfca','#95a1d4']);
       c.material.map=cloudTex[ck];c.material.opacity=cd.op;c.material.needsUpdate=true;});
