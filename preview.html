@@ -22,9 +22,12 @@ if(navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: s
   --bg:#0b1330; --gold:#e8c67e; --ink:#f4ecd8; --glass:rgba(14,22,52,.62); --line:rgba(232,198,126,.45); --panel:rgba(16,24,58,.9);
   box-sizing:border-box;
   /* 全螢幕（2026-09-29）：整頁畫滿（瀏海、底部橫條後面也畫），按鈕、血條、珠盤待在安全框裡。
-     安全區用變數讀：手機模擬器（lab/sim.html）會設 --sim-safe-*，沒設就是手機給的 env()；電腦上是 0。 */
-  --safe-top:var(--sim-safe-top, env(safe-area-inset-top, 0px));
-  --safe-bottom:var(--sim-safe-bottom, env(safe-area-inset-bottom, 0px));
+     安全區用變數讀：手機模擬器（lab/sim.html）會設 --sim-safe-*，沒設就是手機給的 env()；電腦上是 0。
+     --dev-safe-*＝手機真正的安全區；--safe-*＝遊戲用的（黑條模式 html.lbox 是 0，見下面和 layout.js 的黑條）。 */
+  --dev-safe-top:var(--sim-safe-top, env(safe-area-inset-top, 0px));
+  --dev-safe-bottom:var(--sim-safe-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-top:var(--dev-safe-top);
+  --safe-bottom:var(--dev-safe-bottom);
   color-scheme:dark;
 }
 @media (prefers-color-scheme: dark){
@@ -38,6 +41,9 @@ body{height:100vh;height:100dvh;margin:0;overflow:hidden;background:var(--bg);co
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
   overscroll-behavior:none;touch-action:none}
 html.standalone,html.standalone body{height:100vh}   /* 主畫面模式：100dvh 會少掉瀏海那段，改用 100vh（瀏覽器照舊 100vh；100dvh） */
+/* 黑條模式（2026-11-08，layout.js 的 applyLbox 開關）：#game 固定 9:16、上下置中（高度、top 由 layout 設）；頁面底色＝上下的實色黑條；遊戲裡不再往安全區後面延伸 */
+html.lbox{--safe-top:0px;--safe-bottom:0px}
+html.lbox,html.lbox body{background:#000}
 #game{position:relative;height:100%;margin:0 auto;overflow:hidden;background:var(--bg)}
 #c{position:absolute;top:0;left:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
 /* #frame＝安全框（全螢幕 2026-09-29）：#game 和畫布畫滿整頁，按鈕、血條、珠盤這些都放在 #frame 裡、照安全框排。
@@ -46,8 +52,8 @@ html.standalone,html.standalone body{height:100vh}   /* 主畫面模式：100dvh
    #frame 自己不接點擊（點空白處要點到畫布），裡面的東西照原本的設定（:where 的權重是 0，各自寫的 pointer-events 照樣優先）。 */
 #frame{height:100%;pointer-events:none}
 #frame.safe{position:absolute;left:0;right:0;top:var(--safe-top);bottom:var(--safe-bottom);height:auto}
-/* 量安全區用：看不見、零寬，padding 就是上下安全區（layout() 讀它；安全區晚到時它的高度會變，ResizeObserver 看得到） */
-#safeProbe{position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+/* 量安全區用：看不見、零寬，padding 就是手機上下的安全區（layout() 讀它，黑條模式也照它擺；安全區晚到時它的高度會變，ResizeObserver 看得到） */
+#safeProbe{position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;padding-top:var(--dev-safe-top);padding-bottom:var(--dev-safe-bottom)}
 :where(#frame>*){pointer-events:auto}
 .hud{position:absolute;left:0;right:0;pointer-events:none}
 button{font:inherit;cursor:pointer}
@@ -437,7 +443,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #sigilDesc{margin-top:10px!important;font-size:12.5px;letter-spacing:.04em;color:rgba(244,236,216,.9);min-height:1.4em}
 .goBtn{flex:none;height:48px;padding:0 22px;border-radius:24px;pointer-events:auto;border:1px solid var(--gold);
   background:linear-gradient(180deg,rgba(232,198,126,.42),rgba(232,198,126,.16));color:#fff3d2;font-size:16px;letter-spacing:.3em;text-indent:.3em;box-shadow:0 0 18px rgba(232,198,126,.25)}
-@media (max-height:720px){.cvLore{display:none}.cvHead{font-size:20px}.cvStats{margin-top:10px!important;padding-top:9px;gap:4px 12px}}
+/* 矮畫面：原本照整頁的高度（@media）；黑條模式整頁比遊戲高，改照遊戲的高度（layout.js 在 #game 加 .h720／.h700）。:where 不加權重，跟原本的 @media 一樣 */
+@media (max-height:720px){:where(html:not(.lbox)) .cvLore{display:none}:where(html:not(.lbox)) .cvHead{font-size:20px}:where(html:not(.lbox)) .cvStats{margin-top:10px!important;padding-top:9px;gap:4px 12px}}
+:where(html.lbox #game.h720) .cvLore{display:none}:where(html.lbox #game.h720) .cvHead{font-size:20px}:where(html.lbox #game.h720) .cvStats{margin-top:10px!important;padding-top:9px;gap:4px 12px}
 .goBtn:active,.sigil:active,#backBtn:active{transform:scale(.96)}
 .infoToggle{width:100%;margin-top:14px;display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-radius:12px;border:1px solid var(--line);
   background:rgba(232,198,126,.07);color:var(--gold);font-size:14px;letter-spacing:.14em}
@@ -533,7 +541,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .wHint{flex:none;height:3em;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;margin-top:4px}
 /* 全螢幕：面板的深色往下接到螢幕最底（底部橫條後面），沒有安全區時高度 0（同 #teamHud::after） */
 .wPanel::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--safe-bottom);background:rgba(11,19,48,.96)}
-@media (max-height:700px){.wFox{width:38px;height:38px}.wGrid{gap:6px}.wName{top:calc(57% - 58px)}.wName b{font-size:19px}}
+@media (max-height:700px){:where(html:not(.lbox)) .wFox{width:38px;height:38px}:where(html:not(.lbox)) .wGrid{gap:6px}:where(html:not(.lbox)) .wName{top:calc(57% - 58px)}:where(html:not(.lbox)) .wName b{font-size:19px}}
+:where(html.lbox #game.h700) .wFox{width:38px;height:38px}:where(html.lbox #game.h700) .wGrid{gap:6px}:where(html.lbox #game.h700) .wName{top:calc(57% - 58px)}:where(html.lbox #game.h700) .wName b{font-size:19px}
 /* ---- 大招變奏 ---- */
 .chip.calm{background:rgba(214,196,255,.18);border:1px solid #cdb8ff;color:#efe6ff}
 .chip.glare{background:rgba(255,214,110,.26);border:1px solid #ffd76e;color:#fff4d0}
@@ -4600,9 +4609,9 @@ return {scene:scene,camera:camera,update:update,resize:resize,preRender:preRende
 //   一進介紹頁先貼影片的第一格（cover/L1.jpg…，遊戲一開就先載好），影片載好了從同一格接著動（2026-11-08 CK：原本先閃 3D、狐狸跳一下）；
 //   第一格的圖也讀不到（例如用 file:// 開的自動測試）就照舊是 3D 場景。網址加 ?cover3d：全部用原本的 3D 場景（不載圖、不載影片）。
 //   重播不用 video 的 loop（跳回開頭偶爾會卡一兩格，CK 看到「銜接處抖一下」）：每關兩個播放器輪流，一個播到最後一格，換另一個從頭播。
-//   對位（跟繪星的試看頁 editor/video_cover_js.html v4／v5 同一套）：影片放大到蓋滿整個畫面（含瀏海、底部橫條後面），
-//   而且影片裡 (ax, ay) 那一點剛好落在 3D 的參考點 ref 上（BOSS 還沒挪之前量）；蓋滿又對不上就一點一點放大。之後 BOSS 再挪 bx、by（背景不動）。
-//   fit（0～1，網址 ?vfit= 可以試）：手機比 9:16 長，蓋滿會切掉左右；fit 越大影片越小（1＝左右剛好不切），上下空出來的地方墊一層模糊的同一支影片
+//   對位（2026-11-08 手機改 9:16 黑條之後）：影片剛好蓋滿遊戲畫面、不多放大（9:16 的畫面＝整支影片都看得到），能左右上下滑就往參考點滑；
+//   剩下對不上的，挪 BOSS 讓 3D 的參考點 ref 落在影片裡的 (ax, ay)（繪星對好的「狐狸坐在石頭上」照舊），之後 BOSS 再照繪星的 bx、by 挪。
+//   （之前是 BOSS 不動、影片放大去對，9:16 畫面每邊會切掉 0～41px；?fullscreen 的長手機照樣是蓋滿、左右切掉一些）
 
 // 每一關的設定（key＝關卡索引，0＝第一關）。數字照繪星交的 handoff_manifest.json（shared/Huxian-review/cover-stages1to5-handoff-20261108，CK 2026-11-08 選的）
 //   v 檔名（放在網站的 cover/ 底下：影片 mp4 和 webm 各一支、第一格 jpg 一張）；ax、ay 影片裡要對準參考點的那一點（0～1，從影片左上算）
@@ -4610,27 +4619,17 @@ return {scene:scene,camera:camera,update:update,resize:resize,preRender:preRende
 //   keep 影片模式也照畫的 3D 道具（B 裡的名字）；bx、by BOSS 左右、上下挪多少（版面座標，跟 STAGES[].fox 的 x、y 同單位）
 //   fire 尾巴狐火的亮度倍數；sh 影子濃度（0＝不加）、shw 影子大小倍數、shr 高÷寬、shx／shy 再挪幾 px；
 //   shax、shay：影子釘在影片裡這一點（不跟著 BOSS 上下飄；第五關塗山）
-var COVER_VIDEO_DEF={on:true,dir:'cover/',shadow:'contact_shadow_round.png',fit:0,blur:0.05,fade:0.08,stages:{
+var COVER_VIDEO_DEF={on:true,dir:'cover/',shadow:'contact_shadow_round.png',stages:{
   0:{v:'L1',ax:0.66,ay:0.71,ref:'rock',bx:0,fire:0.6,sh:0.7,shr:0.25,shw:1,shy:3},
   1:{v:'L2',ax:0.65,ay:0.5,ref:'holder',keep:['floatL'],bx:-0.035,fire:0.6,sh:0.45,shr:0.2,shw:0.8,shy:20},
   2:{v:'L3',ax:0.65,ay:0.69,ref:'seat',bx:-0.035,fire:0.6,sh:0.55,shr:0.22,shw:0.85,shy:3},
   3:{v:'L4',ax:0.65,ay:0.666,ref:'holder',bx:-0.035,fire:0.6,sh:0.7,shr:0.3,shw:1.1,shy:8},
   4:{v:'L5',ax:0.69,ay:0.57,ref:'holder',bx:-0.1,by:0.025,fire:0.6,sh:0.55,shr:0.24,shw:1,shy:0,shax:0.6,shay:0.68}}};
 
-var QUAD_VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }';
-// 縮小時的影片：上下邊淡掉（只在有空出來的那一邊），疊在模糊墊底上
-var EDGE_FS='uniform sampler2D map; uniform float fT,fB; varying vec2 vUv; void main(){ vec4 c=texture2D(map,vUv);'+
-  ' float a=(fT>0.0?smoothstep(1.0,1.0-fT,vUv.y):1.0)*(fB>0.0?smoothstep(0.0,fB,vUv.y):1.0); gl_FragColor=vec4(c.rgb,a); }';
-// 墊底：同一支影片蓋滿整個畫面、糊掉、暗一點
-var BLUR_FS='uniform sampler2D map; uniform float r,asp; varying vec2 vUv; void main(){ vec3 c=vec3(0.0);'+
-  ' for(int i=0;i<40;i++){ float f=float(i)+0.5, a=f*2.39996, d=sqrt(f/40.0)*r; c+=texture2D(map,clamp(vUv+vec2(cos(a),sin(a)*asp)*d,0.0,1.0)).rgb; }'+   /* 黃金角螺旋 40 點：比方格取樣柔，不會看到格子 */
-  ' gl_FragColor=vec4(c/40.0*0.78,1.0); }';
-
 // o：封面那邊給的 {sc, cam, title（大標題，影片模式也要畫）, built（每關的封面物件）, STAGES, placeStage, applyLook, cur（現在第幾關）}
 function makeCoverVideo(o){
   var THREE=window.THREE,D=COVER_VIDEO_DEF,off=/[?&]cover3d/.test(location.search)||!D.on,V=new THREE.Vector3(),V2=new THREE.Vector3(),W2=new THREE.Vector3(),S2=new THREE.Vector3();
-  var fq=/[?&]vfit=([\d.]+)/.exec(location.search),FIT=Math.max(0,Math.min(1,fq?+fq[1]:D.fit||0));
-  var recs={},act=-1,st=null,lastSeen=0,quad=null,edge=null,back=null,shadow=null;
+  var recs={},act=-1,st=null,lastSeen=0,quad=null,shadow=null,F=[0,0];
   // 讀得到畫面嗎：file:// 開的時候圖和影片都算別的來源，WebGL 拿不到（只會是黑的）
   function readable(src){try{var c=document.createElement('canvas');c.width=c.height=2;var g=c.getContext('2d');g.drawImage(src,0,0,2,2);g.getImageData(0,0,1,1);return true;}catch(e){return false;}}
   function tex(src,rgb){var t=new THREE.Texture(src);t.minFilter=t.magFilter=THREE.LinearFilter;t.generateMipmaps=false;if(rgb)t.format=THREE.RGBFormat;return t;}
@@ -4664,45 +4663,45 @@ function makeCoverVideo(o){
     p.needsUpdate=true;m.geometry.computeBoundingSphere();}
   // 3D 物件在畫面上的位置（全螢幕的 px）
   function scr(obj,out){obj.getWorldPosition(V);V.project(o.cam);out[0]=(V.x+1)/2*L.W;out[1]=(1-V.y)/2*L.H+L.st;return out;}
-  function quads(){if(quad)return;var opq={depthTest:false,depthWrite:false,blending:THREE.CustomBlending,blendSrc:THREE.SrcAlphaFactor,blendDst:THREE.OneMinusSrcAlphaFactor};   /* 要混色的放在不透明那一批（transparent 的會排到 BOSS 後面才畫），自己設混色 */
-    back=makeQuad(new THREE.ShaderMaterial({uniforms:{map:{value:null},r:{value:D.blur},asp:{value:1}},vertexShader:QUAD_VS,fragmentShader:BLUR_FS,depthTest:false,depthWrite:false}),-1002);
-    quad=makeQuad(new THREE.MeshBasicMaterial({depthTest:false,depthWrite:false,fog:false}),-1001);
-    edge=makeQuad(new THREE.ShaderMaterial(Object.assign({uniforms:{map:{value:null},fT:{value:0},fB:{value:0}},vertexShader:QUAD_VS,fragmentShader:EDGE_FS},opq)),-1000);
-    shadow=makeQuad(new THREE.MeshBasicMaterial(Object.assign({map:new THREE.TextureLoader().load(D.dir+D.shadow),fog:false},opq)),-999);}
+  function quads(){if(quad)return;
+    quad=makeQuad(new THREE.MeshBasicMaterial({depthTest:false,depthWrite:false,fog:false}),-1000);
+    shadow=makeQuad(new THREE.MeshBasicMaterial({map:new THREE.TextureLoader().load(D.dir+D.shadow),fog:false,depthTest:false,depthWrite:false,
+      blending:THREE.CustomBlending,blendSrc:THREE.SrcAlphaFactor,blendDst:THREE.OneMinusSrcAlphaFactor}),-999);}   /* 影子：不透明那一批裡排第二個畫（transparent 的會排到 BOSS 後面才畫）、自己設混色 */
   // 進影片模式：藏場景、調暗狐火、量參考點、BOSS 挪過去
   function enter(k){var B=o.built[k],r=recs[k],d=r.d,P=o.STAGES[k].fox;if(!B)return;quads();
     var FC=BOSS_LOOK_DEF[k].fire||[],keep=(d.keep||[]).map(function(n){return B[n];}).filter(function(x){return x&&x.isObject3D;});
-    st={k:k,B:B,d:d,r:r,P:P,x0:P.x,y0:P.y,vis:[],fire:[],keep:keep,key:'',foot:[0,0],box:null,gap:false};
+    st={k:k,B:B,d:d,r:r,P:P,x0:P.x,y0:P.y,vis:[],fire:[],keep:keep,key:'',foot:[0,0],box:null,fix:[0,0]};
     function has(x){return keep.some(function(y){for(var p=y;p;p=p.parent)if(p===x)return true;return false;});}
     function hide(list){list.forEach(function(x){if(x===B.boss.h||keep.indexOf(x)>=0)return;
       if(x.isSprite&&FC.indexOf(x.material.color.getHex())>=0){if(d.fire!=null&&d.fire!==1){st.fire.push([x,x.material.color.getHex()]);x.material.color.multiplyScalar(d.fire);}return;}   /* 這隻 BOSS 的尾巴狐火：留著（認顏色），調暗一點 */
       if(has(x)){hide(x.children);return;}st.vis.push([x,x.visible]);});}
     var Gs=o.built.filter(Boolean).map(function(b){return b.G;});   /* 各關封面的群組誰顯示是 applyLook 管的，不碰 */
     o.sc.children.forEach(function(x){if(Gs.indexOf(x)>=0||x.isLight||x===o.cam)return;st.vis.push([x,x.visible]);});
-    o.cam.children.forEach(function(x){if(x===o.title||x===quad||x===edge||x===back||x===shadow)return;st.vis.push([x,x.visible]);});
+    o.cam.children.forEach(function(x){if(x===o.title||x===quad||x===shadow)return;st.vis.push([x,x.visible]);});
     hide(B.G.children);act=k;shadow.material.opacity=d.sh||0;r.showing=null;show();place();}
   function leave(){if(act<0)return;var s=st;s.vis.forEach(function(e){e[0].visible=e[1];});s.fire.forEach(function(e){e[0].material.color.setHex(e[1]);});
-    s.P.x=s.x0;s.P.y=s.y0;o.placeStage(s.k);quad.visible=edge.visible=back.visible=shadow.visible=false;act=-1;st=null;o.applyLook(o.cur());}   /* 換到別關才離開的話，那一關的天空、雲照 applyLook 再擺一次 */
+    s.P.x=s.x0;s.P.y=s.y0;o.placeStage(s.k);quad.visible=shadow.visible=false;act=-1;st=null;o.applyLook(o.cur());}   /* 換到別關才離開的話，那一關的天空、雲照 applyLook 再擺一次 */
   // 現在要貼哪一張：播放器在播就貼它（影片時間變了才重傳），還沒就貼第一格的圖
   //   第一次開始播：瀏覽器有時從第二秒才開始（等資料的那段時間時鐘先跑了），跟第一格接不起來 → 倒回開頭，接上了才換成影片
   function show(){var r=st.r,t=r.pok?r.ptex:null,i=r.cur;
     if(!r.started&&r.els&&live(r,i)&&!r.els[i].paused){var e0=r.els[i];if(e0.currentTime<0.25)r.started=true;else if(!e0.seeking&&!r.rewound){r.rewound=true;e0.currentTime=0;}}
     if(r.started&&r.els&&live(r,i)&&(!r.els[i].paused||r.showing===r.texs[i])){t=r.texs[i];var el=r.els[i];if(el.currentTime!==r.lastT||r.showing!==t){r.lastT=el.currentTime;t.needsUpdate=true;}}
-    if(t!==r.showing){r.showing=t;quad.material.map=t;edge.material.uniforms.map.value=t;back.material.uniforms.map.value=t;quad.material.needsUpdate=true;}
-    var gap=st.gap;quad.visible=!gap;edge.visible=back.visible=gap;shadow.visible=(st.d.sh||0)>0;}
-  // 對位：畫面大小變了就重量（BOSS 先放回原位量參考點，再挪 bx、by）；影子每一格都跟著 BOSS（第二關的 BOSS 會上下飄）
+    if(t!==r.showing){r.showing=t;quad.material.map=t;quad.material.needsUpdate=true;}
+    quad.visible=true;shadow.visible=(st.d.sh||0)>0;}
+  // 對位：畫面大小變了才重算。影片蓋滿、不多放大，往參考點滑；剩下的挪 BOSS（P 的 x、y：先試挪一點量「挪 1 等於畫面上幾 px」，再補過去，來回幾次就準），最後加 bx、by
+  function refAt(R,x,y){var P=st.P;P.x=x;P.y=y;o.placeStage(st.k);return scr(R,F);}
   function place(){var s=st,d=s.d,B=s.B,P=s.P,img=s.r.img,vw=img.naturalWidth,vh=img.naturalHeight;if(!vw)return;
     var FW=L.W,FH=L.st+L.H+L.sb,key=[FW,FH,L.st,P.s].join(',');
-    if(key!==s.key){s.key=key;P.x=s.x0;P.y=s.y0;o.placeStage(s.k);var R=d.ref!=='holder'&&B[d.ref]&&B[d.ref].isObject3D?B[d.ref]:B.boss.h;scr(R,s.foot);
-      if(d.bx||d.by){P.x=s.x0+(d.bx||0);P.y=s.y0+(d.by||0);o.placeStage(s.k);}
-      function fitBox(sc,needV){var tx=0,ty=0;for(var i=0;i<80;i++){tx=s.foot[0]-d.ax*vw*sc;ty=s.foot[1]-d.ay*vh*sc;
-          if(tx<=0.5&&tx+vw*sc>=FW-0.5&&(!needV||(ty<=0.5&&ty+vh*sc>=FH-0.5)))break;sc*=1.03;}return [tx,ty,vw*sc,vh*sc];}
-      var cover=Math.max(FW/vw,FH/vh),full=fitBox(cover,true),b=full;
-      if(FIT>0){b=fitBox(cover+(FW/vw-cover)*FIT,false);if(b[3]>=FH-0.5&&b[1]<=0.5&&b[1]+b[3]>=FH-0.5)b=full;}   /* 縮小：左右照樣蓋滿，上下照 (ax, ay) 擺（狐狸要站準），露出來的上下墊模糊 */
-      s.box=b;s.gap=b!==full&&(b[1]>0.5||b[1]+b[3]<FH-0.5);
-      fitQuad(quad,b[0],b[1],b[0]+b[2],b[1]+b[3],150);fitQuad(edge,b[0],b[1],b[0]+b[2],b[1]+b[3],150);
-      edge.material.uniforms.fT.value=b[1]>0.5?D.fade:0;edge.material.uniforms.fB.value=b[1]+b[3]<FH-0.5?D.fade:0;
-      fitQuad(back,full[0],full[1],full[0]+full[2],full[1]+full[3],151);back.material.uniforms.asp.value=vw/vh;}
+    if(key!==s.key){s.key=key;var R=d.ref!=='holder'&&B[d.ref]&&B[d.ref].isObject3D?B[d.ref]:B.boss.h;
+      var f0=refAt(R,s.x0,s.y0).slice(),h0=scr(B.boss.h,[0,0]),sc=Math.max(FW/vw,FH/vh),w=vw*sc,h=vh*sc;
+      var tx=Math.min(0,Math.max(FW-w,f0[0]-d.ax*w)),ty=Math.min(0,Math.max(FH-h,f0[1]-d.ay*h)),gx=tx+d.ax*w,gy=ty+d.ay*h;
+      /* 挪的是 BOSS：要讓 BOSS 跟參考點原本的相對位置不變（第一關的石頭高度不跟著 P 的 y 走，所以量 BOSS 本身，不量石頭） */
+      var hx=gx+h0[0]-f0[0],hy=gy+h0[1]-f0[1],mx=0,my=0,fr=h0;
+      for(var i=0;i<4&&(Math.abs(hx-fr[0])>0.3||Math.abs(hy-fr[1])>0.3);i++){
+        var jx=(refAt(B.boss.h,s.x0+mx+0.01,s.y0+my)[0]-fr[0])/0.01,jy=(refAt(B.boss.h,s.x0+mx,s.y0+my+0.01)[1]-fr[1])/0.01;
+        if(Math.abs(jx)>1)mx+=(hx-fr[0])/jx;if(Math.abs(jy)>1)my+=(hy-fr[1])/jy;fr=refAt(B.boss.h,s.x0+mx,s.y0+my).slice();}
+      s.fix=[mx,my];s.res=[fr[0]-hx,fr[1]-hy];s.foot=[gx,gy];P.x=s.x0+mx+(d.bx||0);P.y=s.y0+my+(d.by||0);o.placeStage(s.k);
+      s.box=[tx,ty,w,h];fitQuad(quad,tx,ty,tx+w,ty+h,150);}
     if((d.sh||0)>0){var f=scr(B.boss.h,[0,0]);B.boss.h.getWorldPosition(W2);B.boss.h.getWorldScale(S2);
       V2.set(1,0,0).applyQuaternion(o.cam.getWorldQuaternion(new THREE.Quaternion())).multiplyScalar(S2.x*0.55*(d.shw||1)).add(W2).project(o.cam);
       var sw=Math.abs((V2.x+1)/2*L.W-f[0])*2,sh=sw*(d.shr||0.68),bx=s.box,cx=d.shax!=null?bx[0]+d.shax*bx[2]:f[0],cy=d.shay!=null?bx[1]+d.shay*bx[3]:f[1];
@@ -4720,7 +4719,7 @@ function makeCoverVideo(o){
       if(act>=0){st.vis.forEach(function(e){e[0].visible=false;});show();place();}},
     leave:leave,
     // 測試用：現在是不是影片模式、影片框、參考點、在播哪一個
-    state:function(){if(!st)return {k:-1,off:off};var r=st.r;return {k:st.k,box:st.box&&st.box.map(Math.round),foot:st.foot.map(Math.round),gap:st.gap,fit:FIT,
+    state:function(){if(!st)return {k:-1,off:off};var r=st.r;return {k:st.k,box:st.box&&st.box.map(Math.round),foot:st.foot.map(Math.round),fix:st.fix.map(function(v){return +v.toFixed(4);}),res:(st.res||[0,0]).map(function(v){return +v.toFixed(2);}),
       src:r.showing===r.ptex?'poster':'video'+r.cur,playing:!!(r.els&&live(r,r.cur)&&!r.els[r.cur].paused)};}};
 }
 
@@ -6770,8 +6769,29 @@ function cellXY(row,col){return {x:L.bx+(col+0.5)*L.cs,y:L.by+(row+0.5)*L.cs};} 
 var L={W:1,H:1,cs:40,bx:0,by:0,K:17},DEV_ASPECT=0;/* 別的 module 要整個換掉 DEV_ASPECT 用這個（import 進去的變數不能直接賦值） */function setDevAspect(v){DEV_ASPECT=v;}   // DEV_ASPECT：場景編輯器（另一個 artifact）用 TEAM.dev().setAspect 把遊戲畫面固定成設計畫面的長寬比；遊戲裡永遠是 0
 var comboEl=document.getElementById('combo'),toastEl=document.getElementById('toast'),bannerEl=document.getElementById('banner'),topEl=document.getElementById('topbar'),
     bossBarEl=document.getElementById('bossbar'),teamBarEl=document.getElementById('teambar'),cdEl=document.getElementById('bossCd'),timerEl=document.getElementById('timer');
-// 安全框：st、sb 是上下安全區（#safeProbe 的 padding＝CSS 的 --safe-top／--safe-bottom），H 是框的高度；整頁（#game、畫布）高＝st＋H＋sb。電腦上 st、sb 都是 0。
-function safeFrame(){var cs=getComputedStyle(safeProbeEl),st=parseFloat(cs.paddingTop)||0,sb=parseFloat(cs.paddingBottom)||0,H=gameEl.clientHeight-st-sb;
+/* 黑條（letterbox，2026-11-08 CK：手機版整個遊戲固定 9:16、上下實色黑條，排版問題小很多、iOS 26 頂端那層糊的也落在黑條上）：
+   直拿的手機、整頁比 9:16 長的時候，#game 固定成「寬＝整頁寬、高＝寬×16/9」，上下置中，而且整個落在安全區裡（瀏海、底部橫條都在黑條上）；
+   扣掉安全區已經沒那麼長的話，就貼齊安全區（上緣＝上安全區）。黑條模式下 <html> 加 .lbox：CSS 的 --safe-top／--safe-bottom 當作 0
+   （不往瀏海、橫條後面延伸畫面，遊戲裡的安全框就是整個 9:16 區），頁面底色換黑。
+   電腦、本來就不比 9:16 長的畫面（例如 375×667、450×800）不開，跟原本一模一樣。網址加 ?fullscreen 回到原本的全螢幕做法（CK 在手機上兩邊比）。
+   座標：點擊都是量 #frame 的位置換算（flow.js 的 localXY），#game 整個往下移，點擊跟著移，不用改。 */
+var FULLSCREEN=typeof location!=='undefined'&&/[?&]fullscreen(&|=|$)/.test(location.search);
+var LB={on:false,top:0,h:0};
+// 照現在的整頁大小、手機的安全區（#safeProbe 量的是手機真正的安全區 --dev-safe-*）算黑條要不要開、#game 放哪裡（多高）
+function lboxGeo(){var g={on:false,top:0,h:0};if(FULLSCREEN||DEV_ASPECT)return g;
+  var cs=getComputedStyle(safeProbeEl),st=parseFloat(cs.paddingTop)||0,sb=parseFloat(cs.paddingBottom)||0,PW=window.innerWidth,PH=document.body.clientHeight,h9=Math.round(PW*16/9);
+  if(PH<=h9+1)return g;   /* 不比 9:16 長（差 1px 以內算一樣，375×667 這種）：不開 */
+  g.on=true;var avail=PH-st-sb;
+  if(avail>=h9){g.h=h9;g.top=Math.max(st,Math.min(Math.round((PH-h9)/2),PH-sb-h9));}   /* 上下置中，但上下都不能壓到安全區 */
+  else {g.h=avail;g.top=st;}   /* 扣掉安全區已經沒那麼長：貼齊安全區 */
+  return g;}
+var themeEl=document.querySelector('meta[name="theme-color"]'),THEME0=themeEl?themeEl.content:'';
+function applyLbox(g){LB.on=g.on;LB.top=g.top;LB.h=g.h;document.documentElement.classList.toggle('lbox',g.on);
+  gameEl.style.height=g.on?g.h+'px':'';gameEl.style.top=g.on?g.top+'px':'';
+  gameEl.classList.toggle('h720',g.on&&g.h<=720);gameEl.classList.toggle('h700',g.on&&g.h<=700);   /* 矮畫面的版面（index.html 原本用 @media 量整頁的高度；黑條模式要照遊戲的高度） */
+  if(themeEl)themeEl.content=g.on?'#000000':THEME0;}   /* Safari 用網址列開的時候，網址列的顏色跟著 theme-color：黑條模式換黑的，跟黑條接在一起 */
+// 安全框：st、sb 是上下安全區（#safeProbe 的 padding＝手機的安全區），H 是框的高度；整頁（#game、畫布）高＝st＋H＋sb。電腦上 st、sb 都是 0；黑條模式也當作 0（#game 已經整個在安全區裡）。
+function safeFrame(){var cs=getComputedStyle(safeProbeEl),st=LB.on?0:parseFloat(cs.paddingTop)||0,sb=LB.on?0:parseFloat(cs.paddingBottom)||0,H=gameEl.clientHeight-st-sb;
   return {H:H,st:st,sb:sb,W:Math.min(window.innerWidth,Math.round(H*(DEV_ASPECT||0.5625)))};}
 var TEAM_GAP=14;   // 隊伍血條和珠盤框之間的縫（px）：390×844 時原本就是 14
 // 全螢幕第五輪（CK 實機：手機上「隊伍血量」字和血量數字壓進狐狸腳下的能量環 10～12px）：
@@ -6803,6 +6823,7 @@ function fitTeam(F){var need=ringBottom()+RING_CLEAR-(L.by-11-TEAM_GAP-L.tbH),do
   L.teamGap=TEAM_GAP-cut;L.teamDown=down;
   for(var k=0;k<3&&need>0;k++){L.foxUp+=Math.ceil(need);BS.layoutTeam();need=ringBottom()+RING_CLEAR-(L.by-11-L.teamGap-L.tbH);}}   // ③ 透視下移的量跟 px 差一點點，再量一次
 function layout(){
+  applyLbox(lboxGeo());   // 先決定黑條（會改 #game 的高度和位置），再照 #game 排
   var F=safeFrame(),W=F.W,H=F.H,Y=CONFIG.layout;frameEl.classList.toggle('safe',F.st>0||F.sb>0);   // 有安全區才讓 #frame 往內縮（見 index.html 的 #frame）
   gameEl.style.width=W+'px';renderer.setSize(W,H+F.st+F.sb,false);   // 畫布畫滿整頁（上下延伸到安全區後面）
   L.W=W;L.H=H;L.st=F.st;L.sb=F.sb;L.topH=H*Y.top;L.battleY=L.topH;L.battleH=H*Y.battle;L.teamY=L.battleY+L.battleH;L.teamH=H*Y.team;L.boardY=L.teamY+L.teamH;L.boardH=H-L.boardY;
@@ -6843,7 +6864,8 @@ function renderExt(scene,cam){
    所以改成看畫面實際的大小，變了就重新排版；大小沒變就不動。
    全螢幕之後整頁高度不變、變的是安全區，所以也看 #safeProbe（它的高度就是上下安全區）。
    隊伍血條也看：字型晚到（手機上的中文字型比較高）會讓它變高，要重排珠盤（見 fitTeam）。 */
-if(window.ResizeObserver){var ro=new ResizeObserver(function(){var F=safeFrame();if(F.H!==L.H||F.W!==L.W||F.st!==L.st||F.sb!==L.sb||teamBarMaxH()!==L.tbH)layout();});
+if(window.ResizeObserver){var ro=new ResizeObserver(function(){var g=lboxGeo();if(g.on!==LB.on||g.top!==LB.top||g.h!==LB.h){layout();return;}   /* 黑條的位置、高度變了（安全區晚到也會變）：整個重排 */
+  var F=safeFrame();if(F.H!==L.H||F.W!==L.W||F.st!==L.st||F.sb!==L.sb||teamBarMaxH()!==L.tbH)layout();});
   ro.observe(document.body);ro.observe(safeProbeEl,{box:'border-box'});ro.observe(teamBarEl);}
 
 // 動畫小工具（anim.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
