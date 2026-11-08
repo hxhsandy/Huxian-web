@@ -4596,94 +4596,132 @@ return {scene:scene,camera:camera,update:update,resize:resize,preRender:preRende
 // 介紹頁的背景影片（2026-11-08 CK：第一～五關先用繪星做的影片當背景試試看；影片還可能換，不是最後的美術）。
 //   畫法：影片當成 three.js 的貼圖，貼在掛在封面相機上的一片四邊形，最先畫、不比深度＝墊在最後面；腳底的假影子第二個畫；
 //   BOSS、尾巴的狐火、大標題照原本的 3D 畫在上面。畫布照舊不透明（不用 DOM 疊影片，其他畫面一點都不會變）。
-//   影片模式時，封面原本的 3D 場景（天空、月亮、地面、造景、光點）藏起來，只留 BOSS、這隻 BOSS 的尾巴狐火、大標題和 keep 列的道具；
-//   影片還沒能播（還在載、載不到、手機省電模式不給自動播）就照舊是 3D 場景，播得動才換過去，所以 3D 的版本一直都在。
-//   網址加 ?cover3d：全部用原本的 3D 場景（不載影片）。
+//   影片模式時，封面原本的 3D 場景（天空、月亮、地面、造景、光點）藏起來，只留 BOSS、這隻 BOSS 的尾巴狐火、大標題和 keep 列的道具。
+//   一進介紹頁先貼影片的第一格（cover/L1.jpg…，遊戲一開就先載好），影片載好了從同一格接著動（2026-11-08 CK：原本先閃 3D、狐狸跳一下）；
+//   第一格的圖也讀不到（例如用 file:// 開的自動測試）就照舊是 3D 場景。網址加 ?cover3d：全部用原本的 3D 場景（不載圖、不載影片）。
+//   重播不用 video 的 loop（跳回開頭偶爾會卡一兩格，CK 看到「銜接處抖一下」）：每關兩個播放器輪流，一個播到最後一格，換另一個從頭播。
 //   對位（跟繪星的試看頁 editor/video_cover_js.html v4／v5 同一套）：影片放大到蓋滿整個畫面（含瀏海、底部橫條後面），
 //   而且影片裡 (ax, ay) 那一點剛好落在 3D 的參考點 ref 上（BOSS 還沒挪之前量）；蓋滿又對不上就一點一點放大。之後 BOSS 再挪 bx、by（背景不動）。
+//   fit（0～1，網址 ?vfit= 可以試）：手機比 9:16 長，蓋滿會切掉左右；fit 越大影片越小（1＝左右剛好不切），上下空出來的地方墊一層模糊的同一支影片
 
 // 每一關的設定（key＝關卡索引，0＝第一關）。數字照繪星交的 handoff_manifest.json（shared/Huxian-review/cover-stages1to5-handoff-20261108，CK 2026-11-08 選的）
-//   v 影片檔名（放在網站的 cover/ 底下，mp4 和 webm 各一支，瀏覽器挑能播的）；ax、ay 影片裡要對準參考點的那一點（0～1，從影片左上算）
+//   v 檔名（放在網站的 cover/ 底下：影片 mp4 和 webm 各一支、第一格 jpg 一張）；ax、ay 影片裡要對準參考點的那一點（0～1，從影片左上算）
 //   ref 3D 的參考點：holder（BOSS 外面那層的原點）、rock（第一關的石頭）、seat（第三關的坐墊）……就是封面物件 B 裡那個 3D 物件的名字
 //   keep 影片模式也照畫的 3D 道具（B 裡的名字）；bx、by BOSS 左右、上下挪多少（版面座標，跟 STAGES[].fox 的 x、y 同單位）
 //   fire 尾巴狐火的亮度倍數；sh 影子濃度（0＝不加）、shw 影子大小倍數、shr 高÷寬、shx／shy 再挪幾 px；
 //   shax、shay：影子釘在影片裡這一點（不跟著 BOSS 上下飄；第五關塗山）
-var COVER_VIDEO_DEF={on:true,dir:'cover/',shadow:'contact_shadow_round.png',stages:{
+var COVER_VIDEO_DEF={on:true,dir:'cover/',shadow:'contact_shadow_round.png',fit:0,blur:0.05,fade:0.08,stages:{
   0:{v:'L1',ax:0.66,ay:0.71,ref:'rock',bx:0,fire:0.6,sh:0.7,shr:0.25,shw:1,shy:3},
   1:{v:'L2',ax:0.65,ay:0.5,ref:'holder',keep:['floatL'],bx:-0.035,fire:0.6,sh:0.45,shr:0.2,shw:0.8,shy:20},
   2:{v:'L3',ax:0.65,ay:0.69,ref:'seat',bx:-0.035,fire:0.6,sh:0.55,shr:0.22,shw:0.85,shy:3},
   3:{v:'L4',ax:0.65,ay:0.666,ref:'holder',bx:-0.035,fire:0.6,sh:0.7,shr:0.3,shw:1.1,shy:8},
   4:{v:'L5',ax:0.69,ay:0.57,ref:'holder',bx:-0.1,by:0.025,fire:0.6,sh:0.55,shr:0.24,shw:1,shy:0,shax:0.6,shay:0.68}}};
 
+var QUAD_VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }';
+// 縮小時的影片：上下邊淡掉（只在有空出來的那一邊），疊在模糊墊底上
+var EDGE_FS='uniform sampler2D map; uniform float fT,fB; varying vec2 vUv; void main(){ vec4 c=texture2D(map,vUv);'+
+  ' float a=(fT>0.0?smoothstep(1.0,1.0-fT,vUv.y):1.0)*(fB>0.0?smoothstep(0.0,fB,vUv.y):1.0); gl_FragColor=vec4(c.rgb,a); }';
+// 墊底：同一支影片蓋滿整個畫面、糊掉、暗一點
+var BLUR_FS='uniform sampler2D map; uniform float r,asp; varying vec2 vUv; void main(){ vec3 c=vec3(0.0);'+
+  ' for(int i=0;i<40;i++){ float f=float(i)+0.5, a=f*2.39996, d=sqrt(f/40.0)*r; c+=texture2D(map,clamp(vUv+vec2(cos(a),sin(a)*asp)*d,0.0,1.0)).rgb; }'+   /* 黃金角螺旋 40 點：比方格取樣柔，不會看到格子 */
+  ' gl_FragColor=vec4(c/40.0*0.78,1.0); }';
+
 // o：封面那邊給的 {sc, cam, title（大標題，影片模式也要畫）, built（每關的封面物件）, STAGES, placeStage, applyLook, cur（現在第幾關）}
 function makeCoverVideo(o){
-  var THREE=window.THREE,off=/[?&]cover3d/.test(location.search)||!COVER_VIDEO_DEF.on,V=new THREE.Vector3(),V2=new THREE.Vector3(),W2=new THREE.Vector3(),S2=new THREE.Vector3();
-  var vids={},act=-1,st=null,lastSeen=0,quad=null,shadow=null;
-  // 四邊形（掛在相機上；頂點每次照畫面上的方框重算）
+  var THREE=window.THREE,D=COVER_VIDEO_DEF,off=/[?&]cover3d/.test(location.search)||!D.on,V=new THREE.Vector3(),V2=new THREE.Vector3(),W2=new THREE.Vector3(),S2=new THREE.Vector3();
+  var fq=/[?&]vfit=([\d.]+)/.exec(location.search),FIT=Math.max(0,Math.min(1,fq?+fq[1]:D.fit||0));
+  var recs={},act=-1,st=null,lastSeen=0,quad=null,edge=null,back=null,shadow=null;
+  // 讀得到畫面嗎：file:// 開的時候圖和影片都算別的來源，WebGL 拿不到（只會是黑的）
+  function readable(src){try{var c=document.createElement('canvas');c.width=c.height=2;var g=c.getContext('2d');g.drawImage(src,0,0,2,2);g.getImageData(0,0,1,1);return true;}catch(e){return false;}}
+  function tex(src,rgb){var t=new THREE.Texture(src);t.minFilter=t.magFilter=THREE.LinearFilter;t.generateMipmaps=false;if(rgb)t.format=THREE.RGBFormat;return t;}
+  // 每一關：第一格的圖（一開就載）＋兩個播放器（第一次進那一關才建）
+  function rec(k){var d=D.stages[k];if(!d||off)return null;if(recs[k])return recs[k];
+    var r={d:d,img:new Image(),pok:false,els:null,texs:null,cur:0,ok:[null,null],lastT:-1,showing:null};
+    r.img.onload=function(){if(readable(r.img)){r.pok=true;r.ptex=tex(r.img,false);r.ptex.needsUpdate=true;}};r.img.src=D.dir+d.v+'.jpg';
+    recs[k]=r;return r;}
+  if(!off)Object.keys(D.stages).forEach(function(k){rec(+k);});
+  function players(r){if(r.els)return;r.els=[0,1].map(function(){var el=document.createElement('video');el.muted=true;el.playsInline=true;el.setAttribute('muted','');el.setAttribute('playsinline','');el.preload='auto';
+      ['mp4','webm'].forEach(function(t){var s=document.createElement('source');s.src=D.dir+r.d.v+'.'+t;s.type='video/'+t;el.appendChild(s);});
+      el.style.cssText='position:fixed;left:0;top:0;width:48px;height:auto;opacity:0.01;pointer-events:none;z-index:-1';document.body.appendChild(el);   /* 要在頁面上、而且瀏覽器當它「看得到」（opacity 0 的話 Chrome 會停掉解碼、時鐘照跑），實際上被遊戲畫布蓋住 */
+      el.addEventListener('error',function(){el.bad=true;},true);return el;});
+    r.texs=r.els.map(function(el){return tex(el,true);});r.t0=performance.now();}
+  function kick(el){if(el&&!el.bad&&el.paused&&!el.ended){var p=el.play();if(p&&p.catch)p.catch(function(){});}}
+  function live(r,i){var el=r.els&&r.els[i];if(!el||el.bad||el.readyState<2||!el.videoWidth)return false;if(r.ok[i]==null)r.ok[i]=readable(el);return r.ok[i];}
+  document.addEventListener('pointerdown',function(){var r=recs[o.cur()];if(r&&r.els)kick(r.els[r.cur]);},true);   /* 不給自動播的話，點一下畫面再試 */
+  // 兩個播放器輪流：現在這個播到最後一格，另一個（已經在開頭等著）接著播、換貼圖，播完的倒回開頭等下一輪；另一個還沒準備好就照舊跳回開頭
+  function cycle(r){var a=r.els[r.cur],b=r.els[1-r.cur];
+    if(!r.started&&a.paused&&a.readyState<4&&performance.now()-r.t0<3000)return;   /* 第一次：資料夠了才開始播（太早播，瀏覽器的時鐘會先跑，畫面一出來就跳到第二秒）；三秒還不夠就照樣播（iPhone 不播不載） */
+    if(b.paused&&b.readyState>=2&&b.currentTime>0.001&&!b.seeking)b.currentTime=0;
+    if(a.ended||(a.duration&&a.currentTime>=a.duration-0.03)){
+      if(live(r,1-r.cur)&&b.currentTime<0.05){kick(b);r.cur=1-r.cur;a.pause();a.currentTime=0;}else {a.currentTime=0;kick(a);}}
+    else kick(a);}
   function makeQuad(mat,order){var g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(12),3));
     g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array([0,1,1,1,0,0,1,0]),2));g.setIndex([0,2,1,2,3,1]);
     var m=new THREE.Mesh(g,mat);m.renderOrder=order;m.frustumCulled=false;m.visible=false;m.raycast=function(){};o.cam.add(m);return m;}
   // 畫面上的方框（全螢幕的 px，含瀏海、底部橫條後面）→ 相機座標裡、離鏡頭 D 那個深度的四個角（封面相機有裁切 setViewOffset，用反投影算才準）
-  function fitQuad(m,x0,y0,x1,y1,D){var p=m.geometry.attributes.position,W=L.W,H=L.H,s0=L.st;o.cam.updateMatrixWorld();
-    [[x0,y0],[x1,y0],[x0,y1],[x1,y1]].forEach(function(c,i){V.set(c[0]/W*2-1,1-(c[1]-s0)/H*2,0.5).unproject(o.cam);o.cam.worldToLocal(V);V.multiplyScalar(D/-V.z);p.setXYZ(i,V.x,V.y,V.z);});
+  function fitQuad(m,x0,y0,x1,y1,dist){var p=m.geometry.attributes.position,W=L.W,H=L.H,s0=L.st;o.cam.updateMatrixWorld();
+    [[x0,y0],[x1,y0],[x0,y1],[x1,y1]].forEach(function(c,i){V.set(c[0]/W*2-1,1-(c[1]-s0)/H*2,0.5).unproject(o.cam);o.cam.worldToLocal(V);V.multiplyScalar(dist/-V.z);p.setXYZ(i,V.x,V.y,V.z);});
     p.needsUpdate=true;m.geometry.computeBoundingSphere();}
   // 3D 物件在畫面上的位置（全螢幕的 px）
   function scr(obj,out){obj.getWorldPosition(V);V.project(o.cam);out[0]=(V.x+1)/2*L.W;out[1]=(1-V.y)/2*L.H+L.st;return out;}
-  function video(k){var d=COVER_VIDEO_DEF.stages[k];if(!d||off)return null;if(vids[k])return vids[k];
-    var el=document.createElement('video');el.muted=true;el.loop=true;el.playsInline=true;el.setAttribute('muted','');el.setAttribute('playsinline','');el.preload='auto';
-    ['mp4','webm'].forEach(function(t){var s=document.createElement('source');s.src=COVER_VIDEO_DEF.dir+d.v+'.'+t;s.type='video/'+t;el.appendChild(s);});
-    el.style.cssText='position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1';document.body.appendChild(el);   /* iPhone：影片要在頁面上才肯播（看不到） */
-    var r={el:el,d:d,tex:null,bad:false};el.addEventListener('error',function(){r.bad=true;},true);vids[k]=r;return r;}
-  // 播得動、而且畫面讀得到：用 file:// 開（自動測試）時影片算別的來源，WebGL 拿不到畫面（只會是黑的）→ 當作不能用，照舊 3D
-  function playing(r){if(!r||r.bad||r.el.paused||r.el.readyState<2||!r.el.videoWidth)return false;
-    if(r.ok==null){try{var c=document.createElement('canvas');c.width=c.height=2;var g=c.getContext('2d');g.drawImage(r.el,0,0,2,2);g.getImageData(0,0,1,1);r.ok=true;}catch(e){r.ok=false;r.bad=true;r.el.pause();}}
-    return r.ok;}
-  function kick(r){if(r&&!r.bad&&r.el.paused){var p=r.el.play();if(p&&p.catch)p.catch(function(){});}}
-  document.addEventListener('pointerdown',function(){kick(vids[o.cur()]);},true);   /* 不給自動播的話，點一下畫面再試 */
+  function quads(){if(quad)return;var opq={depthTest:false,depthWrite:false,blending:THREE.CustomBlending,blendSrc:THREE.SrcAlphaFactor,blendDst:THREE.OneMinusSrcAlphaFactor};   /* 要混色的放在不透明那一批（transparent 的會排到 BOSS 後面才畫），自己設混色 */
+    back=makeQuad(new THREE.ShaderMaterial({uniforms:{map:{value:null},r:{value:D.blur},asp:{value:1}},vertexShader:QUAD_VS,fragmentShader:BLUR_FS,depthTest:false,depthWrite:false}),-1002);
+    quad=makeQuad(new THREE.MeshBasicMaterial({depthTest:false,depthWrite:false,fog:false}),-1001);
+    edge=makeQuad(new THREE.ShaderMaterial(Object.assign({uniforms:{map:{value:null},fT:{value:0},fB:{value:0}},vertexShader:QUAD_VS,fragmentShader:EDGE_FS},opq)),-1000);
+    shadow=makeQuad(new THREE.MeshBasicMaterial(Object.assign({map:new THREE.TextureLoader().load(D.dir+D.shadow),fog:false},opq)),-999);}
   // 進影片模式：藏場景、調暗狐火、量參考點、BOSS 挪過去
-  function enter(k){var B=o.built[k],r=vids[k],d=r.d,P=o.STAGES[k].fox;if(!B)return;
-    if(!r.tex){r.tex=new THREE.Texture(r.el);r.tex.minFilter=r.tex.magFilter=THREE.LinearFilter;r.tex.generateMipmaps=false;r.tex.format=THREE.RGBFormat;r.lastT=-1;}   /* 不用 VideoTexture：它靠 requestVideoFrameCallback，看不到的 video 元素不會觸發；改成影片時間變了才重傳 */
-    if(!quad){quad=makeQuad(new THREE.MeshBasicMaterial({depthTest:false,depthWrite:false,fog:false}),-1000);
-      shadow=makeQuad(new THREE.MeshBasicMaterial({map:new THREE.TextureLoader().load(COVER_VIDEO_DEF.dir+COVER_VIDEO_DEF.shadow),depthTest:false,depthWrite:false,fog:false,
-        blending:THREE.CustomBlending,blendSrc:THREE.SrcAlphaFactor,blendDst:THREE.OneMinusSrcAlphaFactor}),-999);}   /* 影子：不透明那一批裡排第二個畫（transparent 的會排到 BOSS 後面才畫）、自己設混色 */
-    quad.material.map=r.tex;quad.material.needsUpdate=true;
+  function enter(k){var B=o.built[k],r=recs[k],d=r.d,P=o.STAGES[k].fox;if(!B)return;quads();
     var FC=BOSS_LOOK_DEF[k].fire||[],keep=(d.keep||[]).map(function(n){return B[n];}).filter(function(x){return x&&x.isObject3D;});
-    st={k:k,B:B,d:d,r:r,P:P,x0:P.x,y0:P.y,vis:[],fire:[],keep:keep,key:'',foot:[0,0],box:null};
+    st={k:k,B:B,d:d,r:r,P:P,x0:P.x,y0:P.y,vis:[],fire:[],keep:keep,key:'',foot:[0,0],box:null,gap:false};
     function has(x){return keep.some(function(y){for(var p=y;p;p=p.parent)if(p===x)return true;return false;});}
     function hide(list){list.forEach(function(x){if(x===B.boss.h||keep.indexOf(x)>=0)return;
       if(x.isSprite&&FC.indexOf(x.material.color.getHex())>=0){if(d.fire!=null&&d.fire!==1){st.fire.push([x,x.material.color.getHex()]);x.material.color.multiplyScalar(d.fire);}return;}   /* 這隻 BOSS 的尾巴狐火：留著（認顏色），調暗一點 */
       if(has(x)){hide(x.children);return;}st.vis.push([x,x.visible]);});}
     var Gs=o.built.filter(Boolean).map(function(b){return b.G;});   /* 各關封面的群組誰顯示是 applyLook 管的，不碰 */
     o.sc.children.forEach(function(x){if(Gs.indexOf(x)>=0||x.isLight||x===o.cam)return;st.vis.push([x,x.visible]);});
-    o.cam.children.forEach(function(x){if(x===o.title||x===quad||x===shadow)return;st.vis.push([x,x.visible]);});
-    hide(B.G.children);act=k;quad.visible=true;shadow.visible=d.sh>0;shadow.material.opacity=d.sh||0;place();}
+    o.cam.children.forEach(function(x){if(x===o.title||x===quad||x===edge||x===back||x===shadow)return;st.vis.push([x,x.visible]);});
+    hide(B.G.children);act=k;shadow.material.opacity=d.sh||0;r.showing=null;show();place();}
   function leave(){if(act<0)return;var s=st;s.vis.forEach(function(e){e[0].visible=e[1];});s.fire.forEach(function(e){e[0].material.color.setHex(e[1]);});
-    s.P.x=s.x0;s.P.y=s.y0;o.placeStage(s.k);quad.visible=shadow.visible=false;act=-1;st=null;o.applyLook(o.cur());}   /* 換到別關才離開的話，那一關的天空、雲照 applyLook 再擺一次 */
+    s.P.x=s.x0;s.P.y=s.y0;o.placeStage(s.k);quad.visible=edge.visible=back.visible=shadow.visible=false;act=-1;st=null;o.applyLook(o.cur());}   /* 換到別關才離開的話，那一關的天空、雲照 applyLook 再擺一次 */
+  // 現在要貼哪一張：播放器在播就貼它（影片時間變了才重傳），還沒就貼第一格的圖
+  //   第一次開始播：瀏覽器有時從第二秒才開始（等資料的那段時間時鐘先跑了），跟第一格接不起來 → 倒回開頭，接上了才換成影片
+  function show(){var r=st.r,t=r.pok?r.ptex:null,i=r.cur;
+    if(!r.started&&r.els&&live(r,i)&&!r.els[i].paused){var e0=r.els[i];if(e0.currentTime<0.25)r.started=true;else if(!e0.seeking&&!r.rewound){r.rewound=true;e0.currentTime=0;}}
+    if(r.started&&r.els&&live(r,i)&&(!r.els[i].paused||r.showing===r.texs[i])){t=r.texs[i];var el=r.els[i];if(el.currentTime!==r.lastT||r.showing!==t){r.lastT=el.currentTime;t.needsUpdate=true;}}
+    if(t!==r.showing){r.showing=t;quad.material.map=t;edge.material.uniforms.map.value=t;back.material.uniforms.map.value=t;quad.material.needsUpdate=true;}
+    var gap=st.gap;quad.visible=!gap;edge.visible=back.visible=gap;shadow.visible=(st.d.sh||0)>0;}
   // 對位：畫面大小變了就重量（BOSS 先放回原位量參考點，再挪 bx、by）；影子每一格都跟著 BOSS（第二關的 BOSS 會上下飄）
-  function place(){var s=st,d=s.d,B=s.B,P=s.P,el=s.r.el,vw=el.videoWidth,vh=el.videoHeight;if(!vw)return;
+  function place(){var s=st,d=s.d,B=s.B,P=s.P,img=s.r.img,vw=img.naturalWidth,vh=img.naturalHeight;if(!vw)return;
     var FW=L.W,FH=L.st+L.H+L.sb,key=[FW,FH,L.st,P.s].join(',');
     if(key!==s.key){s.key=key;P.x=s.x0;P.y=s.y0;o.placeStage(s.k);var R=d.ref!=='holder'&&B[d.ref]&&B[d.ref].isObject3D?B[d.ref]:B.boss.h;scr(R,s.foot);
       if(d.bx||d.by){P.x=s.x0+(d.bx||0);P.y=s.y0+(d.by||0);o.placeStage(s.k);}
-      var sc=Math.max(FW/vw,FH/vh),tx=0,ty=0;
-      for(var i=0;i<80;i++){tx=s.foot[0]-d.ax*vw*sc;ty=s.foot[1]-d.ay*vh*sc;if(tx<=0.5&&ty<=0.5&&tx+vw*sc>=FW-0.5&&ty+vh*sc>=FH-0.5)break;sc*=1.03;}
-      s.box=[tx,ty,vw*sc,vh*sc];fitQuad(quad,tx,ty,tx+vw*sc,ty+vh*sc,150);}
-    if(shadow.visible){var f=scr(B.boss.h,[0,0]);B.boss.h.getWorldPosition(W2);B.boss.h.getWorldScale(S2);
+      function fitBox(sc,needV){var tx=0,ty=0;for(var i=0;i<80;i++){tx=s.foot[0]-d.ax*vw*sc;ty=s.foot[1]-d.ay*vh*sc;
+          if(tx<=0.5&&tx+vw*sc>=FW-0.5&&(!needV||(ty<=0.5&&ty+vh*sc>=FH-0.5)))break;sc*=1.03;}return [tx,ty,vw*sc,vh*sc];}
+      var cover=Math.max(FW/vw,FH/vh),full=fitBox(cover,true),b=full;
+      if(FIT>0){b=fitBox(cover+(FW/vw-cover)*FIT,false);if(b[3]>=FH-0.5&&b[1]<=0.5&&b[1]+b[3]>=FH-0.5)b=full;}   /* 縮小：左右照樣蓋滿，上下照 (ax, ay) 擺（狐狸要站準），露出來的上下墊模糊 */
+      s.box=b;s.gap=b!==full&&(b[1]>0.5||b[1]+b[3]<FH-0.5);
+      fitQuad(quad,b[0],b[1],b[0]+b[2],b[1]+b[3],150);fitQuad(edge,b[0],b[1],b[0]+b[2],b[1]+b[3],150);
+      edge.material.uniforms.fT.value=b[1]>0.5?D.fade:0;edge.material.uniforms.fB.value=b[1]+b[3]<FH-0.5?D.fade:0;
+      fitQuad(back,full[0],full[1],full[0]+full[2],full[1]+full[3],151);back.material.uniforms.asp.value=vw/vh;}
+    if((d.sh||0)>0){var f=scr(B.boss.h,[0,0]);B.boss.h.getWorldPosition(W2);B.boss.h.getWorldScale(S2);
       V2.set(1,0,0).applyQuaternion(o.cam.getWorldQuaternion(new THREE.Quaternion())).multiplyScalar(S2.x*0.55*(d.shw||1)).add(W2).project(o.cam);
-      var sw=Math.abs((V2.x+1)/2*L.W-f[0])*2,sh=sw*(d.shr||0.68),b=s.box,cx=d.shax!=null?b[0]+d.shax*b[2]:f[0],cy=d.shay!=null?b[1]+d.shay*b[3]:f[1];
+      var sw=Math.abs((V2.x+1)/2*L.W-f[0])*2,sh=sw*(d.shr||0.68),bx=s.box,cx=d.shax!=null?bx[0]+d.shax*bx[2]:f[0],cy=d.shay!=null?bx[1]+d.shay*bx[3]:f[1];
       cx+=d.shx||0;cy+=d.shy||0;fitQuad(shadow,cx-sw/2,cy-sh/2,cx+sw/2,cy+sh/2,149);}}
   // 一個多秒沒看介紹頁（去戰鬥、庭院了）：影片停掉
-  setInterval(function(){if(performance.now()-lastSeen>1200)Object.keys(vids).forEach(function(k){if(!vids[k].el.paused)vids[k].el.pause();});},1000);
+  setInterval(function(){if(performance.now()-lastSeen>1200)Object.keys(recs).forEach(function(k){(recs[k].els||[]).forEach(function(el){if(!el.paused)el.pause();});});},1000);
   return {
-    // 封面每一格叫：k＝現在這一關。影片能播就進影片模式，不能就照舊 3D
+    // 封面每一格叫：k＝現在這一關。第一格的圖讀得到就進影片模式（影片能播就換成影片），不然照舊 3D
     update:function(k){lastSeen=performance.now();
-      Object.keys(vids).forEach(function(j){if(+j!==k&&!vids[j].el.paused)vids[j].el.pause();});
-      var r=video(k);if(r)kick(r);
-      if(act>=0&&(act!==k||!o.built[act]||o.built[act]!==st.B||!playing(vids[act])))leave();
-      if(act<0&&playing(r))enter(k);
-      if(act>=0){st.vis.forEach(function(e){e[0].visible=false;});var R=st.r;if(R.el.readyState>=2&&R.el.currentTime!==R.lastT){R.lastT=R.el.currentTime;R.tex.needsUpdate=true;}place();}},
+      Object.keys(recs).forEach(function(j){if(+j!==k)(recs[j].els||[]).forEach(function(el){if(!el.paused)el.pause();});});
+      var r=rec(k);
+      if(act>=0&&(act!==k||!o.built[act]||o.built[act]!==st.B))leave();
+      if(r&&r.pok){players(r);cycle(r);}
+      if(act<0&&r&&r.pok)enter(k);
+      if(act>=0){st.vis.forEach(function(e){e[0].visible=false;});show();place();}},
     leave:leave,
-    // 測試用：現在是不是影片模式、影片框、參考點
-    state:function(){return st?{k:st.k,box:st.box&&st.box.map(Math.round),foot:st.foot.map(Math.round),playing:playing(st.r)}:{k:-1,off:off};}};
+    // 測試用：現在是不是影片模式、影片框、參考點、在播哪一個
+    state:function(){if(!st)return {k:-1,off:off};var r=st.r;return {k:st.k,box:st.box&&st.box.map(Math.round),foot:st.foot.map(Math.round),gap:st.gap,fit:FIT,
+      src:r.showing===r.ptex?'poster':'video'+r.cur,playing:!!(r.els&&live(r,r.cur)&&!r.els[r.cur].paused)};}};
 }
 
 // BOSS 封面頁（render/team.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
