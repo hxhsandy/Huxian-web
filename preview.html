@@ -6564,13 +6564,20 @@ var BGM=(function(){
   function stopCur(){if(!cur)return;var c=cur;cur=null;
     if(c.syn){c.syn.stop();return;}
     var s=c.slot;ramp(s.g,0,D.fade);setTimeout(function(){if(cur&&cur.slot===s)return;s.el.pause();},D.fade*1000+80);}
-  function startFile(n){var s=lastSlot===els[0]?els[1]:els[0];lastSlot=s;   // 跟上一首輪流用兩個 <audio>（上一首可能還在淡出）
-    var v=list&&list[n]&&list[n].vol!=null?+list[n].vol:1,url=D.dir+n+D.ext;
+  // 2026-11-08 CK：二、三章打完回大地圖，有時先冒出幾秒第一章的歌才換對（iPhone）。
+  //   原因：輪到的那個 <audio> 上次放的是別首，換網址後 iPhone 會先吐一下舊歌。改成：
+  //   ①兩個 <audio> 裡有一個本來就是這首 → 直接用它（不換網址；打完仗回同一章就是這種）
+  //   ②真的要換網址 → 先停、重新載入，音量留在 0，等新歌真的開始放（playing）才淡入
+  function startFile(n){var url=D.dir+n+D.ext,v=list&&list[n]&&list[n].vol!=null?+list[n].vol:1;
+    var s=els[0].el.getAttribute('src')===url?els[0]:els[1].el.getAttribute('src')===url?els[1]:lastSlot===els[0]?els[1]:els[0];lastSlot=s;   // 都不是這首：跟上一首輪流用（上一首可能還在淡出）
+    var fresh=s.el.getAttribute('src')!==url,tok=s.tok=(s.tok||0)+1;
     s.name=n;s.el.onerror=function(){if(list)delete list[n];if(cur&&cur.name===n){cur=null;apply();}};   // 檔案讀不到：當作沒有這首，換下一個候選
-    if(s.el.getAttribute('src')!==url)s.el.src=url;try{s.el.currentTime=0;}catch(_){}
     s.g.gain.cancelScheduledValues(now());s.g.gain.setValueAtTime(0,now());
+    if(fresh){s.el.pause();s.el.src=url;s.el.load();}else try{s.el.currentTime=0;}catch(_){}
+    var wait=fresh||s.el.paused;   // 停著的要等它真的放出聲（playing）；還在放的（剛淡出到一半又換回來）直接淡入
+    s.el.onplaying=function(){if(s.tok===tok&&cur&&cur.slot===s)ramp(s.g,v,D.fade);};
     cur={name:n,slot:s};if(muted()||hidden)return;
-    var p=s.el.play();if(p&&p.catch)p.catch(function(){});ramp(s.g,v,D.fade);}
+    var p=s.el.play();if(p&&p.catch)p.catch(function(){});if(!wait)ramp(s.g,v,D.fade);}
   // 換成現在該放的那首（或安靜）
   function apply(){if(!unlocked)return;var n=pick();if(cur&&cur.name===n)return;
     stopCur();if(!n){showTag(null);return;}
@@ -6601,6 +6608,8 @@ var BGM=(function(){
     // 測試用：現在在放哪首（沒有＝null）
     now:function(){return cur?cur.name:null;},
     playing:function(){return !!(cur&&cur.slot&&!cur.slot.el.paused&&cur.slot.el.readyState>=2);},   // 測試用：現在那首的 <audio> 真的在放
+    slot:function(){return cur&&cur.slot?els.indexOf(cur.slot):-1;},   // 測試用：現在用第幾個 <audio>（0／1）
+    gain:function(){return cur&&cur.slot?cur.slot.g.gain.value:0;},   // 測試用：現在那首的音量（淡入到一半也算）
     hub:function(c){return [D.hub[c]];},
     stage:function(k,seg){var base=D.stage[k];return seg!=null&&D.finalSeg[seg]?[D.finalSeg[seg],base]:[base];},
     ending:function(kind){return [D.ending[kind]];}};
