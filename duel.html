@@ -148,11 +148,12 @@ function showResult(winner){[['a',pa],['b',pb]].forEach(function(x){var r=x[1].q
 var vsDone=Q.has('novs'),vsEl=null;
 function maybeStart(){if(side.a.hello&&side.b.hello&&vsDone&&state==='wait'){if(ROOM)netReady();else start();}}
 function vsEnd(){if(vsDone)return;vsDone=true;if(vsEl){var e=vsEl;e.classList.add('out');setTimeout(function(){e.remove();},450);vsEl=null;}maybeStart();}
-function vsOpen(bCard){if(vsDone||vsEl)return;vsEl=document.createElement('iframe');vsEl.id='vsIntro';vsEl.src=(Q.get('vs')||'vs.html')+'?embed=1';document.body.appendChild(vsEl);
-  setTimeout(function(){if(vsEl&&!vsEl.dataset.ready)vsEnd();},15000);   /* VS 頁載不起來就跳過 */
-  addEventListener('message',function(ev){var d=ev.data;if(!d||!d.vsintro||!vsEl||ev.source!==vsEl.contentWindow)return;
-    if(d.vsintro==='ready'){vsEl.dataset.ready='1';vsEl.contentWindow.postMessage({vsintro:'cards',a:CARD||{name:'你',look:{base:A}},b:bCard},'*');setTimeout(vsEnd,9000);}
-    if(d.vsintro==='done')vsEnd();});}
+var vsCard=null;
+function vsOpen(bCard){if(vsDone||vsEl)return;vsCard=bCard;var el=vsEl=document.createElement('iframe');vsEl.id='vsIntro';vsEl.src=(Q.get('vs')||'vs.html')+'?embed=1';document.body.appendChild(vsEl);
+  setTimeout(function(){if(vsEl===el&&!el.dataset.ready)vsEnd();},15000);}   /* VS 頁載不起來就跳過 */
+addEventListener('message',function(ev){var d=ev.data,el=vsEl;if(!d||!d.vsintro||!el||ev.source!==el.contentWindow)return;   // 計時的都認「是不是還是這一個 VS 頁」（連線換對手時會重演一次）
+  if(d.vsintro==='ready'){el.dataset.ready='1';el.contentWindow.postMessage({vsintro:'cards',a:CARD||{name:'你',look:{base:A}},b:vsCard},'*');setTimeout(function(){if(vsEl===el)vsEnd();},9000);}
+  if(d.vsintro==='done')vsEnd();});
 if(!ROOM)vsOpen({name:CPU_CARD.name,look:CPU_CARD.look,sub:'電腦 Lv'+LV});   /* 連線時等對手的名帖到了才演 */
 function over(winner,by,fromNet){if(state==='over')return;if(ROOM&&!fromNet){if(!isHost())return;NET.send({t:'over',winner:winner,by:by});}   /* 連線：開房的那邊當裁判，另一邊等它宣布 */
   state='over';both({type:'over',winner:winner,by:by});setTimeout(function(){showResult(winner);$('again').style.display='inline-block';},700);}
@@ -172,12 +173,23 @@ addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var
    傳輸現在用 BroadcastChannel（同一台電腦、同一個瀏覽器的兩個視窗），之後換成伺服器的 WebSocket，只換 NET 這一小段。
    訊息：hi（我來了＋我的名帖）／ready（兩份遊戲和 VS 頁都好了）／start（開房的那邊發種子）／g（遊戲的訊息原封不動）／clock／over／again／ping ---------- */
 var stalled=false,NET=null,ME=Math.random().toString(36).slice(2,10),PEER=null,netRdy=false;
+/* 有人離開、切出去、換人（2026-11-12 CK 第一次跟朋友連線：有人切出去之後就連不上）：
+   ・留著的那邊：對方 30 秒沒消息＝離線（畫面留著等）；之後不管是她回來還是換一個人進來，對方送來的 hi 是新的 id → peerReset：這邊不用重開，直接回到等開始、重演 VS、重新握手。
+   ・離開的那邊：自己的心跳停超過 20 秒（頁面被凍住／手機切到別的 app）或連線斷掉又接回來 → 回到畫面時自己重新整理（拿新的 id 重新進房間）。只有離開的那邊重開，不會兩邊互相重開個不停。 */
+var beat=Date.now(),needReload=false;
+function checkReload(){if(needReload&&!document.hidden){needReload=false;location.reload();}}
+document.addEventListener('visibilitychange',function(){if(ROOM&&PEER&&!document.hidden&&Date.now()-beat>20000)needReload=true;checkReload();});
+function peerReset(d){PEER={id:d.id,card:d.card||{name:'對手',look:{base:B}},ready:false,last:performance.now(),since:Date.now()};stalled=false;
+  $('again').style.display='none';clearResult();[pa,pb].forEach(function(p){p.querySelector('.cnt').classList.remove('pop');p.classList.remove('koed','kowin');});side.a.st={ko:0};side.b.st={ko:0};draw();danger('a',0);danger('b',0);both({type:'again'});state='wait';netRdy=false;
+  $('nameB').textContent=peerName();pb.querySelector('.who2').textContent='對手・'+peerName();lobby(false);NET.send({t:'hi',card:CARD});
+  if(vsEl){vsEl.remove();vsEl=null;}vsDone=Q.has('novs');if(vsDone)setTimeout(maybeStart,500);else vsOpen({name:peerName(),look:PEER.card.look});}
 function isHost(){return !!PEER&&ME<PEER.id;}
 function netReady(){netRdy=true;if(NET)NET.send({t:'ready'});netGo();}
 function netGo(){if(isHost()&&netRdy&&PEER.ready&&state==='wait'){var sd=(Math.random()*2147483646)|0;NET.send({t:'start',seed:sd});startWith(sd,PEER.card);}}
 function peerName(){return PEER&&PEER.card&&PEER.card.name||'對手';}
 function onNet(d){if(!d||d.id===ME)return;
-  if(d.t==='hi'){var fresh=!PEER;if(!PEER||PEER.id!==d.id)PEER={id:d.id,card:d.card||{name:'對手',look:{base:B}},ready:false};PEER.last=performance.now();
+  if(d.t==='hi'){var fresh=!PEER;if(PEER&&PEER.id!==d.id){peerReset(d);return;}   /* 換了一個人（或同一個人重新整理回來） */
+    if(!PEER)PEER={id:d.id,card:d.card||{name:'對手',look:{base:B}},ready:false,since:Date.now()};PEER.last=performance.now();
     if(fresh){NET.send({t:'hi',card:CARD});$('nameB').textContent=peerName();pb.querySelector('.who2').textContent='對手・'+peerName();lobby(false);vsOpen({name:peerName(),look:PEER.card.look});if(netRdy)NET.send({t:'ready'});}return;}
   if(!PEER||d.id!==PEER.id)return;PEER.last=performance.now();
   if(d.t==='ready'){PEER.ready=true;netGo();}
@@ -192,17 +204,25 @@ function lobby(on,txt){var e=$('lobby');e.style.display=on?'flex':'none';if(txt)
 // 傳輸：有郵局的網址（WS_URL，或網址 ?ws=）就走 WebSocket（wss://…/room/房號；server/foxvs-relay），沒有就用 BroadcastChannel（同一台電腦同一個瀏覽器）
 var WS_URL=Q.get('ws')||'wss://foxvs-relay.hxhsandy1.workers.dev';   /* Cloudflare 的郵局（server/foxvs-relay；CK 2026-11-12 部署）。?ws= 可以換成別的（本機測試用 ws://127.0.0.1:8787） */
 // 等待畫面最下面那一行小字：有沒有連上郵局（連不上＝這個房號已經有兩個人，或這個網路擋了郵局）——兩邊都卡在「等對手進來」時看這一行就知道是哪一邊
-function netSt(k){var e=$('netSt');if(e)e.textContent=k==='ok'?'✓ 已連上，房間裡還沒有別人':k==='bad'?'✗ 連不上（這個房號可能已經有兩個人，或這個網路擋住了）— 每 2 秒重試':'連線中…';if(e)e.style.color=k==='bad'?'#ff9d8a':k==='ok'?'#9be3b0':'';}
-function netWS(){var ws=null,q=[],dead=false;function open(){ws=new WebSocket(WS_URL.replace(/\/$/,'')+'/room/'+ROOM);
-    ws.onopen=function(){netSt('ok');q.splice(0).forEach(function(x){ws.send(x);});};
-    ws.onmessage=function(e){var d;try{d=JSON.parse(e.data);}catch(_){return;}if(d&&d.t==='bye'){if(PEER)PEER.last=-1e9;return;}onNet(d);};
-    ws.onclose=function(){if(dead)return;netSt('bad');setTimeout(open,2000);};ws.onerror=function(){try{ws.close();}catch(_){}};}
+var netState='';
+function netSt(k){netState=k;var e=$('netSt');if(!e)return;e.style.color=k==='ok'?'#9be3b0':k?'#ff9d8a':'';
+  e.innerHTML=k==='ok'?'✓ 已連上，房間裡還沒有別人':k==='full'?'✗ 這個房號已經有兩個人在玩了 — 換一個房號，或等一下（會自己再試）':k==='bad'?'✗ 連不上（這個網路可能擋住了）— 會自己再試':k==='stop'?'✗ 一直連不上 — <a href="">重新整理再試一次</a>':'連線中…';}
+function netWS(){var ws=null,q=[],opened=0,tries=0,full=false;function open(){full=false;ws=new WebSocket(WS_URL.replace(/\/$/,'')+'/room/'+ROOM);
+    ws.onopen=function(){if(opened++&&PEER){needReload=true;checkReload();return;}   /* 斷掉又接回來、而且本來有對手：中間漏掉的訊息補不回來 → 重新整理、重新進房間 */
+      netSt('ok');q.splice(0).forEach(function(x){ws.send(x);});};
+    ws.onmessage=function(e){var d;try{d=JSON.parse(e.data);}catch(_){return;}if(!d)return;
+      if(d.t==='full'){full=true;netSt('full');return;}   /* 郵局：這個房號已經有兩個人在講話 */
+      if(d.t==='bye'){if(PEER&&Date.now()-PEER.since>5000)PEER.last=-1e9;return;}   /* 對方的連線關了。對手剛換人的那幾秒收到的 bye 是上一個人的，不理 */
+      tries=0;onNet(d);};
+    ws.onclose=function(){if(!full)netSt('bad');if(++tries>14){netSt('stop');return;}setTimeout(open,full?10000:Math.min(15000,2000*Math.pow(1.5,tries-1)));};   /* 重試越來越慢、試很多次就停（郵局每天的額度有限） */
+    ws.onerror=function(){try{ws.close();}catch(_){}};}
   open();return {send:function(o){o.id=ME;var x=JSON.stringify(o);if(ws&&ws.readyState===1)ws.send(x);else if(q.length<200)q.push(x);}};}
 if(ROOM){if(WS_URL)NET=netWS();else try{var bc=new BroadcastChannel('foxvs-'+ROOM);NET={send:function(o){o.id=ME;bc.postMessage(o);}};bc.onmessage=function(e){onNet(e.data);};}catch(_){NET={send:function(){}};}
   lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>'+(WS_URL?'':'（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）')+'</small><small id="netSt">'+(WS_URL?'連線中…':'')+'</small>');
-  NET.send({t:'hi',card:CARD});setInterval(function(){if(!PEER)NET.send({t:'hi',card:CARD});else{NET.send({t:'ping'});if(netRdy&&state==='wait')NET.send({t:'ready'});
+  NET.send({t:'hi',card:CARD});setInterval(function(){var nb=Date.now();if(PEER&&nb-beat>20000)needReload=true;beat=nb;checkReload();   /* 自己的心跳停過 20 秒以上＝這一頁被凍住過，對方早就當我離線了 */
+    if(!PEER)NET.send({t:'hi',card:CARD});else{NET.send({t:'ping'});if(netRdy&&state==='wait')NET.send({t:'ready'});
     var quiet=performance.now()-PEER.last;   /* 對方多久沒消息：6 秒先提醒（回來了就收掉），30 秒才當作離線 */
-    if(state!=='over'){if(quiet>30000){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<br><a href="duel.html">回去跟電腦打</a>');}else if(quiet>6000){lobby(true,'對手沒有回應…<small>等她回來（她的視窗被蓋住或切到背景時會停住）</small>');stalled=true;}else if(stalled){stalled=false;lobby(false);}}}},1500);}
+    if(state!=='over'){if(quiet>30000){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<small>留在這一頁：她回來、或換一個人進這個房號，都會自動重新開始<br><a href="duel.html">回去跟電腦打</a></small><small id="netSt"></small>');netSt(netState);}else if(quiet>6000){lobby(true,'對手沒有回應…<small>等她回來（她的視窗被蓋住或切到背景時會停住）</small>');stalled=true;}else if(stalled){stalled=false;lobby(false);}}}},1500);}
 
 function doAgain(fromNet){if(ROOM&&!fromNet)NET.send({t:'again'});$('again').style.display='none';clearResult();side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';
   if(ROOM){netRdy=false;PEER.ready=false;setTimeout(netReady,500);}else setTimeout(start,400);}
