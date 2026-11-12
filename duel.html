@@ -53,21 +53,27 @@ html,body{margin:0;height:100%;background:#05060c;color:#fff8ec;font-family:"Not
 .panel .res.win{color:#fff3d0;text-shadow:0 0 calc(var(--pw)*0.09) #ffb84a,0 0 calc(var(--pw)*0.03) #fff,0 calc(var(--pw)*0.014) 0 #7a3b10}
 .panel .res.lose{color:#9aa0b8;text-shadow:0 calc(var(--pw)*0.012) 0 #1a1c2a;font-size:calc(var(--pw)*0.24)}
 .panel.won{box-shadow:0 0 0 3px #fff3d0,0 0 60px rgba(255,200,100,.85),0 10px 40px rgba(0,0,0,.6)!important}
+.panel .danger{position:absolute;bottom:3%;width:7px;height:40%;border-radius:4px;background:rgba(20,22,40,.85);box-shadow:0 0 0 1px #3a416a;overflow:hidden;z-index:3;pointer-events:none}
+#pa .danger{right:-12px}#pb .danger{left:-12px}
+.panel .danger i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#ffd24a,#ff5a2a);box-shadow:0 0 10px #ff6a2a;transition:height .15s}
+.panel .danger.hot i{animation:dangerBlink .35s infinite alternate}@keyframes dangerBlink{from{filter:brightness(1)}to{filter:brightness(1.7)}}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:5}
 #again{display:none;margin-top:6px;padding:8px 20px;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 15px "Noto Serif TC",serif;letter-spacing:.2em;cursor:pointer}
 #note{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:11px sans-serif;opacity:.4}
 </style>
 </head>
 <body>
 <div id="duel">
-  <div class="panel" id="pa"><iframe id="fa" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>你的盤面</span></div><div class="res"></div><div class="who2">你</div><div class="koT">K.O.</div><div class="plus">+1</div></div>
+  <div class="panel" id="pa"><iframe id="fa" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>你的盤面</span></div><div class="res"></div><div class="who2">你</div><div class="danger"><i></i></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
   <div id="mid">
     <div class="who" id="nameB">對手</div><div class="kos" id="koB"></div>
     <div id="clock">3:00</div><div id="vsMark">VS</div>
     <div class="kos" id="koA"></div><div class="who" id="nameA">我</div>
     <button id="again" type="button">再來一局</button>
   </div>
-  <div class="panel" id="pb"><iframe id="fb" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>對手</span></div><div class="res"></div><div class="who2">對手</div><div class="koT">K.O.</div><div class="plus">+1</div></div>
+  <div class="panel" id="pb"><iframe id="fb" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>對手</span></div><div class="res"></div><div class="who2">對手</div><div class="danger"><i></i></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
 </div>
+<canvas id="fx"></canvas>
 <div id="msg"></div>
 <div id="note">狐仙對戰・雙畫面試看</div>
 <script>
@@ -115,12 +121,32 @@ addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var
   var o=k==='a'?'b':'a';linked=true;
   if(m.type==='hello'){side[k].hello=true;if(m.card&&m.card.name){$(k==='a'?'nameA':'nameB').textContent=m.card.name;if(k==='b')pb.querySelector('.who2').textContent='對手・'+m.card.name;}if(m.def)Object.assign(DEF,m.def);draw();
     if(side.a.hello&&side.b.hello&&state==='wait')start();return;}
-  if(m.type==='st'){side[k].st=m;draw();}
+  if(m.type==='st'){side[k].st=m;draw();danger(k,m.pend||0);}
+  if(m.type==='geo'){side[k].geo=m;return;}
+  if(m.type==='fx'){if(m.kind==='orbs'&&m.pts)fly(k,m.pts);return;}
   if(m.type==='ko'){side[k].st.ko=m.n;draw();koShow(k);if(m.n>=DEF.koWin)setTimeout(function(){over(o,'ko');},LAG+50);}
-  if(m.type==='geo'||m.type==='fx')return;   /* 第二步：光流（殼自己畫），不轉 */
   setTimeout(function(){send(o,m);},LAG);});
 $('again').addEventListener('click',function(){$('again').style.display='none';clearResult();side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';setTimeout(start,400);});
 var tick=0;document.addEventListener('visibilitychange',function(){if(document.hidden)hidAt=performance.now();else if(hidAt){held+=performance.now()-hidAt;hidAt=0;}});
+/* ---------- 危險條：盤面旁邊一條直的，對方送來、還沒落下的干擾越多越滿（Tetris Battle 盤面旁那條紅的） ---------- */
+var PEND_MAX=8;function danger(k,n){var d=(k==='a'?pa:pb).querySelector('.danger');d.firstChild.style.height=Math.min(100,n/PEND_MAX*100)+'%';d.classList.toggle('hot',n>=PEND_MAX*0.6);}
+/* ---------- 飛過去的光：這一邊消掉的珠子變成同顏色的光點，一串弧線飛到「另一邊畫面台上、自己的狐狸」身上 ---------- */
+var FXC=$('fx'),fxg=FXC.getContext('2d'),parts=[],fxOn=false,ORBC=['#ff8a5c','#5cb4ff','#4ad6a4','#ffd65c','#a88cff'],TRAVEL=0.45;
+function fxSize(){var r=Math.min(devicePixelRatio||1,2);FXC.width=innerWidth*r;FXC.height=innerHeight*r;fxg.setTransform(r,0,0,r,0,0);}addEventListener('resize',fxSize);fxSize();
+function target(k){var o=k==='a'?'b':'a',p=(o==='a'?pa:pb).getBoundingClientRect(),g=side[o].geo;   // k 這邊的光飛到另一邊（o）畫面裡台上的狐狸
+  return g&&g.avatar?{x:p.left+g.avatar.x,y:p.top+g.avatar.y}:{x:p.left+p.width/2,y:p.top+p.height*0.22};}
+function fly(k,pts){var p=(k==='a'?pa:pb).getBoundingClientRect(),t=target(k),now=performance.now()/1000,n=Math.min(pts.length,18),step=pts.length/n;
+  for(var i=0;i<n;i++){var q=pts[Math.floor(i*step)],x0=p.left+q.x,y0=p.top+q.y,mx=(x0+t.x)/2,my=Math.min(y0,t.y)-90-Math.random()*70;
+    parts.push({x0:x0,y0:y0,cx:mx+(Math.random()-0.5)*60,cy:my,x1:t.x+(Math.random()-0.5)*26,y1:t.y+(Math.random()-0.5)*26,t0:now+i*0.022,c:ORBC[q.c]||'#fff3d0',r:6.5+Math.random()*3,tr:[]});}
+  if(!fxOn){fxOn=true;requestAnimationFrame(fxLoop);}}
+function fxLoop(){var now=performance.now()/1000;fxg.clearRect(0,0,innerWidth,innerHeight);fxg.globalCompositeOperation='lighter';
+  parts=parts.filter(function(q){var k=(now-q.t0)/TRAVEL;if(k<0)return true;if(k>1.35)return false;
+    if(k<=1){var e=k*k*(3-2*k),u=1-e,x=u*u*q.x0+2*u*e*q.cx+e*e*q.x1,y=u*u*q.y0+2*u*e*q.cy+e*e*q.y1;q.tr.push([x,y]);if(q.tr.length>12)q.tr.shift();
+      q.tr.forEach(function(pt,i){var a=(i+1)/q.tr.length;fxg.globalAlpha=a*0.85;fxg.fillStyle=q.c;fxg.beginPath();fxg.arc(pt[0],pt[1],q.r*(0.35+0.65*a),0,6.283);fxg.fill();});
+      fxg.globalAlpha=0.9;fxg.fillStyle='#fff';fxg.beginPath();fxg.arc(x,y,q.r*0.45,0,6.283);fxg.fill();}
+    else{var b=(k-1)/0.35;fxg.globalAlpha=(1-b)*0.8;fxg.strokeStyle=q.c;fxg.lineWidth=2.5;fxg.beginPath();fxg.arc(q.x1,q.y1,6+b*22,0,6.283);fxg.stroke();}   /* 到了：一小圈光 */
+    return true;});
+  fxg.globalAlpha=1;fxg.globalCompositeOperation='source-over';if(parts.length)requestAnimationFrame(fxLoop);else{fxOn=false;fxg.clearRect(0,0,innerWidth,innerHeight);}}
 function fmt(s){s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+('0'+s%60).slice(-2);}
 setInterval(function(){var c=$('clock');if(state!=='play'){if(state==='wait'&&!linked)c.textContent='—';return;}
   if(document.hidden)return;var t=(performance.now()-t0-held)/1000;c.textContent=fmt(DEF.time-t);if(++tick%5===0)both({type:'clock',t:t});   /* 每秒對時一次（大招特寫、掉格會讓兩邊的時鐘慢慢差開） */
@@ -128,7 +154,7 @@ setInterval(function(){var c=$('clock');if(state!=='play'){if(state==='wait'&&!l
   if(t>=DEF.time){var a=side.a.st,b=side.b.st,ka=a.ko||0,kb=b.ko||0,ra=(a.hp||0)/(a.max||1),rb=(b.hp||0)/(b.max||1);
     over(ka<kb?'a':kb<ka?'b':Math.abs(ra-rb)<1e-6?'draw':ra>rb?'a':'b','time');}},200);
 draw();
-window.__duel={ko:koShow,side:side,state:function(){return state;}};   // 測試用
+window.__duel={fly:fly,danger:danger,ko:koShow,side:side,state:function(){return state;}};   // 測試用
 if(Q.has('kotest')){var kb=document.createElement('button');kb.textContent='試 KO';kb.style.cssText='margin-top:8px;font:12px sans-serif;padding:4px 10px;border-radius:999px;border:1px solid #8a93c4;background:#1b2040;color:#fff;cursor:pointer';var kn=0;kb.onclick=function(){koShow(kn++%2?'a':'b');};mid.appendChild(kb);}   /* ?kotest：中間多一顆按鈕，先看 KO 大字、聽音效（輪流：我 KO 她＝金、我被 KO＝紅） */
 })();
 </script>
