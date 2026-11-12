@@ -8,7 +8,7 @@
 <!-- 狐仙對戰的「殼」（2026-11-13 遊星；約定在 docs/09b_versus_link.md）：同一頁並排兩個遊戲畫面（兩個 iframe，各跑一份 versus.html），
      殼負責排版、在兩邊之間轉訊息、當裁判（時間、勝負）。單一檔案、不用組建；放在網站上 versus.html 的旁邊。
      網址參數：?a=0～8 我的狐狸長相（預設 3）　&b=0～8 對手（預設 4）　&lv=1｜2｜3 右邊電腦的難度（預設 2）　&game=遊戲檔名（預設 versus.html）　&lag=毫秒（轉訊息時故意慢，模擬網路）
-     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&def=JSON（換 VS_DEF 的數字，兩邊一起）　&kotest 中間多一顆「試 KO」　&novs 不演開場的 VS 頁　&vs=VS 頁的檔名（預設 vs.html） -->
+     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&def=JSON（換 VS_DEF 的數字，兩邊一起）　&kotest 中間多一顆「試 KO」　&room=房號（連線：兩個人各開一個視窗進同一個房號；現在的傳輸是 BroadcastChannel＝只能同一台電腦、同一個瀏覽器，之後換成伺服器）　&novs 不演開場的 VS 頁　&vs=VS 頁的檔名（預設 vs.html） -->
 <style>
 html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;overflow:hidden}
 #duel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:0}
@@ -69,6 +69,9 @@ html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-
 #again{display:none;position:absolute;left:50%;top:calc(50% + 96px);transform:translateX(-50%);z-index:6;padding:8px 20px;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 15px "Noto Serif TC",serif;letter-spacing:.2em;cursor:pointer}
 #cardBtn{position:absolute;left:10px;bottom:8px;z-index:6;padding:5px 12px;border-radius:999px;border:1px solid #8a93c4;background:rgba(20,24,48,.85);color:#e9e6f2;font:12px sans-serif;text-decoration:none}
 #cardBtn.new{border-color:#f3d9a0;color:#ffe9b8;box-shadow:0 0 12px rgba(255,190,90,.5)}
+#netBtn{position:absolute;left:128px;bottom:8px;z-index:6;padding:5px 12px;border-radius:999px;border:1px solid #8a93c4;background:rgba(20,24,48,.85);color:#e9e6f2;font:12px sans-serif;cursor:pointer}
+#lobby{display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;background:rgba(5,6,14,.82);text-align:center;font:900 22px/1.9 "Noto Serif TC",serif;letter-spacing:.12em}
+#lobby b{font-size:44px;color:#ffd978;letter-spacing:.3em;text-shadow:0 0 18px #f08a2c}#lobby small{display:block;margin-top:10px;font:13px/1.7 sans-serif;letter-spacing:.04em;opacity:.7}#lobby a{color:#ffd978}
 #note{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:11px sans-serif;opacity:.4}
 </style>
 </head>
@@ -86,6 +89,8 @@ html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-
 <canvas id="fx"></canvas>
 <div id="msg"></div>
 <a id="cardBtn" href="card.html">✎ 我的名帖</a>
+<button id="netBtn" type="button">🤝 跟朋友打（測試）</button>
+<div id="lobby"><div id="lobbyTxt"></div></div>
 <div id="note">狐仙對戰・雙畫面試看</div>
 <script>
 (function(){
@@ -100,7 +105,8 @@ var $=function(id){return document.getElementById(id);},pa=$('pa'),pb=$('pb'),fa
 // 左邊＝我（台上是對手 B 的長相）；右邊＝對手那一份（台上是我 A 的長相）、電腦下棋、不出聲
 var EXTRA=(Q.get('hp')?'&hp='+Q.get('hp'):'')+(Q.get('gb')?'&gb='+Q.get('gb'):'')+(Q.get('def')?'&def='+encodeURIComponent(Q.get('def')):'');   /* 兩份要給一樣的 */
 fa.src=GAME+'?versus&link=parent&side=a&foe='+B+(Q.get('la')?'&auto='+Q.get('la'):'')+EXTRA;
-fb.src=GAME+'?versus&link=parent&side=b&foe='+A+'&auto='+LV+'&mute=1'+EXTRA;
+var ROOM=(Q.get('room')||'').replace(/[^0-9A-Za-z]/g,'').slice(0,8);   // 連線的房號（沒有＝跟電腦打）
+fb.src=GAME+'?versus&link=parent&side=b&foe='+A+(ROOM?'&mirror=1':'&auto='+LV)+'&mute=1'+EXTRA;
 /* ---------- 排版：兩個 9:16 的畫面照視窗高度縮放，中間留一條；畫面太窄（手機直拿）只留左邊 ---------- */
 var PIP_W=270,pipBig=false;   // 小視窗裡那一份遊戲自己的寬度（再整個縮小）；pipBig：點過放大了
 function layout(){var W=innerWidth,H=innerHeight,narrow=W<H*0.95,midW=narrow?0:Math.max(96,Math.min(170,W*0.11)),
@@ -130,7 +136,8 @@ function koShow(victim){var v=victim==='a'?pa:pb,w=victim==='a'?pb:pa;[pa,pb].fo
   clearTimeout(koShow.t);koShow.t=setTimeout(function(){v.classList.remove('koed');w.classList.remove('kowin');},1250);var d=$('duel');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');koSound();}
 function say(s,keep){var m=$('msg');m.textContent=s;m.classList.add('on');if(!keep)setTimeout(function(){m.classList.remove('on');},900);}
 // 開始：兩個畫面壓暗、各蓋一個大大的倒數（下面寫「你的盤面／對手」），數完才亮起來（2026-11-13 CK：倒數看不清、第一次玩不知道哪邊是自己）
-function start(){state='count';clearResult();var sd=(Math.random()*2147483646)|0;send('a',{type:'start',seed:sd,count:COUNT,me:CARD,foe:CPU_CARD});send('b',{type:'start',seed:sd,count:COUNT,me:CPU_CARD,foe:CARD});[pa,pb].forEach(function(p){p.classList.add('dimmed');});
+function start(){if(ROOM)return;startWith((Math.random()*2147483646)|0,CPU_CARD);}
+function startWith(sd,foeCard){state='count';clearResult();send('a',{type:'start',seed:sd,count:COUNT,me:CARD,foe:foeCard});send('b',{type:'start',seed:sd,count:COUNT,me:foeCard,foe:CARD});[pa,pb].forEach(function(p){p.classList.add('dimmed');});
   for(var i=0;i<COUNT;i++)(function(i){setTimeout(function(){if(state!=='count')return;[pa,pb].forEach(function(p){var c=p.querySelector('.cnt');c.querySelector('b').textContent=COUNT-i;c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');});tone(520,500,0.12,0.2,'triangle');},i*1000);})(i);
   setTimeout(function(){if(state!=='count')return;state='play';t0=performance.now();held=0;[pa,pb].forEach(function(p){p.classList.remove('dimmed');p.querySelector('.cnt').classList.remove('pop');});tone(780,1040,0.35,0.25,'triangle');},COUNT*1000);}
 function clearResult(){[pa,pb].forEach(function(p){p.classList.remove('dimmed','won');var r=p.querySelector('.res');r.className='res';r.textContent='';});}
@@ -139,14 +146,16 @@ function showResult(winner){[['a',pa],['b',pb]].forEach(function(x){var r=x[1].q
   if(winner==='a')[0,0.12,0.24,0.4].forEach(function(w,i){tone([523,659,784,1047][i],[523,659,784,1047][i],i===3?0.7:0.16,0.22,'triangle',w);});else if(winner==='b'){tone(330,220,0.5,0.22,'triangle');tone(220,150,0.8,0.2,'triangle',0.35);}}
 /* ---------- 開場的 VS 頁（vs.html 嵌進來蓋在最上面）：兩邊的遊戲在後面載入的同時先演「我 VS 對手」，演完（或點一下跳過）才開始倒數。再來一局不再演 ---------- */
 var vsDone=Q.has('novs'),vsEl=null;
-function maybeStart(){if(side.a.hello&&side.b.hello&&vsDone&&state==='wait')start();}
+function maybeStart(){if(side.a.hello&&side.b.hello&&vsDone&&state==='wait'){if(ROOM)netReady();else start();}}
 function vsEnd(){if(vsDone)return;vsDone=true;if(vsEl){var e=vsEl;e.classList.add('out');setTimeout(function(){e.remove();},450);vsEl=null;}maybeStart();}
-if(!vsDone){vsEl=document.createElement('iframe');vsEl.id='vsIntro';vsEl.src=(Q.get('vs')||'vs.html')+'?embed=1';document.body.appendChild(vsEl);
+function vsOpen(bCard){if(vsDone||vsEl)return;vsEl=document.createElement('iframe');vsEl.id='vsIntro';vsEl.src=(Q.get('vs')||'vs.html')+'?embed=1';document.body.appendChild(vsEl);
   setTimeout(function(){if(vsEl&&!vsEl.dataset.ready)vsEnd();},15000);   /* VS 頁載不起來就跳過 */
   addEventListener('message',function(ev){var d=ev.data;if(!d||!d.vsintro||!vsEl||ev.source!==vsEl.contentWindow)return;
-    if(d.vsintro==='ready'){vsEl.dataset.ready='1';vsEl.contentWindow.postMessage({vsintro:'cards',a:CARD||{name:'你',look:{base:A}},b:{name:CPU_CARD.name,look:CPU_CARD.look,sub:'電腦 Lv'+LV}},'*');setTimeout(vsEnd,9000);}
+    if(d.vsintro==='ready'){vsEl.dataset.ready='1';vsEl.contentWindow.postMessage({vsintro:'cards',a:CARD||{name:'你',look:{base:A}},b:bCard},'*');setTimeout(vsEnd,9000);}
     if(d.vsintro==='done')vsEnd();});}
-function over(winner,by){if(state==='over')return;state='over';both({type:'over',winner:winner,by:by});setTimeout(function(){showResult(winner);$('again').style.display='inline-block';},700);}
+if(!ROOM)vsOpen({name:CPU_CARD.name,look:CPU_CARD.look,sub:'電腦 Lv'+LV});   /* 連線時等對手的名帖到了才演 */
+function over(winner,by,fromNet){if(state==='over')return;if(ROOM&&!fromNet){if(!isHost())return;NET.send({t:'over',winner:winner,by:by});}   /* 連線：開房的那邊當裁判，另一邊等它宣布 */
+  state='over';both({type:'over',winner:winner,by:by});setTimeout(function(){showResult(winner);$('again').style.display='inline-block';},700);}
 addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var k=ev.source===fa.contentWindow?'a':ev.source===fb.contentWindow?'b':null;if(!k)return;
   var o=k==='a'?'b':'a';linked=true;
   if(m.type==='hello'){side[k].hello=true;if(m.card&&m.card.name){$(k==='a'?'nameA':'nameB').textContent=k==='a'?(CARD?CARD.name:m.card.name):CPU_CARD.name;if(k==='b')pb.querySelector('.who2').textContent='對手・'+CPU_CARD.name+'（'+m.card.name+'）';else if(CARD)pa.querySelector('.who2').textContent='你・'+CARD.name;}if(m.def)Object.assign(DEF,m.def);draw();
@@ -155,8 +164,41 @@ addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var
   if(m.type==='geo'){side[k].geo=m;return;}
   if(m.type==='fx'){if(m.kind==='orbs'&&m.pts)fly(k,m.pts);return;}
   if(m.type==='ko'){side[k].st.ko=m.n;draw();koShow(k);if(m.n>=DEF.koWin)setTimeout(function(){over(o,'ko');},LAG+50);}
+  if(ROOM){   // 連線：我這份（a）的話送給對方那一台；右邊的鏡像（b）只會送 geo／fx，上面已經處理掉了
+    if(k==='a'){NET.send({t:'g',m:m});if(m.type==='atk')send('b',m);}   /* 我打出去的也給右邊的鏡像演「蓄力→打下去」 */
+    return;}
   setTimeout(function(){send(o,m);},LAG);});
-$('again').addEventListener('click',function(){$('again').style.display='none';clearResult();side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';setTimeout(start,400);});
+/* ---------- 連線（?room=房號）：兩個人各開一份這一頁。左邊＝自己真的在玩的那份，右邊＝對手畫面的鏡像（照對方傳來的重演）。
+   傳輸現在用 BroadcastChannel（同一台電腦、同一個瀏覽器的兩個視窗），之後換成伺服器的 WebSocket，只換 NET 這一小段。
+   訊息：hi（我來了＋我的名帖）／ready（兩份遊戲和 VS 頁都好了）／start（開房的那邊發種子）／g（遊戲的訊息原封不動）／clock／over／again／ping ---------- */
+var NET=null,ME=Math.random().toString(36).slice(2,10),PEER=null,netRdy=false;
+function isHost(){return !!PEER&&ME<PEER.id;}
+function netReady(){netRdy=true;if(NET)NET.send({t:'ready'});netGo();}
+function netGo(){if(isHost()&&netRdy&&PEER.ready&&state==='wait'){var sd=(Math.random()*2147483646)|0;NET.send({t:'start',seed:sd});startWith(sd,PEER.card);}}
+function peerName(){return PEER&&PEER.card&&PEER.card.name||'對手';}
+function onNet(d){if(!d||d.id===ME)return;
+  if(d.t==='hi'){var fresh=!PEER;if(!PEER||PEER.id!==d.id)PEER={id:d.id,card:d.card||{name:'對手',look:{base:B}},ready:false};PEER.last=performance.now();
+    if(fresh){NET.send({t:'hi',card:CARD});$('nameB').textContent=peerName();pb.querySelector('.who2').textContent='對手・'+peerName();lobby(false);vsOpen({name:peerName(),look:PEER.card.look});if(netRdy)NET.send({t:'ready'});}return;}
+  if(!PEER||d.id!==PEER.id)return;PEER.last=performance.now();
+  if(d.t==='ready'){PEER.ready=true;netGo();}
+  if(d.t==='start'&&state==='wait')startWith(d.seed,PEER.card);
+  if(d.t==='clock'&&state==='play'){t0=performance.now()-held-d.tt*1000;both({type:'clock',t:d.tt});}
+  if(d.t==='over')over(d.winner==='a'?'b':d.winner==='b'?'a':'draw',d.by,true);   /* 對方說的 a 是它自己 */
+  if(d.t==='again')doAgain(true);
+  if(d.t==='g'){var m=d.m,ty=m.type;m.vs=1;
+    if(ty==='atk'||ty==='gb'||ty==='ult'){m.from='b';send('a',m);}                      // 對方打我、送我干擾 → 我真的那份
+    else if(ty==='st'||ty==='ko'){m.from='b';send('a',m);send('b',Object.assign({},m,{from:'a'}));   // 對方的血、被 KO → 我那份的 BOSS 血條＋右邊的鏡像
+      if(ty==='st'){side.b.st=m;draw();danger('b',m.pend||0);}else{side.b.st.ko=m.n;draw();koShow('b');if(m.n>=DEF.koWin)setTimeout(function(){over('a','ko');},50);}}
+    else send('b',Object.assign({},m,{from:'a'}));}}                                      // 其他（mv 這種畫面用的）→ 右邊的鏡像
+function lobby(on,txt){var e=$('lobby');e.style.display=on?'flex':'none';if(txt)$('lobbyTxt').innerHTML=txt;}
+if(ROOM){try{var bc=new BroadcastChannel('foxvs-'+ROOM);NET={send:function(o){o.id=ME;bc.postMessage(o);}};bc.onmessage=function(e){onNet(e.data);};}catch(_){NET={send:function(){}};}
+  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）</small>');
+  NET.send({t:'hi',card:CARD});setInterval(function(){if(!PEER)NET.send({t:'hi',card:CARD});else{NET.send({t:'ping'});if(netRdy&&state==='wait')NET.send({t:'ready'});
+    if(performance.now()-PEER.last>8000&&state!=='over'){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<br><a href="duel.html">回去跟電腦打</a>');}}},1500);}
+
+function doAgain(fromNet){if(ROOM&&!fromNet)NET.send({t:'again'});$('again').style.display='none';clearResult();side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';
+  if(ROOM){netRdy=false;PEER.ready=false;setTimeout(netReady,500);}else setTimeout(start,400);}
+$('again').addEventListener('click',function(){doAgain(false);});
 var tick=0;document.addEventListener('visibilitychange',function(){if(document.hidden)hidAt=performance.now();else if(hidAt){held+=performance.now()-hidAt;hidAt=0;}});
 /* ---------- 危險條：盤面旁邊一條直的，對方送來、還沒落下的干擾越多越滿（Tetris Battle 盤面旁那條紅的） ---------- */
 var PEND_MAX=8;function danger(k,n){var d=(k==='a'?pa:pb).querySelector('.danger');d.firstChild.style.height=Math.min(100,n/PEND_MAX*100)+'%';d.classList.toggle('hot',n>=PEND_MAX*0.6);}
@@ -187,13 +229,16 @@ function fxLoop(){var now=performance.now()/1000;fxg.clearRect(0,0,FXR.width,FXR
   fxg.globalAlpha=1;fxg.globalCompositeOperation='source-over';if(parts.length)requestAnimationFrame(fxLoop);else{fxOn=false;fxg.clearRect(0,0,FXR.width,FXR.height);}}
 function fmt(s){s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+('0'+s%60).slice(-2);}
 setInterval(function(){var c=$('clock');if(state!=='play'){if(state==='wait'&&!linked)c.textContent='—';return;}
-  if(document.hidden)return;var t=(performance.now()-t0-held)/1000;c.textContent=fmt(DEF.time-t);if(++tick%5===0)both({type:'clock',t:t});   /* 每秒對時一次（大招特寫、掉格會讓兩邊的時鐘慢慢差開） */
+  if(document.hidden)return;var t=(performance.now()-t0-held)/1000;c.textContent=fmt(DEF.time-t);if(++tick%5===0&&(!ROOM||isHost())){both({type:'clock',t:t});if(ROOM)NET.send({t:'clock',tt:t});}   /* 每秒對時一次（大招特寫、掉格會讓兩邊的時鐘慢慢差開） */
   c.classList.toggle('rage',t>=DEF.rage[0]);
   if(t>=DEF.time){var a=side.a.st,b=side.b.st,ka=a.ko||0,kb=b.ko||0,ra=(a.hp||0)/(a.max||1),rb=(b.hp||0)/(b.max||1);
     over(ka<kb?'a':kb<ka?'b':Math.abs(ra-rb)<1e-6?'draw':ra>rb?'a':'b','time');}},200);
+$('netBtn').addEventListener('click',function(){var r=prompt('輸入房號（兩個人輸入一樣的就會對上）。留空＝開一間新的',ROOM||'');if(r===null)return;r=r.replace(/[^0-9A-Za-z]/g,'').slice(0,8)||String(1000+Math.floor(Math.random()*9000));location.search='?room='+r;});
+if(ROOM)$('netBtn').textContent='🤝 房號 '+ROOM;
+if(!ROOM&&!Q.has('net'))$('netBtn').style.display='none';   /* 右邊的鏡像（對手畫面照實重演）還沒做好之前，按鈕先藏著：網址加 ?net 才出現 */
 if(!CARD){$('cardBtn').textContent='✎ 捏一隻自己的狐狸';$('cardBtn').classList.add('new');}
 draw();
-window.__duel={fly:fly,danger:danger,ko:koShow,side:side,state:function(){return state;}};   // 測試用
+window.__duel={net:function(){return {me:ME,peer:PEER,host:isHost(),rdy:netRdy};},fly:fly,danger:danger,ko:koShow,side:side,state:function(){return state;}};   // 測試用
 if(Q.has('kotest')){var kb=document.createElement('button');kb.textContent='試 KO';kb.style.cssText='margin-top:8px;font:12px sans-serif;padding:4px 10px;border-radius:999px;border:1px solid #8a93c4;background:#1b2040;color:#fff;cursor:pointer';var kn=0;kb.onclick=function(){koShow(kn++%2?'a':'b');};mid.appendChild(kb);}   /* ?kotest：中間多一顆按鈕，先看 KO 大字、聽音效（輪流：我 KO 她＝金、我被 KO＝紅） */
 })();
 </script>
