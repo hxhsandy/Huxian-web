@@ -58,7 +58,13 @@ html,body{margin:0;height:100%;background:#05060c;color:#fff8ec;font-family:"Not
 .panel .danger i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#ffd24a,#ff5a2a);box-shadow:0 0 10px #ff6a2a;transition:height .15s}
 .panel .danger.hot i{animation:dangerBlink .35s infinite alternate}@keyframes dangerBlink{from{filter:brightness(1)}to{filter:brightness(1.7)}}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:5}
-#again{display:none;margin-top:6px;padding:8px 20px;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 15px "Noto Serif TC",serif;letter-spacing:.2em;cursor:pointer}
+/* 手機直拿（畫面窄）：只留我的畫面，對手的整個畫面縮成左上角一個小視窗（像視訊通話的子母畫面），點一下放大、再點縮回（2026-11-13 CK） */
+#duel.narrow #pa{box-shadow:none;border-radius:0}#duel.narrow #pa iframe{border-radius:0}
+#duel.narrow #pb{position:absolute;z-index:4;border-radius:9px;overflow:hidden;box-shadow:0 0 0 1.5px #c9cfee,0 4px 16px rgba(0,0,0,.7);transition:width .18s,height .18s}
+#duel.narrow #pb iframe{transform-origin:0 0;border-radius:0}
+#duel.narrow .who2,#duel.narrow #pb .danger,#duel.narrow #mid,#duel.narrow~#note{display:none}
+#duel.narrow #pa .danger{right:3px}
+#again{display:none;position:absolute;left:50%;top:calc(50% + 96px);transform:translateX(-50%);z-index:6;padding:8px 20px;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 15px "Noto Serif TC",serif;letter-spacing:.2em;cursor:pointer}
 #note{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:11px sans-serif;opacity:.4}
 </style>
 </head>
@@ -69,10 +75,10 @@ html,body{margin:0;height:100%;background:#05060c;color:#fff8ec;font-family:"Not
     <div class="who" id="nameB">對手</div><div class="kos" id="koB"></div>
     <div id="clock">3:00</div><div id="vsMark">VS</div>
     <div class="kos" id="koA"></div><div class="who" id="nameA">我</div>
-    <button id="again" type="button">再來一局</button>
   </div>
   <div class="panel" id="pb"><iframe id="fb" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>對手</span></div><div class="res"></div><div class="who2">對手</div><div class="danger"><i></i></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
 </div>
+<button id="again" type="button">再來一局</button>
 <canvas id="fx"></canvas>
 <div id="msg"></div>
 <div id="note">狐仙對戰・雙畫面試看</div>
@@ -87,10 +93,16 @@ var EXTRA=(Q.get('hp')?'&hp='+Q.get('hp'):'')+(Q.get('gb')?'&gb='+Q.get('gb'):''
 fa.src=GAME+'?versus&link=parent&side=a&foe='+B+(Q.get('la')?'&auto='+Q.get('la'):'')+EXTRA;
 fb.src=GAME+'?versus&link=parent&side=b&foe='+A+'&auto='+LV+'&mute=1'+EXTRA;
 /* ---------- 排版：兩個 9:16 的畫面照視窗高度縮放，中間留一條；畫面太窄（手機直拿）只留左邊 ---------- */
+var PIP_W=270,pipBig=false;   // 小視窗裡那一份遊戲自己的寬度（再整個縮小）；pipBig：點過放大了
 function layout(){var W=innerWidth,H=innerHeight,narrow=W<H*0.95,midW=narrow?0:Math.max(96,Math.min(170,W*0.11)),
-    h=Math.min(H-16,narrow?H:(W-midW-24)/2*16/9),w=Math.round(h*9/16);h=Math.round(h);
-  [pa,pb].forEach(function(p){p.style.width=w+'px';p.style.height=h+'px';p.style.setProperty('--pw',w+'px');});
-  pb.style.display=mid.style.display=narrow?'none':'';mid.style.width=midW+'px';pa.style.borderRadius=narrow?'0':'';}
+    h=Math.min(H-16,narrow?H:(W-midW-24)/2*16/9),w=Math.round(h*9/16);h=Math.round(h);$('duel').classList.toggle('narrow',narrow);mid.style.width=midW+'px';
+  if(!narrow){pa.querySelector('.danger').style.cssText='';[pa,pb].forEach(function(p){p.style.cssText='';p.style.width=w+'px';p.style.height=h+'px';p.style.setProperty('--pw',w+'px');});fb.style.cssText='';return;}
+  pa.style.width=W+'px';pa.style.height=H+'px';pa.style.setProperty('--pw',W+'px');
+  var gh=Math.min(H,W*16/9),top=(H-gh)/2,pw=Math.round(W*(pipBig?0.5:0.2)),ph=Math.round(pw*16/9);   /* 遊戲在 iframe 裡是置中的 9:16（比較長的手機上下黑條）：小視窗放在遊戲區的左上、BOSS 名字那一列下面 */
+  pb.style.width=pw+'px';pb.style.height=ph+'px';pb.style.left=Math.round(W*0.03)+'px';pb.style.top=Math.round(top+gh*0.115)+'px';pb.style.setProperty('--pw',pw+'px');
+  fb.style.width=PIP_W+'px';fb.style.height=Math.round(PIP_W*16/9)+'px';fb.style.transform='scale('+(pw/PIP_W)+')';
+  var dg=pa.querySelector('.danger');dg.style.bottom=Math.round(top+gh*0.03)+'px';dg.style.height=Math.round(gh*0.4)+'px';}   /* 危險條照遊戲區（不含上下黑條）放 */
+pb.addEventListener('click',function(){if($('duel').classList.contains('narrow')){pipBig=!pipBig;layout();}});
 addEventListener('resize',layout);layout();
 /* ---------- 轉訊息＋當裁判 ---------- */
 var COUNT=3,held=0,hidAt=0;   // held：整頁被切到背景的時間（裁判的時鐘那段時間不走）
@@ -139,10 +151,11 @@ var GLOW=[0xe8764c,0x439fe2,0x38b48a,0xe9bf48,0x8b6fe2,0xffd98a].map(function(c)
   x.fillStyle=gr;x.fillRect(0,0,96,96);return cv;});
 var MOTE_K=1.3;   // 比遊戲裡的光點大多少
 function fxSize(){var r=Math.min(devicePixelRatio||1,2);FXC.width=innerWidth*r;FXC.height=innerHeight*r;fxg.setTransform(r,0,0,r,0,0);}addEventListener('resize',fxSize);fxSize();
-function target(k){var o=k==='a'?'b':'a',p=(o==='a'?pa:pb).getBoundingClientRect(),g=side[o].geo;   // k 這邊的光飛到另一邊（o）畫面裡台上的狐狸
-  return g&&g.avatar?{x:p.left+g.avatar.x,y:p.top+g.avatar.y}:{x:p.left+p.width/2,y:p.top+p.height*0.22};}
-function fly(k,pts){var p=(k==='a'?pa:pb).getBoundingClientRect(),t=target(k),now=performance.now()/1000,g=side[k].geo,cs=g&&g.board?g.board.w/7:p.width/8.6;
-  pts.forEach(function(q,i){var x0=p.left+q.x,y0=p.top+q.y;
+function scOf(k){var r=(k==='a'?pa:pb).getBoundingClientRect(),f=k==='a'?fa:fb;return {r:r,sc:r.width/(f.offsetWidth||r.width)};}   // 那一份畫面在頁面上的位置和縮放（手機的小視窗是縮小的）
+function target(k){var o=k==='a'?'b':'a',S=scOf(o),p=S.r,g=side[o].geo;   // k 這邊的光飛到另一邊（o）畫面裡台上的狐狸
+  return g&&g.avatar?{x:p.left+g.avatar.x*S.sc,y:p.top+g.avatar.y*S.sc}:{x:p.left+p.width/2,y:p.top+p.height*0.22};}
+function fly(k,pts){var S=scOf(k),p=S.r,t=target(k),now=performance.now()/1000,g=side[k].geo,cs=(g&&g.board?g.board.w/7:p.width/S.sc/8.6)*Math.max(S.sc,scOf(k==='a'?'b':'a').sc*0.6);   /* 光點的大小照飛出來那一份的珠子；小視窗裡飛出來的不要小到看不見 */
+  pts.forEach(function(q,i){var x0=p.left+q.x*S.sc,y0=p.top+q.y*S.sc;
     parts.push({x0:x0,y0:y0,cx:(x0+t.x)/2+(Math.random()-0.5)*cs*2.4,cy:Math.min(y0,t.y)-cs*(0.6+Math.random()*1.6),x1:t.x+(Math.random()-0.5)*cs*0.5,y1:t.y+(Math.random()-0.5)*cs*0.5,t0:now+i*0.03,img:GLOW[q.c]||GLOW[5],cs:cs});});
   if(!fxOn){fxOn=true;requestAnimationFrame(fxLoop);}}
 function fxLoop(){var now=performance.now()/1000;fxg.clearRect(0,0,innerWidth,innerHeight);fxg.globalCompositeOperation='lighter';
