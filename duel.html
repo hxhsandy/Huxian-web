@@ -7,7 +7,8 @@
 <title>狐仙對戰 雙畫面（試看）</title>
 <!-- 狐仙對戰的「殼」（2026-11-13 遊星；約定在 docs/09b_versus_link.md）：同一頁並排兩個遊戲畫面（兩個 iframe，各跑一份 versus.html），
      殼負責排版、在兩邊之間轉訊息、當裁判（時間、勝負）。單一檔案、不用組建；放在網站上 versus.html 的旁邊。
-     網址參數：?a=0～8 我的狐狸長相（預設 3）　&b=0～8 對手（預設 4）　&lv=1｜2｜3 右邊電腦的難度（預設 2）　&game=遊戲檔名（預設 versus.html）　&lag=毫秒（轉訊息時故意慢，模擬網路） -->
+     網址參數：?a=0～8 我的狐狸長相（預設 3）　&b=0～8 對手（預設 4）　&lv=1｜2｜3 右邊電腦的難度（預設 2）　&game=遊戲檔名（預設 versus.html）　&lag=毫秒（轉訊息時故意慢，模擬網路）
+     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&kotest 中間多一顆「試 KO」 -->
 <style>
 html,body{margin:0;height:100%;background:#05060c;color:#fff8ec;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;overflow:hidden}
 #duel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:0}
@@ -60,8 +61,9 @@ var Q=new URLSearchParams(location.search),GAME=Q.get('game')||'versus.html',LAG
 var DEF={time:180,koWin:3,rage:[90,120]};   // 殼當裁判用的數字（跟遊戲裡 VS_DEF 一樣；之後從 hello 拿）
 var $=function(id){return document.getElementById(id);},pa=$('pa'),pb=$('pb'),fa=$('fa'),fb=$('fb'),mid=$('mid');
 // 左邊＝我（台上是對手 B 的長相）；右邊＝對手那一份（台上是我 A 的長相）、電腦下棋、不出聲
-fa.src=GAME+'?versus&link=parent&side=a&foe='+B+'&lv='+LV;
-fb.src=GAME+'?versus&link=parent&side=b&foe='+A+'&auto='+LV+'&mute=1&lv='+LV;
+var EXTRA=(Q.get('hp')?'&hp='+Q.get('hp'):'')+(Q.get('gb')?'&gb='+Q.get('gb'):'');   /* 兩份要給一樣的 */
+fa.src=GAME+'?versus&link=parent&side=a&foe='+B+(Q.get('la')?'&auto='+Q.get('la'):'')+EXTRA;
+fb.src=GAME+'?versus&link=parent&side=b&foe='+A+'&auto='+LV+'&mute=1'+EXTRA;
 /* ---------- 排版：兩個 9:16 的畫面照視窗高度縮放，中間留一條；畫面太窄（手機直拿）只留左邊 ---------- */
 function layout(){var W=innerWidth,H=innerHeight,narrow=W<H*0.95,midW=narrow?0:Math.max(96,Math.min(170,W*0.11)),
     h=Math.min(H-16,narrow?H:(W-midW-24)/2*16/9),w=Math.round(h*9/16);h=Math.round(h);
@@ -69,6 +71,7 @@ function layout(){var W=innerWidth,H=innerHeight,narrow=W<H*0.95,midW=narrow?0:M
   pb.style.display=mid.style.display=narrow?'none':'';mid.style.width=midW+'px';pa.style.borderRadius=narrow?'0':'';}
 addEventListener('resize',layout);layout();
 /* ---------- 轉訊息＋當裁判 ---------- */
+var COUNT=3,held=0,hidAt=0;   // held：整頁被切到背景的時間（裁判的時鐘那段時間不走）
 var side={a:{win:fa,hello:false,st:{ko:0}},b:{win:fb,hello:false,st:{ko:0}}},state='wait',t0=0,linked=false;
 function send(k,m){m.vs=1;if(!m.from)m.from='shell';var w=side[k].win.contentWindow;if(w)w.postMessage(m,'*');}
 function both(m){send('a',Object.assign({},m));send('b',Object.assign({},m));}
@@ -83,8 +86,8 @@ function koSound(){tone(160,42,0.5,0.5,'sine');tone(90,40,0.6,0.35,'triangle',0.
 function koShow(victim){var v=victim==='a'?pa:pb,w=victim==='a'?pb:pa;[pa,pb].forEach(function(p){p.classList.remove('koed','kowin');});void v.offsetWidth;v.classList.add('koed');w.classList.add('kowin');
   clearTimeout(koShow.t);koShow.t=setTimeout(function(){v.classList.remove('koed');w.classList.remove('kowin');},1250);var d=$('duel');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');koSound();}
 function say(s,keep){var m=$('msg');m.textContent=s;m.classList.add('on');if(!keep)setTimeout(function(){m.classList.remove('on');},900);}
-function start(){state='count';both({type:'start',seed:(Math.random()*1e9)|0,count:3});
-  ['三','二','一','開始！'].forEach(function(s,i){setTimeout(function(){say(s);if(i===3){state='play';t0=performance.now();}},i*1000);});}
+function start(){state='count';both({type:'start',seed:(Math.random()*2147483646)|0,count:COUNT});   /* 倒數的大數字兩個畫面自己會跳；裁判的時間從倒數完開始算 */
+  setTimeout(function(){if(state==='count'){state='play';t0=performance.now();held=0;}},COUNT*1000);}
 function over(winner,by){if(state==='over')return;state='over';both({type:'over',winner:winner,by:by});
   say(winner==='draw'?'平手':winner==='a'?'勝利！':'落敗……',true);$('again').style.display='inline-block';}
 addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var k=ev.source===fa.contentWindow?'a':ev.source===fb.contentWindow?'b':null;if(!k)return;
@@ -96,13 +99,15 @@ addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var
   if(m.type==='geo'||m.type==='fx')return;   /* 第二步：光流（殼自己畫），不轉 */
   setTimeout(function(){send(o,m);},LAG);});
 $('again').addEventListener('click',function(){$('again').style.display='none';$('msg').classList.remove('on');side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';setTimeout(start,400);});
+var tick=0;document.addEventListener('visibilitychange',function(){if(document.hidden)hidAt=performance.now();else if(hidAt){held+=performance.now()-hidAt;hidAt=0;}});
 function fmt(s){s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+('0'+s%60).slice(-2);}
 setInterval(function(){var c=$('clock');if(state!=='play'){if(state==='wait'&&!linked)c.textContent='—';return;}
-  var t=(performance.now()-t0)/1000;c.textContent=fmt(DEF.time-t);c.classList.toggle('rage',t>=DEF.rage[0]);
+  if(document.hidden)return;var t=(performance.now()-t0-held)/1000;c.textContent=fmt(DEF.time-t);if(++tick%5===0)both({type:'clock',t:t});   /* 每秒對時一次（大招特寫、掉格會讓兩邊的時鐘慢慢差開） */
+  c.classList.toggle('rage',t>=DEF.rage[0]);
   if(t>=DEF.time){var a=side.a.st,b=side.b.st,ka=a.ko||0,kb=b.ko||0,ra=(a.hp||0)/(a.max||1),rb=(b.hp||0)/(b.max||1);
     over(ka<kb?'a':kb<ka?'b':Math.abs(ra-rb)<1e-6?'draw':ra>rb?'a':'b','time');}},200);
 draw();
-window.__duel={ko:koShow};   // 測試用
+window.__duel={ko:koShow,side:side,state:function(){return state;}};   // 測試用
 if(Q.has('kotest')){var kb=document.createElement('button');kb.textContent='試 KO';kb.style.cssText='margin-top:8px;font:12px sans-serif;padding:4px 10px;border-radius:999px;border:1px solid #8a93c4;background:#1b2040;color:#fff;cursor:pointer';var kn=0;kb.onclick=function(){koShow(kn++%2?'a':'b');};mid.appendChild(kb);}   /* ?kotest：中間多一顆按鈕，先看 KO 大字、聽音效（輪流：我 KO 她＝金、我被 KO＝紅） */
 })();
 </script>

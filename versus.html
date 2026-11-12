@@ -1299,26 +1299,29 @@ var WISP={
 // 畫法的清單在 views.js（同一個順序）。
 var MECHS=[LOCK,PETAL,CORD,SHARD,LETHE,WISP,CHARM];
 
-// 對戰規則（versus/core.js，2026-11-13 對戰支線灰盒第一步）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 對戰規則（versus/core.js，2026-11-13 對戰支線）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 // 完全不碰畫面、不讀網址：瀏覽器和 node 都能跑（node 的入口在 tests/versus_lib.js；兩個機器人對打＝vsSim）。
-// 載入時不建物件、不抽亂數，沒有 ?versus 的時候遊戲照舊。企劃在 docs/09_versus_plan.md「灰盒第一步的規格」。
+// 載入時不建物件、不抽亂數，沒有 ?versus 的時候遊戲照舊。企劃在 docs/09_versus_plan.md，兩邊互傳的訊息在 docs/09b_versus_link.md。
 //
+// 第三輪（2026-11-13）起「一邊一份」：每一份只管自己這一邊，打人、送干擾都是送訊息，對方那一份自己算、再把結果送回來。
 //   VS_DEF              對戰的數字，全部在這一個物件（改數字改這裡）
 //   vsStage(look)       給 Battle.reset 用的「對戰關卡」：BOSS 不出手、不狂暴、沒有機制、無屬性（屬性倍率都是 1）；look＝借哪一關的名字和長相
-//   VsMatch             一場對戰的規則：雙方的血、KO、干擾（產生、抵銷、預告、落下）、時間和後期加倍、誰贏。不知道盤面長怎樣，
-//                       要動盤面的事交給每一邊的 hooks（見下面）。seed＝這一場的種子：雙方的盤面各拿一條 vsRng(seed) 的亂數流（同一個開局、同一串補珠）
-//   VsBot               電腦對手：自己一個看不見的盤面（Board）＋傷害公式（Battle），照時間下棋，打出來的傷害、補血、連擊交給 VsMatch。
-//                       盤面隨時拿得到：bot.board.g[r][c]＝{id,type,special,dir,locked}（跟玩家的盤面同一種 Board）；每走一步丟 {type:'move'} 事件（帶整串步驟，之後畫她的小盤面用）
-//   vsSim(opt)          兩個機器人打一場，回傳打完的 VsMatch（每一邊的統計在 sides[i].stat）
-//   vsRng(seed)         固定種子的亂數（0～1）；vsCount(steps)＝一步消了幾組、引爆幾次；vsCapped(bt,cap,fn)＝連擊加成封頂之下算傷害
+//   VsSide              一邊的規則：自己的血、被 KO 幾次、預告列（干擾的抵銷、倒數、落下）、無敵、護盾、自己的時鐘和後期加倍；
+//                       對方只有「聽來的」狀態（opp）。不知道盤面長怎樣，要動盤面的事交給 hooks（見下面）。訊息從 out(msg) 出去、recv(msg) 進來
+//   VsLocal             本地的線＋裁判：把兩個 VsSide 直接接起來（一邊 out 的訊息當場交給另一邊 recv），KO 滿了、時間到由它宣布 over。
+//                       單頁模式（玩家對看不見的電腦）和 node 模擬用；雙畫面（link=parent）時這個角色是外面的殼
+//   VsBot               電腦：自己一個看不見的盤面（Board）＋傷害公式（Battle），帶著一個 VsSide，照時間下棋。
+//                       盤面隨時拿得到：bot.board.g[r][c]＝{id,type,special,dir,locked}；每走一步丟 {type:'move'} 事件（帶整串步驟）
+//   vsSim(opt)          兩個機器人打一場，回傳打完的 VsLocal（over、sides[i].stat）
+//   vsRng(seed)         固定種子的亂數（0～1）；vsCount(steps)＝一步消了幾組、引爆幾次；vsCapped(bt,cap,fn)＝連擊加成封頂之下算傷害；vsMoves(board)＝所有能走的步
 //
-// 每一邊的 hooks（VsMatch 要動那一邊的盤面時叫；電腦的在 VsBot 裡，玩家的在 versus/view.js）：
+// 每一邊的 hooks（VsSide 要動自己的盤面時叫；電腦的在 VsBot 裡，玩家的在 versus/view.js）：
 //   idle()          盤面現在停著嗎（停著，預告到期的干擾才落下）
 //   locked()        盤面上現在鎖著幾顆（含已經決定要落、還沒放上去的）
 //   lock(n)         鎖 n 顆，回傳真的鎖了幾顆
 //   clearLocks()    被 KO：盤面上的鎖全部清掉
 //   addEnergy(v)    被 KO：六隻狐狸各加 v 能量
-//   resetCombo()    有人被 KO：連擊歸零（雙方都叫）
+//   resetCombo()    有人被 KO：連擊歸零（兩邊各自叫自己的）
 var VS_DEF={
   hp:8000,            // 雙方各一條血（暫定；一次 KO 目標 30～40 秒）
   heartHeal:0.005,    // 心珠每顆補 0.5%
@@ -1331,9 +1334,14 @@ var VS_DEF={
   //   'combo'＝一串連擊到第 first 連 1 個，之後每多 every 連再 1 個（細水長流）
   //   'move' ＝一步（一次換珠到盤面停下來）之內消出 n 組就 n−1 個（只消一組不送；n 要到 min 組才算）；這一步有引爆特殊珠再 +blast 個；盤面停下來時整批一起送
   garbage:{mode:'move',first:4,every:3,min:2,blast:1,locks:2,warn:3,max:8},
-  ko:{invuln:2,energy:40},   // 被 KO 的那邊：無敵幾秒、六隻狐狸各加多少能量（另外：血補滿、盤面的鎖清掉、預告列清空；雙方連擊歸零）
+  // KO：被 KO 的那邊無敵 invuln 秒、六隻狐狸各加 energy 能量（另外：血補滿、盤面的鎖清掉、預告列清空；雙方連擊歸零）；
+  //   slow＝有人被 KO 時兩邊都進一小段慢動作：真實時間 sec 秒、速度 k 倍，然後直接回正常（兩邊同一組數字，時鐘才不會差開）；
+  //   fill＝血條花幾秒補滿（只是畫面，血當下就滿了）。
+  //   CK 2026-11-13：即時對戰不要被硬控——不拉鏡頭、不整場暫停，兩邊各碎一顆寶石、慢一下就繼續
+  ko:{invuln:2,energy:40,slow:{k:0.3,sec:0.6},fill:0.3},
   // 大招的對戰版（玩家這邊；電腦不放大招）：心狐回血改 heal（護盾照舊）；水狐「潮汐封印」改成清掉自己預告列上最多 clear 個干擾
   ult:{heal:0.15,clear:3},
+  stEvery:0.1,        // 自己的狀態（st）有變的話最快幾秒送一次
   comboReset:CONFIG.anim.comboReset,   // 電腦的盤面停幾秒連擊歸零（跟玩家一樣）
   // 電腦：think＝三級難度各想幾秒才走一步、jitter＝每一步的想的時間乘上這個範圍裡的亂數（太規律不像人；想超過 comboReset 秒連擊就斷）、
   //   swap＝換珠花幾秒、step＝每一波消除＋落下花幾秒（那一波的傷害在這一波開始時算）
@@ -1345,10 +1353,6 @@ function vsStage(look){var o=Object.assign({},look||CONFIG.stages[0]);
   o.attr='none';o.attrName='無';o.hp=VS_DEF.hp;o.time=VS_DEF.time;o.interval=Infinity;o.enrageInterval=Infinity;o.enrageAt=0;o.hitPct=0;o.charge=0;
   o.lock={interval:Infinity,enrageInterval:Infinity,count:0,enrageCount:0};   // 鎖鏈那一包開著（玩家這邊落下來的干擾借它的 place 和畫法），但 BOSS 自己永遠不丟
   return o;}
-function vsSide(def){return {hp:def.hp,max:def.hp,kos:0,gen:0,queue:[],invuln:0,shield:0,maxCombo:0,hooks:null,
-  // 統計（調數字用）：dmg 打出去的傷害、heal 補的血、made 產生的干擾、cancel 拿去抵銷的、sent 送進對方預告列的、wiped 被水狐大招清掉的、
-  //   got 落在自己盤面上的鎖（顆）、lost 盤面滿了丟掉的（顆）、drops 落了幾次、big 最大的一次落幾顆、koAt 第幾秒 KO 對方
-  stat:{dmg:0,heal:0,made:0,cancel:0,sent:0,wiped:0,got:0,lost:0,drops:0,big:0,koAt:[]}};}
 // 固定種子的亂數（0～1，不含 1）：同一個種子每次都是同一串
 function vsRng(seed){var s=(Math.abs(seed|0)%2147483646)+1;return function(){s=(s*16807)%2147483647;return (s-1)/2147483646;};}
 // 一步（trySwap 回傳的整串步驟）消了幾組、引爆了幾次特殊珠
@@ -1356,60 +1360,97 @@ function vsCount(steps){var o={groups:0,blasts:0};(steps||[]).forEach(function(s
   st.groups.forEach(function(g){if(!g.skip)o.groups++;});o.blasts+=st.blasts.length;});return o;}
 // 連擊加成封頂：把 bt（Battle）的連擊數暫時壓到 cap 以下算 fn()（Battle.shot、ultDamage 都讀 bt.combo），算完還原
 function vsCapped(bt,cap,fn){var c=bt.combo;bt.combo=Math.min(c,cap);try{return fn();}finally{bt.combo=c;}}
-/* sides[i]：hp／max 血、kos 已經 KO 對方幾次、gen 這一串連擊已經產生幾個干擾、queue 預告列 [{n:幾個, t:還有幾秒落下}]（舊的在前面）、
-   invuln 無敵還剩幾秒、shield 下一次挨打擋掉幾成（0＝沒有；用掉就歸零）、maxCombo 最高連擊
+/* 一邊（id＝'a'｜'b'）。自己的：hp／max 血、downs 被 KO 幾次、queue 預告列 [{n:幾個, t:還有幾秒落下}]（舊的在前面）、gen 這一串連擊已經產生幾個干擾、
+     invuln 無敵還剩幾秒、shield 下一次挨打擋掉幾成（0＝沒有；用掉就歸零）、combo 現在幾連擊、maxCombo 最高連擊、
+     t 自己的時鐘（開打後過了幾秒）、slow KO 的慢動作還剩幾秒（真實時間）、live 開打了沒、timeout 自己的時鐘走到底了（等裁判宣布）、over 裁判宣布的結果
+   對方的（聽來的，st／ko 訊息更新；自己打出去的先照預估扣）：opp＝{hp,max,ko 被 KO 幾次,combo,pend 預告列上幾個,inv 無敵中,sh 有護盾}
+   out(msg)：訊息出口（接線的人設：VsLocal.join、或 view.js 接到外面的殼）。recv(msg)：收到對方或裁判的訊息
    ev：這一格發生的事，給畫面播（畫面讀完自己清掉；模擬不用理）：
-     {type:'send',from,n} 送出干擾｜{type:'cancel',side,n} 抵銷掉自己預告列上的｜{type:'wipe',side,n} 水狐大招清掉自己預告列上的｜{type:'drop',to,units,locks} 預告到期落下｜
-     {type:'ko',to,kos} to 被 KO、對方累計 kos 次｜{type:'rage',mul} 後期加倍｜{type:'end',winner,by} 打完（winner 0／1、平手 -1；by 'ko'／'time'）｜
-     VsBot 另外丟 {type:'move'}、{type:'act'}、{type:'combo'}
-   over：打完了＝{winner,by,t}，還在打＝null。seed：這一場的種子（沒給就用 Math.random 抽一個） */
-function VsMatch(def,seed){this.def=def||VS_DEF;this.seed=seed!=null?seed:(Math.random()*2147483646)|0;this.t=0;this.over=null;this.ev=[];this.sides=[vsSide(this.def),vsSide(this.def)];}
-VsMatch.prototype.mul=function(){var r=this.def.rage,m=1;for(var i=0;i<r.length;i++)if(this.t>=r[i][0])m=r[i][1];return m;};   // 現在的傷害倍數
-VsMatch.prototype.left=function(){return Math.max(0,this.def.time-this.t);};
-// to 這一邊挨 d 點（還沒乘後期倍數的）。回傳 {dealt 真的扣了多少, blocked 護盾擋掉多少, ko 這一下 KO 了, win 這一下打完了}
-VsMatch.prototype.damage=function(to,d){var s=this.sides[to],o=this.sides[1-to];
-  if(this.over||s.invuln>0||!(d>0))return {dealt:0,blocked:0,ko:false,win:false};
-  var raw=Math.max(1,Math.round(d*this.mul())),cut=s.shield>0?Math.round(raw*s.shield):0;s.shield=0;
-  var dealt=Math.min(raw-cut,s.hp);s.hp-=dealt;o.stat.dmg+=dealt;
-  if(s.hp>0)return {dealt:dealt,blocked:cut,ko:false,win:false};
-  return {dealt:dealt,blocked:cut,ko:true,win:this.knock(to)};};
-// to 被 KO：對方 KO +1；滿 koWin 次就打完，不然 to 這邊血補滿、鎖清掉、預告列清空、無敵、狐狸加能量
-VsMatch.prototype.knock=function(to){var s=this.sides[to],o=this.sides[1-to],d=this.def;o.kos++;o.stat.koAt.push(this.t);this.ev.push({type:'ko',to:to,kos:o.kos});
-  this.sides.forEach(function(x){x.gen=0;if(x.hooks&&x.hooks.resetCombo)x.hooks.resetCombo();});   // 有人被 KO：雙方連擊歸零
-  if(o.kos>=d.koWin){this.finish(1-to,'ko');return true;}
-  s.hp=s.max;s.queue=[];s.invuln=d.ko.invuln;if(s.hooks){s.hooks.clearLocks();s.hooks.addEnergy(d.ko.energy);}return false;};
-VsMatch.prototype.gain=function(i,amt){var s=this.sides[i],before=s.hp;if(this.over)return 0;s.hp=Math.min(s.max,s.hp+Math.max(0,amt));s.stat.heal+=s.hp-before;return s.hp-before;};   // 補 amt 點血
-VsMatch.prototype.heal=function(i,hearts){return this.gain(i,Math.round(this.sides[i].max*this.def.heartHeal*hearts));};   // 消了 hearts 顆心珠
-// i 這一邊現在的連擊數是 c（變大、歸零都要講）。mode 'combo'：照連擊數算這一串該產生幾個干擾，多出來的就產生；別的 mode 只記最高連擊
-VsMatch.prototype.setCombo=function(i,c){var s=this.sides[i],g=this.def.garbage;if(c>s.maxCombo)s.maxCombo=c;if(g.mode!=='combo')return 0;
-  var n=c>=g.first?1+Math.floor((c-g.first)/g.every):0,add=n-s.gen;s.gen=n;   /* 連擊斷了（c 變小）：重新數 */
-  if(add>0&&!this.over)this.make(i,add);return add>0?add:0;};
-// i 這一邊走完一步、盤面停下來了；cnt＝vsCount(那一步的步驟)。mode 'move'：消出 n 組＝n−1 個、有引爆特殊珠再 +blast 個，整批一起產生
-VsMatch.prototype.moveDone=function(i,cnt){var g=this.def.garbage;if(g.mode!=='move'||this.over)return 0;
-  var n=(cnt.groups>=g.min?cnt.groups-1:0)+(cnt.blasts>0?g.blast:0);if(n>0)this.make(i,n);return n;};
-// 水狐大招（對戰版）：清掉 i 這一邊預告列上最多 n 個（快落下的先清），回傳清了幾個
-VsMatch.prototype.wipe=function(i,n){var s=this.sides[i],q=s.queue,left=n;if(this.over)return 0;
-  while(left>0&&q.length){var e=q[0],k=Math.min(e.n,left);e.n-=k;left-=k;if(e.n<=0)q.shift();}
-  var cut=n-left;if(cut){s.stat.wiped+=cut;this.ev.push({type:'wipe',side:i,n:cut});}return cut;};
-// i 這一邊產生 n 個干擾：先抵銷自己預告列上的（快落下的先抵），有剩才送進對方的預告列
-VsMatch.prototype.make=function(i,n){var s=this.sides[i],o=this.sides[1-i],q=s.queue,left=n,cut=0;s.stat.made+=n;
+     {type:'hurt',dmg,blocked,orb} 我挨了一發｜{type:'down',n} 我被 KO（第 n 次）｜{type:'ko',n} 我 KO 了對方（她第 n 次）｜{type:'incoming',n} 對方送干擾進我的預告列｜
+     {type:'send',n} 我送出干擾｜{type:'cancel',n} 我抵銷掉自己預告列上的｜{type:'wipe',n} 水狐大招清掉｜{type:'drop',units,locks} 預告到期落在我盤面上｜
+     {type:'rage',mul} 後期加倍｜{type:'timeout'} 我的時鐘到了｜{type:'oppUlt',fox} 對方放大招｜{type:'over',winner,by} 裁判宣布｜VsBot 另外丟 {type:'move'}
+   stat（調數字用）：dmg 打出去的傷害（照預估）、taken 挨的、heal 補的血、made 產生的干擾、cancel 拿去抵銷的、sent 送出去的、wiped 水狐清掉的、
+     got 落在自己盤面上的鎖（顆）、lost 盤面滿了丟掉的（顆）、drops 落了幾次、big 最大的一次落幾顆、koAt 第幾秒 KO 對方 */
+function VsSide(def,id){this.def=def||VS_DEF;this.id=id||'a';this.out=function(){};this.hooks=null;this.ev=[];this.reset();}
+VsSide.prototype.reset=function(){var d=this.def;this.seed=0;this.live=false;this.over=null;this.timeout=false;this.t=0;this.slow=0;
+  this.hp=this.max=d.hp;this.downs=0;this.gen=0;this.queue=[];this.invuln=0;this.shield=0;this.combo=0;this.maxCombo=0;
+  this.opp={hp:d.hp,max:d.hp,ko:0,combo:0,pend:0,inv:false,sh:false};this.dirty=false;this.stAt=-1;
+  this.stat={dmg:0,taken:0,heal:0,made:0,cancel:0,sent:0,wiped:0,got:0,lost:0,drops:0,big:0,koAt:[]};};
+Object.defineProperty(VsSide.prototype,'kos',{get:function(){return this.opp.ko;}});   // 我 KO 了對方幾次（＝對方說她被 KO 幾次）
+VsSide.prototype.send=function(type,o){o=o||{};o.vs=1;o.from=this.id;o.type=type;this.out(o);};
+VsSide.prototype.pend=function(){var n=0;this.queue.forEach(function(e){n+=e.n;});return n;};
+// 自己的狀態送出去（對方和裁判顯示用）；有變就標 dirty，tick 裡最快 stEvery 秒送一次，KO、開打、時間到當場送
+VsSide.prototype.flush=function(){this.dirty=false;this.stAt=this.t;this.send('st',{hp:this.hp,max:this.max,ko:this.downs,combo:this.combo,pend:this.pend(),inv:this.invuln>0,sh:this.shield>0});};
+// 開打：seed＝這一場的種子（雙方一樣；盤面的亂數由帶著這一邊的人照它建）
+VsSide.prototype.start=function(seed){this.reset();this.seed=seed;this.live=true;this.flush();};
+VsSide.prototype.active=function(){return this.live&&!this.over&&!this.timeout;};
+VsSide.prototype.mul=function(){var r=this.def.rage,m=1;for(var i=0;i<r.length;i++)if(this.t>=r[i][0])m=r[i][1];return m;};   // 現在的傷害倍數（照自己的時鐘）
+VsSide.prototype.left=function(){return Math.max(0,this.def.time-this.t);};
+// 我打出一發 d 點（已經算好連擊等加成、還沒乘後期倍數）。對方無敵（聽來的）就不送。回傳 {dealt 預估扣了多少（畫面跳的數字）, ko 預估這一下 KO 了}；
+//   真的扣多少由對方那一份算（護盾、無敵），她的血量從 st 回來
+VsSide.prototype.hit=function(d,orb){var o=this.opp;if(!this.active()||!(d>0)||o.inv)return {dealt:0,ko:false};
+  var raw=Math.max(1,Math.round(d*this.mul())),cut=o.sh?Math.round(raw*CONFIG.ult.heart.shield):0,dealt=Math.min(raw-cut,Math.max(0,o.hp)),ko=dealt>0&&dealt>=o.hp;
+  o.sh=false;o.hp-=dealt;this.stat.dmg+=dealt;this.send('atk',{dmg:raw,combo:this.combo,orb:orb==null?-1:orb});
+  return {dealt:dealt,ko:ko};};
+VsSide.prototype.recv=function(msg){var d=this.def;
+  if(msg.type==='over'){if(this.over)return;if(this.live)this.flush();   /* 最後的狀態再送一次（對方和殼顯示的數字才是最後的） */this.over={winner:msg.winner,by:msg.by,t:this.t};this.ev.push({type:'over',winner:msg.winner,by:msg.by});return;}
+  if(msg.type==='clock'){if(this.active()&&typeof msg.t==='number')this.t=Math.max(0,Math.min(d.time-0.01,msg.t));return;}   // 裁判對時（選用）：兩邊的時鐘對到同一個數字（後期加倍、畫面上的秒數才一致）；時間到還是由裁判宣布
+  if(msg.type==='st'){var o=this.opp;o.hp=msg.hp;o.max=msg.max;o.ko=msg.ko;o.combo=msg.combo;o.pend=msg.pend;o.inv=!!msg.inv;o.sh=!!msg.sh;return;}
+  if(!this.live||this.over)return;
+  if(msg.type==='atk'){if(this.timeout||this.invuln>0||!(msg.dmg>0))return;   // 無敵、時間到了：不算
+    var cut=this.shield>0?Math.round(msg.dmg*this.shield):0,dealt=Math.min(msg.dmg-cut,this.hp);this.shield=0;this.hp-=dealt;this.stat.taken+=dealt;this.dirty=true;
+    this.ev.push({type:'hurt',dmg:dealt,blocked:cut,orb:msg.orb==null?-1:msg.orb});if(this.hp<=0)this.down();}
+  else if(msg.type==='gb'){if(msg.n>0){this.queue.push({n:msg.n,t:d.garbage.warn});this.dirty=true;this.ev.push({type:'incoming',n:msg.n});}}
+  else if(msg.type==='ko'){this.opp.ko=msg.n;this.stat.koAt.push(this.t);this.calm();this.slow=d.ko.slow.sec;this.ev.push({type:'ko',n:msg.n});}   // 我 KO 了她：兩邊都慢一下、連擊歸零
+  else if(msg.type==='ult')this.ev.push({type:'oppUlt',fox:msg.fox});};
+VsSide.prototype.calm=function(){this.gen=0;this.combo=0;if(this.hooks&&this.hooks.resetCombo)this.hooks.resetCombo();};   // 連擊歸零
+// 我被 KO：告訴對方（和裁判）；還沒滿 koWin 次就血補滿、鎖清掉、預告列清空、無敵、狐狸加能量；滿了就停在 0 等裁判宣布。兩邊都進 ko.slow 的慢動作
+VsSide.prototype.down=function(){var d=this.def,h=this.hooks;this.downs++;this.calm();this.slow=d.ko.slow.sec;this.ev.push({type:'down',n:this.downs});
+  if(this.downs<d.koWin){this.hp=this.max;this.queue=[];this.invuln=d.ko.invuln;if(h){h.clearLocks();h.addEnergy(d.ko.energy);}}
+  this.send('ko',{n:this.downs});this.flush();};
+VsSide.prototype.gain=function(amt){var before=this.hp;if(!this.active())return 0;this.hp=Math.min(this.max,this.hp+Math.max(0,amt));this.stat.heal+=this.hp-before;if(this.hp!==before)this.dirty=true;return this.hp-before;};   // 補 amt 點血
+VsSide.prototype.heal=function(hearts){return this.gain(Math.round(this.max*this.def.heartHeal*hearts));};   // 消了 hearts 顆心珠
+VsSide.prototype.setShield=function(v){if(this.shield!==v){this.shield=v;this.dirty=true;}};
+// 我現在的連擊數是 c（變大、歸零都要講）。mode 'combo'：照連擊數算這一串該產生幾個干擾，多出來的就產生；別的 mode 只記連擊
+VsSide.prototype.setCombo=function(c){var g=this.def.garbage;if(c!==this.combo){this.combo=c;this.dirty=true;}if(c>this.maxCombo)this.maxCombo=c;if(g.mode!=='combo')return 0;
+  var n=c>=g.first?1+Math.floor((c-g.first)/g.every):0,add=n-this.gen;this.gen=n;   /* 連擊斷了（c 變小）：重新數 */
+  if(add>0&&this.active())this.make(add);return add>0?add:0;};
+// 我走完一步、盤面停下來了；cnt＝vsCount(那一步的步驟)。mode 'move'：消出 n 組＝n−1 個、有引爆特殊珠再 +blast 個，整批一起產生
+VsSide.prototype.moveDone=function(cnt){var g=this.def.garbage;if(g.mode!=='move'||!this.active())return 0;
+  var n=(cnt.groups>=g.min?cnt.groups-1:0)+(cnt.blasts>0?g.blast:0);if(n>0)this.make(n);return n;};
+// 我產生 n 個干擾：先抵銷自己預告列上的（快落下的先抵），有剩才送給對方（gb 訊息）
+VsSide.prototype.make=function(n){var q=this.queue,left=n,cut=0;this.stat.made+=n;
   while(left>0&&q.length){var e=q[0],k=Math.min(e.n,left);e.n-=k;left-=k;cut+=k;if(e.n<=0)q.shift();}
-  if(cut){s.stat.cancel+=cut;this.ev.push({type:'cancel',side:i,n:cut});}
-  if(left){o.queue.push({n:left,t:this.def.garbage.warn});s.stat.sent+=left;this.ev.push({type:'send',from:i,n:left});}};
-// 時間往前 dt 秒：後期加倍、無敵倒數、預告列倒數（到期而且盤面停著就落下）、時間到
-VsMatch.prototype.tick=function(dt){if(this.over)return;var self=this,d=this.def,g=d.garbage,m0=this.mul();this.t+=dt;
+  if(cut){this.stat.cancel+=cut;this.dirty=true;this.ev.push({type:'cancel',n:cut});}
+  if(left){this.stat.sent+=left;this.ev.push({type:'send',n:left});this.send('gb',{n:left});}};
+// 水狐大招（對戰版）：清掉自己預告列上最多 n 個（快落下的先清），回傳清了幾個
+VsSide.prototype.wipe=function(n){var q=this.queue,left=n;if(!this.active())return 0;
+  while(left>0&&q.length){var e=q[0],k=Math.min(e.n,left);e.n-=k;left-=k;if(e.n<=0)q.shift();}
+  var cut=n-left;if(cut){this.stat.wiped+=cut;this.dirty=true;this.ev.push({type:'wipe',n:cut});}return cut;};
+// KO 的慢動作：帶著這一邊的人每格先把真實經過的秒數 dt 交給它，回傳這一格「遊戲裡」要走幾秒（慢動作中的那一段乘 k），再拿去 tick、跑動畫
+VsSide.prototype.warp=function(dt){if(!(this.slow>0))return dt;var sl=this.def.ko.slow,real=Math.min(dt,this.slow);this.slow-=real;return real*sl.k+(dt-real);};
+// 自己的時鐘往前 dt 秒：後期加倍、無敵倒數、預告列倒數（到期而且盤面停著就落下）、時鐘到底、送狀態
+VsSide.prototype.tick=function(dt){if(!this.active())return;var d=this.def,g=d.garbage,h=this.hooks,m0=this.mul(),due=0;this.t+=dt;
   var m1=this.mul();if(m1!==m0)this.ev.push({type:'rage',mul:m1});
-  this.sides.forEach(function(s,i){var h=s.hooks,due=0;if(s.invuln>0)s.invuln=Math.max(0,s.invuln-dt);
-    s.queue.forEach(function(e){e.t-=dt;if(e.t<=0)due+=e.n;});
-    if(!due||(h&&!h.idle()))return;   /* 到期了但盤面還在動：留在預告列上等（這段時間還可以被抵銷） */
-    s.queue=s.queue.filter(function(e){return e.t>0;});
-    var want=due*g.locks,n=Math.min(want,Math.max(0,g.max-(h?h.locked():0))),got=n>0&&h?h.lock(n):0;
-    s.stat.got+=got;s.stat.lost+=want-got;if(got){s.stat.drops++;if(got>s.stat.big)s.stat.big=got;}self.ev.push({type:'drop',to:i,units:due,locks:got});});
-  if(this.t>=d.time)this.timeUp();};
-// 時間到：KO 多的贏；一樣多比剩下血的比例；還是一樣＝平手
-VsMatch.prototype.timeUp=function(){var a=this.sides[0],b=this.sides[1],ra=a.hp/a.max,rb=b.hp/b.max;
-  this.finish(a.kos!==b.kos?(a.kos>b.kos?0:1):ra!==rb?(ra>rb?0:1):-1,'time');};
-VsMatch.prototype.finish=function(winner,by){if(this.over)return;this.over={winner:winner,by:by,t:this.t};this.ev.push({type:'end',winner:winner,by:by});};
+  if(this.invuln>0){this.invuln=Math.max(0,this.invuln-dt);if(!this.invuln)this.dirty=true;}
+  this.queue.forEach(function(e){e.t-=dt;if(e.t<=0)due+=e.n;});
+  if(due&&(!h||h.idle())){this.queue=this.queue.filter(function(e){return e.t>0;});   /* 到期了但盤面還在動：留在預告列上等（這段時間還可以被抵銷） */
+    var want=due*g.locks,n=Math.min(want,Math.max(0,g.max-(h?h.locked():0))),got=n>0&&h?h.lock(n):0,st=this.stat;
+    st.got+=got;st.lost+=want-got;if(got){st.drops++;if(got>st.big)st.big=got;}this.dirty=true;this.ev.push({type:'drop',units:due,locks:got});}
+  if(this.t>=d.time){this.t=d.time;this.timeout=true;this.ev.push({type:'timeout'});this.flush();return;}   // 我的時鐘到了：停住，等裁判宣布
+  if(this.dirty&&this.t-this.stAt>=d.stEvery)this.flush();};
+/* 本地的線＋裁判（單頁模式、node 模擬）：join 兩個 VsSide，一邊 out 的訊息當場交給另一邊的 recv（跟雙畫面時外面的殼轉 postMessage 是同一套訊息）。
+   裁判：有人被 KO 滿 koWin 次 → over（by 'ko'）；有一邊的時鐘到了 → 被 KO 少的贏、一樣多比剩下血的比例、都一樣平手（by 'time'）。
+   over＝{winner:'a'｜'b'｜'draw', by, t}；sides＝[a 那邊, b 那邊]；tap(msg)：有接的話每一則訊息都抄一份給它（測試、之後錄回放用） */
+function VsLocal(def){this.def=def||VS_DEF;this.ends={};this.sides=[];this.over=null;this.tap=null;}
+VsLocal.prototype.join=function(side){var self=this;this.ends[side.id]=side;this.sides[side.id==='a'?0:1]=side;side.out=function(msg){self.route(msg);};return side;};
+VsLocal.prototype.route=function(msg){var to=this.ends[msg.from==='a'?'b':'a'];if(this.tap)this.tap(msg);if(this.over||!to)return;
+  to.recv(msg);if(msg.type==='ko'&&msg.n>=this.def.koWin)this.announce(to.id,'ko');};
+VsLocal.prototype.announce=function(winner,by){if(this.over)return;var a=this.sides[0],b=this.sides[1],msg={vs:1,from:'shell',type:'over',winner:winner,by:by};
+  this.over={winner:winner,by:by,t:Math.max(a?a.t:0,b?b.t:0)};if(this.tap)this.tap(msg);this.sides.forEach(function(s){if(s)s.recv(Object.assign({},msg));});};
+// 每格叫：有一邊的時鐘到了就照 KO 數、血的比例宣布
+VsLocal.prototype.tick=function(){var a=this.sides[0],b=this.sides[1];if(this.over||!a||!b||!(a.timeout||b.timeout))return;
+  var ra=a.hp/a.max,rb=b.hp/b.max;this.announce(a.downs!==b.downs?(a.downs<b.downs?'a':'b'):ra!==rb?(ra>rb?'a':'b'):'draw','time');};
 // 盤面上所有能走的步（換了會消、或兩顆特殊珠的組合技）
 function vsMoves(bd){var out=[],r,c,k,D=[[0,1],[1,0]];
   for(r=0;r<bd.R;r++)for(c=0;c<bd.C;c++)for(k=0;k<2;k++){var r2=r+D[k][0],c2=c+D[k][1];if(r2>=bd.R||c2>=bd.C)continue;
@@ -1417,49 +1458,49 @@ function vsMoves(bd){var out=[],r,c,k,D=[[0,1],[1,0]];
     if(bd.isCombo(a,b)){out.push([r,c,r2,c2]);continue;}
     bd.swapCells(r,c,r2,c2);var ok=bd.lineAt(r,c)||bd.lineAt(r2,c2);bd.swapCells(r,c,r2,c2);if(ok)out.push([r,c,r2,c2]);}
   return out;}
-/* 電腦對手：match 的第 i 邊，lv＝1｜2｜3。亂走（隨機挑一步能消的，跟 tests/balance.js 一樣），不放大招。
-   想 think 秒 → 換珠 → 一波一波消（每一波當下：連擊 +1、打對方或補自己、照連擊數產生干擾）→ 盤面停 → 再想。
-   board＝它的盤面、bt＝它的 Battle（只拿來算傷害和連擊；血在 VsMatch）。
-   亂數：盤面用 vsRng(match.seed)（跟對手的盤面同一個種子：同一個開局、同一串補珠）；它自己挑哪一步、想多久用另一條 rnd（照種子和第幾邊），都不碰 Math.random。
-   open＝開局盤面的顏色（一排一串數字，回放、檢查「雙方同一個開局」用）；last＝上一步 {a,b,steps,t} */
-function VsBot(match,i,lv){var self=this;this.m=match;this.i=i;this.lv=Math.max(1,Math.min(3,lv||2));
-  this.rnd=vsRng(match.seed*31+17+i*7919);this.board=new Board(COLS,ROWS,NT);this.board.rnd=vsRng(match.seed);this.board.fill();
-  this.open=this.board.g.map(function(row){return row.map(function(o){return o.type;}).join('');}).join('/');this.last=null;this.cnt=null;
-  this.bt=new Battle(CONFIG);this.bt.reset(vsStage(),{});
-  this.state='think';this.steps=[];this.idle=0;this.wait=this.think();
-  match.sides[i].hooks={idle:function(){return self.state==='think';},
+/* 電腦：帶著 side（一個 VsSide），lv＝1｜2｜3。亂走（隨機挑一步能消的，跟 tests/balance.js 一樣），不放大招。
+   tick(dt)：dt 是「遊戲裡」的秒數（KO 慢動作由叫的人先用 side.warp 換算）。想 think 秒 → 換珠 → 一波一波消（每一波當下：連擊 +1、打對方或補自己）→ 盤面停（這一步的干擾整批送）→ 再想。
+   board＝它的盤面、bt＝它的 Battle（只拿來算傷害和連擊；血在 side）。start(seed) 開一場：
+   亂數：盤面用 vsRng(seed)（跟對手的盤面同一個種子：同一個開局、同一串補珠）；它自己挑哪一步、想多久用另一條 rnd（照種子和哪一邊），都不碰 Math.random。
+   open＝開局盤面的顏色（一排一串數字）；last＝上一步 {a,b,steps,t} */
+function VsBot(side,lv){var self=this;this.s=side;this.lv=Math.max(1,Math.min(3,lv||2));this.board=null;this.bt=new Battle(CONFIG);this.open='';this.last=null;
+  side.hooks={idle:function(){return self.state==='think';},
     locked:function(){var n=0;self.board.g.forEach(function(row){row.forEach(function(o){if(o&&o.locked)n++;});});return n;},
     lock:function(n){return self.board.lockRandom(n).length;},
     clearLocks:function(){self.board.unlockAll();},
     addEnergy:function(){},   // 灰盒：電腦不放大招，能量先不管
     resetCombo:function(){self.bt.combo=0;}};}
-VsBot.prototype.think=function(){var b=this.m.def.bot;return b.think[this.lv-1]*(b.jitter[0]+this.rnd()*(b.jitter[1]-b.jitter[0]));};
-VsBot.prototype.tick=function(dt){var m=this.m,b=m.def.bot;if(m.over)return;this.wait-=dt;
+VsBot.prototype.start=function(seed){var s=this.s;s.start(seed);
+  this.rnd=vsRng(seed*31+17+(s.id==='a'?0:7919));this.board=new Board(COLS,ROWS,NT);this.board.rnd=vsRng(seed);this.board.fill();
+  this.open=this.board.g.map(function(row){return row.map(function(o){return o.type;}).join('');}).join('/');this.last=null;this.cnt=null;
+  this.bt.reset(vsStage(),{});this.state='think';this.steps=[];this.idle=0;this.wait=this.think();};
+VsBot.prototype.think=function(){var b=this.s.def.bot;return b.think[this.lv-1]*(b.jitter[0]+this.rnd()*(b.jitter[1]-b.jitter[0]));};
+VsBot.prototype.tick=function(dt){var s=this.s,b=s.def.bot;if(!s.live||s.over)return;
+  s.tick(dt);if(!s.active())return;this.wait-=dt;
   if(this.state==='think'){this.idle+=dt;
-    if(this.bt.combo>0&&this.idle>m.def.comboReset){this.bt.combo=0;m.setCombo(this.i,0);m.ev.push({type:'combo',side:this.i,combo:0});}   // 停太久：連擊斷了
+    if(this.bt.combo>0&&this.idle>s.def.comboReset){this.bt.combo=0;s.setCombo(0);}   // 停太久：連擊斷了
     if(this.wait<=0)this.move();return;}
-  while(this.wait<=0&&this.steps.length&&!m.over){this.step(this.steps.shift());this.wait+=b.step;}
-  if(this.wait<=0&&!this.steps.length){this.state='think';this.idle=0;this.wait=this.think();if(this.cnt){m.moveDone(this.i,this.cnt);this.cnt=null;}}};   // 盤面停下來：這一步的干擾整批送（mode 'move'）
+  while(this.wait<=0&&this.steps.length&&s.active()){this.step(this.steps.shift());this.wait+=b.step;}
+  if(this.wait<=0&&!this.steps.length){this.state='think';this.idle=0;this.wait=this.think();if(this.cnt){s.moveDone(this.cnt);this.cnt=null;}}};   // 盤面停下來：這一步的干擾整批送（mode 'move'）
 VsBot.prototype.move=function(){var bd=this.board,mv=vsMoves(bd);
   if(!mv.length){bd.shuffle();this.wait=this.think();return;}   // 沒步可走（照理不會：落鎖、消完都保證有步）：洗牌再想
   var p=mv[(this.rnd()*mv.length)|0],res=bd.trySwap(p[0],p[1],p[2],p[3]);
   if(!res||!res.valid){this.wait=this.think();return;}
-  this.last={a:[p[0],p[1]],b:[p[2],p[3]],steps:res.steps,t:this.m.t};this.cnt=vsCount(res.steps);
-  this.m.ev.push({type:'move',side:this.i,a:this.last.a,b:this.last.b,steps:res.steps});   // 給畫面（之後的小盤面）：她換了哪兩顆、整串消除／落下的步驟
-  this.steps=res.steps.filter(function(st){return st.kind==='clear';});this.state='resolve';this.wait=this.m.def.bot.swap;};
+  this.last={a:[p[0],p[1]],b:[p[2],p[3]],steps:res.steps,t:this.s.t};this.cnt=vsCount(res.steps);
+  this.s.ev.push({type:'move',a:this.last.a,b:this.last.b,steps:res.steps});   // 給畫面（之後畫她的盤面）：換了哪兩顆、整串消除／落下的步驟
+  this.steps=res.steps.filter(function(st){return st.kind==='clear';});this.state='resolve';this.wait=this.s.def.bot.swap;};
 // 一波消除：每一組、每一次引爆連擊 +1；心珠補自己的血，其他顏色照 Battle.shot 的公式打對方（跟玩家的 battleFromClear 同一套算法；連擊加成封頂在 comboCap）
-VsBot.prototype.step=function(st){var m=this.m,bt=this.bt,i=this.i,MUL=CONFIG.multiplier,sum={dmg:0,heal:0,blocked:0},best=0,orb=-1,tallies={};
-  function hit(type,n,S){if(type===HEART){sum.heal+=m.heal(i,n);return;}
-    var r=m.damage(1-i,vsCapped(bt,m.def.comboCap,function(){return bt.shot(type,n,S);}).dmg);sum.dmg+=r.dealt;sum.blocked+=r.blocked;if(r.dealt>best){best=r.dealt;orb=type;}}
+VsBot.prototype.step=function(st){var s=this.s,bt=this.bt,MUL=CONFIG.multiplier,tallies={};
+  function shot(type,n,S){if(type===HEART){s.heal(n);return;}s.hit(vsCapped(bt,s.def.comboCap,function(){return bt.shot(type,n,S);}).dmg,type);}
   st.items.forEach(function(it){if(it.type<0||it.by.charAt(0)==='g')return;var key=it.by==='c'?'b0':it.by,tl=tallies[key]||(tallies[key]={});tl[it.type]=(tl[it.type]||0)+1;});
-  st.groups.forEach(function(g){if(g.skip)return;bt.addCombo();hit(g.type,g.n,1);});
-  st.blasts.forEach(function(bl,bi){bt.addCombo();var tl=tallies['b'+bi]||{};Object.keys(tl).forEach(function(k){hit(+k,tl[k],MUL[bl.kind]||1);});});
-  m.setCombo(i,bt.combo);
-  m.ev.push({type:'act',side:i,dmg:sum.dmg,heal:sum.heal,blocked:sum.blocked,combo:bt.combo,orb:orb});};   // 給畫面：這一波總共打了多少、補了多少、現在幾連擊、最痛的那一發是什麼顏色
-// 兩個機器人打一場（node 調數字用）：opt＝{lv:[左邊難度, 右邊難度], def:換一組數字（預設 VS_DEF）, seed:這一場的種子, dt:一格幾秒（預設 0.05）}。
-//   同一個 seed＝同一場（盤面、機器人都不碰 Math.random）；沒給 seed 就用 Math.random 抽一個。回傳打完的 VsMatch
-function vsSim(opt){opt=opt||{};var m=new VsMatch(opt.def,opt.seed),lv=opt.lv||[2,2],a=new VsBot(m,0,lv[0]),b=new VsBot(m,1,lv[1]),dt=opt.dt||0.05,n=0;
-  while(!m.over&&n++<1e6){m.tick(dt);if(n&1){a.tick(dt);b.tick(dt);}else {b.tick(dt);a.tick(dt);}m.ev.length=0;}   /* 誰先動一格換一次，不偏哪一邊 */
+  st.groups.forEach(function(g){if(g.skip)return;bt.addCombo();shot(g.type,g.n,1);});
+  st.blasts.forEach(function(bl,bi){bt.addCombo();var tl=tallies['b'+bi]||{};Object.keys(tl).forEach(function(k){shot(+k,tl[k],MUL[bl.kind]||1);});});
+  s.setCombo(bt.combo);};
+// 兩個機器人打一場（node 調數字用）：opt＝{lv:[a 的難度, b 的難度], def:換一組數字（預設 VS_DEF）, seed:這一場的種子, dt:一格幾秒（預設 0.05）, tap:每一則訊息抄一份}。
+//   同一個 seed＝同一場（盤面、機器人都不碰 Math.random）；沒給 seed 就用 Math.random 抽一個。回傳打完的 VsLocal（多帶 seed、bots）
+function vsSim(opt){opt=opt||{};var def=opt.def||VS_DEF,m=new VsLocal(def),lv=opt.lv||[2,2],dt=opt.dt||0.05,n=0,seed=opt.seed!=null?opt.seed:(Math.random()*2147483646)|0;
+  var a=new VsBot(m.join(new VsSide(def,'a')),lv[0]),b=new VsBot(m.join(new VsSide(def,'b')),lv[1]);m.tap=opt.tap||null;m.seed=seed;m.bots=[a,b];a.start(seed);b.start(seed);
+  while(!m.over&&n++<1e6){if(n&1){a.tick(a.s.warp(dt));b.tick(b.s.warp(dt));}else {b.tick(b.s.warp(dt));a.tick(a.s.warp(dt));}m.tick();a.s.ev.length=0;b.s.ev.length=0;}   /* 誰先動一格換一次，不偏哪一邊 */
   return m;}
 
 // 共用材質（render/common.js）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
@@ -8158,7 +8199,7 @@ function beginBattle(){
   showPanel(null);if(VS.on)battle.reset(VS.stage(),{},null);   /* 對戰（?versus，src/versus/）：BOSS 不出手、沒有機制、不帶符印 */else battle.reset(CONFIG.stages[APP.stage],CONFIG.sigils[APP.sigil],CONFIG.stages[APP.stage].segs?FINAL.story():null);   /* 最終戰：有沒有信、誰戴金鈴 */BS.setStage(APP.stage);gameEl.classList.toggle('dayFight',BS.isDay(APP.stage));setPetalStyle(CONFIG.stages[APP.stage].style);setBossHud();resetBattleFx();CAM.pos.set(0,0,14);CAM.look.set(0,0,0);veil.visible=false;ultBannerEl.classList.remove('show');BS.ultFx.group.visible=false;
   BS.foxes.forEach(function(f){f.energyDisp=0;});BS.boss.reset();BS.foxes.forEach(function(f){f.reset();});BS.clearCharm();bossBarEl.classList.remove('enraged');
   comboEl.className='hud bhud';if(VS.on)VS.begin();   /* 對戰：開一場新的（雙方的血、電腦、預告列） */updateBars();G.mode='intro';
-  dropInBoard().then(function(){if(G.mode==='intro'){G.mode='playing';S.lastAct=S.time;}});}
+  dropInBoard().then(function(){if(G.mode==='intro'&&!(VS.on&&VS.hold())){G.mode='playing';S.lastAct=S.time;}});}   /* 對戰雙畫面：等殼的 start、倒數完才開打（VS.update 放行） */
 function showResult(kind){if(G.mode==='result')return;G.mode='result';S.sel=null;S.hint=null;
   comboEl.classList.remove('show');   // 連擊數字本來要盤面停下 2 秒後才收；結算時先收掉，不然很快離開戰鬥時會一直卡在畫面上
   var win=kind==='win';if(win)AudioFX.win();else AudioFX.lose();
@@ -8309,6 +8350,7 @@ function frame(now){
   BGM.want(bgmWant());   // 背景音樂：現在該放哪首（同一首不會重放）
   if(FPS)FPS.begin();
   var rdt=Math.max(0,Math.min(0.05,(now-last$2)/1000))*(window.__speed||1);last$2=now;   /* 第一格的時間戳可能比 startLoop 還早，負的就當 0 */
+  if(VS.on)rdt=VS.warp(rdt);   // 對戰（?versus）：有人被 KO 時的一小段慢動作（整個畫面一起慢）
   if(slowT>=0){if(APP.screen==='battle')rdt*=slowK(rdt);else slowStop();}VT+=rdt;   // 最後一擊慢動作（離開戰鬥就收掉）
   DLG.update(rdt);   // 對話框的逐字、自動消失
   if(APP.screen!=='battle'){var gsn=APP.screen==='garden'?GARDEN:APP.screen==='fox'?WARD:TEAM;gsn.update(rdt,VT);if(APP.screen==='garden'){GARDEN.preRender(renderer);updateGardenHud();}
@@ -8325,7 +8367,7 @@ function frame(now){
   if(G.mode==='playing'){var evs=battle.tick(dt);if(!battle.halted())MECHS.forEach(function(m){var c=battle.boss[m.key];if(m.update&&c)m.update(battle,dt,SES.mech[m.key],c,board,evs);});   // 各機制每格要看 session、盤面的（鬼火：倒數、炸開）；最終戰金鈴讓血停住時（halted）也停
     evs.forEach(function(e){if(e.type==='charge')AudioFX.charge();MECHS.forEach(function(m){if(m.onEvent)m.onEvent(e,SES.mech[m.key],board);});MECH_VIEW_LIST.forEach(function(mv){if(mv.onEvent)mv.onEvent(e);});FINAL.onEvent(e);if(e.type==='attack'&&G.mode==='playing')onBossAttack(e);else if(e.type==='timeup'&&G.mode==='playing')onTimeUp();});}
   FINAL.update();   // 最終戰：一條血打空了 → 換段（放大招的特寫中先等）
-  if(VS.on)VS.update();   // 對戰（?versus）：連擊 → 干擾、KO 演出、結算、預告列
+  if(VS.on)VS.update(rdt);   // 對戰（?versus）：連擊 → 干擾、KO、結算、預告列
   BS.boss.charge(G.mode==='playing'&&battle.charging?Math.min(1,1-battle.atk/battle.boss.charge):0);
   if(G.mode==='timeup'&&!S.locked&&inflight===0)showResult(battle.bossHp<=0&&!battle.segBusy?'win':'time');   /* 最終戰：一條血打空在換段不算贏 */
   if(!S.locked&&battle.combo>0&&t-S.stableAt>A.comboReset){battle.combo=0;comboEl.classList.remove('show');}
@@ -8342,7 +8384,7 @@ function frame(now){
 function startLoop(){if(running)return;running=true;last$2=performance.now();raf=requestAnimationFrame(frame);}
 function stopLoop(){running=false;cancelAnimationFrame(raf);}
 document.addEventListener('visibilitychange',function(){
-  if(document.hidden){if(G.mode==='playing'||G.mode==='intro')pauseGame();else stopLoop();}
+  if(document.hidden){if((G.mode==='playing'||G.mode==='intro')&&!(VS.on&&VS.linked()))pauseGame();else stopLoop();}   /* 對戰雙畫面：不跳暫停面板（另一份不會停），只停畫面 */
   else if(G.mode!=='paused')startLoop();});
 
 // 信（letter.js，2026-09-29）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
@@ -8689,8 +8731,6 @@ var FINAL={
       e.foxes.forEach(function(j){var q=foxScreen(j);beam(bp.x,bp.y,q.x,q.y,L.cs*0.35,CHARMCOL,0.4);});   // 粉紅光打過去 → 被鈴彈開
       wait(0.25).then(function(){ring(e.foxes,true);});}},
   bellStory:bellStory,
-  // 對戰灰盒（versus/view.js）借用：g 這顆寶石照換段那套演一次（鏡頭推近 → 脹縮兩次 → 裂開、鏡頭彈回），裂開那一下 resolve
-  gem:function(g){zoomO=g?gemXY(g):{x:L.W/2,y:L.topH};zoomRun(SES);return wait(GEM_AT).then(function(){return breakGem(g);});},
   endingKind:function(){var q=APP.storyTest;if(q)return q.indexOf('l')<0?'normal':q.indexOf('b')>=0?'true':'nobell';
     if(!Save.data().story.letter)return 'normal';
     return savedBells().some(Boolean)?'true':'nobell';}
@@ -8749,33 +8789,44 @@ var ULTS={
   reset:function(){pend.length=0;}
 };
 
-// 對戰灰盒的流程和畫面（versus/view.js，2026-11-13 對戰支線灰盒第一步）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
-// 規則在 versus/core.js（不碰畫面）；這裡把「玩家這一邊」接到現成的戰鬥畫面上：
-//   入口：網址 ?versus（main.js 叫 VS.enable）。&foe=0～8 台上的對手借哪一關 BOSS 的長相（沒給就隨機）、&lv=1｜2｜3 電腦難度（預設 2）、
-//         &gb=combo｜move 干擾怎麼產生（VS_DEF.garbage.mode；沒給就照 VS_DEF 的預設）。
-//         不經庭院、不存檔、不記通關。沒有 ?versus 時這個檔什麼都不做（不建 DOM、不加 CSS）。
-//   VS.on            對戰模式開著嗎
+// 對戰的流程和畫面（versus/view.js，2026-11-13 對戰支線）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
+// 規則在 versus/core.js（不碰畫面）；這裡把「我這一邊」（一個 VsSide）接到現成的戰鬥畫面上。兩邊互傳的訊息在 docs/09b_versus_link.md。
+//   入口：網址 ?versus（main.js 叫 VS.enable）。沒有 ?versus 時這個檔什麼都不做（不建 DOM、不加 CSS）。不經庭院、不存檔、不記通關。
+//     &foe=0～8      台上的對手借哪一關 BOSS 的長相（沒給就隨機）
+//     &gb=combo｜move 干擾怎麼產生（VS_DEF.garbage.mode；沒給就照 VS_DEF 的預設）；&hp=數字 雙方的血（開發用，試短的場次）
+//     單頁模式（沒有 link）：另一邊是看不見的電腦（VsBot），用本地的線（VsLocal）直接接起來、它當裁判。&lv=1｜2｜3 電腦難度（預設 2）
+//     雙畫面（&link=parent&side=a｜b）：這一份是外面的殼裡的一個 iframe，訊息經過殼（window.parent.postMessage）、殼當裁判。
+//       載入好送 hello → 等殼的 start（同種子、倒數）才開打 → over 由殼宣布（自己的結算面板不跳）→ again 回到等 start。暫停鈕藏起來
+//     &auto=1｜2｜3   這一份由電腦下棋（真的盤面、真的動畫，照機器人的節奏走步、有大招就放）；&mute=1 這一份不出聲（不改存檔裡的靜音設定）
+//   VS.on            對戰模式開著嗎；VS.linked()＝雙畫面嗎；VS.hold()＝還在等 start／倒數（flow 的 beginBattle 珠子落完先不要開打）
 //   VS.foe()         借哪一關的長相（main.js 放進 APP.stage：場景、BOSS 模型、音樂都照那一關）
 //   VS.stage()       給 battle.reset 的對戰關卡（BOSS 不出手、沒有機制、無屬性）
-//   VS.begin()       beginBattle 開場叫：開一場新的對戰（新的 VsMatch、新的電腦），把 battle 的幾個方法換成走對戰規則的版本
-//   VS.update()      主迴圈每格叫：玩家的連擊 → 干擾、播這一格發生的事、KO 演出、打完跳結算、預告列和對手連擊數
-//   VS.moved(steps)  玩家走完一步、盤面停下來（flow 的 attemptSwap）：這一步消了幾組 → 干擾整批送（mode 'move'）
-//   VS.ult(key,i)    放大招時（flow 的 applyUlt）：這一招有對戰版就在這裡做、回傳 true（水狐：清掉自己預告列上的干擾）；沒有就回傳 false 照原版
+//   VS.begin()       beginBattle 開場叫：開一場新的，把 battle 的幾個方法換成走對戰規則的版本
+//   VS.warp(rdt)     主迴圈每格最前面叫：KO 的慢動作（這一格真實經過 rdt 秒 → 遊戲裡要走幾秒；整個畫面一起慢）
+//   VS.update(rdt)   主迴圈每格叫：我的連擊 → 干擾、播這一格發生的事、打完、預告列和對手連擊數、倒數
+//   VS.moved(steps)  我走完一步、盤面停下來（flow 的 attemptSwap）：這一步消了幾組 → 干擾整批送（mode 'move'）
+//   VS.ult(key,i)    放大招時（flow 的 applyUlt）：告訴對方；這一招有對戰版就在這裡做、回傳 true（水狐：清掉自己預告列上的干擾），沒有就回傳 false 照原版
 //   VS.ultDesc(key)  暫停面板的大招說明：對戰版不一樣的那幾招的字（沒有就 null）
-// 怎麼接的（flow.js 幾乎不用動）：畫面上的 BOSS 血條＝對手的血、隊伍血條＝我的血，血的真值在 VsMatch，每次變動抄回 battle.bossHp／teamHp（sync）。
-//   battle.hitBoss  我的光彈、大招打中 → VsMatch.damage(對手)。KO 那一下回傳 seg（flow 的 onShotHit 照最終戰換段那樣先慢動作）
-//   battle.heal／healPct  心珠、心狐大招 → VsMatch 補我的血（心珠、心狐大招都照對戰的比例）
+// 怎麼接的（flow.js 幾乎不用動）：畫面上的 BOSS 血條＝對方的血（聽來的，st 一到就更新）、隊伍血條＝我的血（真值在我的 VsSide），每次變動抄回 battle（sync）。
+//   battle.hitBoss  我的光彈、大招打中 → side.hit（送 atk 給對方；畫面先照預估扣，真的血量從她的 st 回來）
+//   battle.heal／healPct  心珠、心狐大招 → 補我的血（照對戰的比例）
 //   battle.shot／ultDamage  傷害公式照原版，只是連擊加成封頂（VS_DEF.comboCap；畫面上的連擊數照跳）
-//   board.rnd       我的盤面換成這一場種子的亂數流（跟電腦的盤面同一個種子：同一個開局、同一串補珠）
-//   battle.tick     打的時候每格：VsMatch.tick、電腦走一格；原版的 tick 照叫（加護倒數），但對戰關卡的 BOSS 不會出手
+//   battle.tick     打的時候每格：我的時鐘、預告列；單頁模式順便讓電腦走一格、裁判看時間；auto 模式在這裡下棋。原版的 tick 照叫（加護倒數），但對戰關卡的 BOSS 不會出手
+//   board.rnd       我的盤面換成這一場種子的亂數流（跟對方的盤面同一個種子：同一個開局、同一串補珠）
 //   落在我盤面上的鎖：借鎖鏈那一包（SES.mech.lock.pending），盤面停下來時主迴圈照原本的流程放上去、播原本的動畫
 //   我被 KO 清鎖：借水狐變奏的 SES.pendingUnlock（盤面停下來後全部解開）
-var on=false,foe=0,lv=2,match=null,bot=null;
-var koPending=false,koBusy=false,endShown=false,foeShow=null,lastCombo=0,shieldOn=false;   // koPending：我 KO 了她、還沒開始演；koBusy：正在演；foeShow：演出中血條上顯示的血（null＝照真的）；lastCombo：上一格我的連擊數
-var warnEl=null,warnFxEl=null,foeEl=null,flashEl=null,myGemsEl=null,warnKey='',foeKey='';
-var FOE_COL=new THREE.Color(0xc9a0ff),KO_FILL=0.8,WARN_MAX=10;   // KO_FILL：KO 之後她的血條花幾秒補滿；WARN_MAX：預告列最多畫幾個圖示（再多寫 +n）
+// KO（CK 2026-11-13：即時對戰不要被硬控）：不拉鏡頭、不整場暫停。被 KO 的那一份＝自己的隊伍血條旁碎一顆寶石＋紅閃；
+//   KO 人的那一份＝BOSS 血條旁同時碎一顆。兩邊都進一小段慢動作（VS_DEF.ko.slow：真實 0.6 秒、0.3 倍速，然後直接回正常），血條 ko.fill 秒補滿，照樣可以動。
+//   大大的 KO 字雙畫面時由殼畫在中間；單頁模式這裡跳橫幅。
+var on=false,foe=0,lv=2,myId='a',linked=false,auto=0,mute=false;
+var side=null,local=null,bot=null;   // side：我這一邊；local／bot：單頁模式的本地線（＋裁判）和看不見的電腦
+var held=false,waiting=false,countLeft=0,seedNext=null,helloSent=false;   // 雙畫面：held＝還不能開打（等 start、倒數中）；waiting＝在等殼的 start；countLeft＝倒數還剩幾秒；seedNext＝殼給的種子
+var endShown=false,foeShow=null,myShow=null,lastCombo=0,shieldOn=false,hurt=null;   // foeShow／myShow：補血動畫中血條上顯示的血（null＝照真的）；hurt：這一格挨的打（加總成一個數字）
+var autoWait=null,autoRnd=null;   // auto：盤面停下來之後還要想幾秒、它挑步用的亂數
+var warnEl=null,warnFxEl=null,foeEl=null,flashEl=null,myGemsEl=null,countEl=null,warnKey='',foeKey='',countKey='';
+var FOE_COL=new THREE.Color(0xc9a0ff),GEM_COL=new THREE.Color(0xe9d8ff),MY_GEM_COL=new THREE.Color(0xffb0c8),WARN_MAX=10;   // WARN_MAX：預告列最多畫幾個圖示（再多寫 +n）
 var CSS=[
-  'html.versus #bossCd,html.versus #homeBtn,html.versus #homeBtn2{display:none!important}',
+  'html.versus #bossCd,html.versus #homeBtn,html.versus #homeBtn2,html.vslink #pauseBtn{display:none!important}',
   '#vsWarn,#vsWarnFx{position:absolute;left:50%;top:-12px;transform:translateX(-50%);display:flex;gap:4px;align-items:center;pointer-events:none;white-space:nowrap}',
   '.vl{position:relative;display:block;width:22px;height:19px;border-radius:4px;background:linear-gradient(#7d55d6,#4a2a96);border:1px solid #d9bcff;box-shadow:0 0 7px rgba(154,92,255,.95)}',
   '.vl::before{content:"";position:absolute;left:5px;top:-7px;width:8px;height:7px;border:2px solid #d9bcff;border-bottom:0;border-radius:6px 6px 0 0}',
@@ -8791,111 +8842,144 @@ var CSS=[
   '#vsFlash.on{animation:vsFlash .8s ease-out}',
   '@keyframes vsFlash{0%{opacity:0}12%{opacity:1}100%{opacity:0}}',
   '.vsGems{display:inline-flex;gap:6px;align-items:center;margin-left:8px;vertical-align:middle}',
-  '.vsGems i{display:block;width:7px;height:7px;transform:rotate(45deg);background:#ffd6e4;border:1px solid #f2d68a;box-shadow:0 0 6px rgba(255,150,190,.95);transition:transform .35s,opacity .35s}',
-  '.vsGems i.gone{transform:rotate(45deg) scale(.1);opacity:0}',
+  '.vsGems i{display:block;width:7px;height:7px;transform:rotate(45deg);background:#ffd6e4;border:1px solid #f2d68a;box-shadow:0 0 6px rgba(255,150,190,.95);transition:transform .25s,opacity .25s}',
+  '.vsGems i.gone,html.versus .brow .gems i.gone{transform:rotate(45deg) scale(2.6);opacity:0}',   /* 碎掉：脹大、淡掉（原版是縮小） */
   '#teambar.vsInv .bar,#bossbar.vsInv .bar{animation:vsInv .2s steps(2) infinite}',
-  '@keyframes vsInv{to{opacity:.45}}'
+  '@keyframes vsInv{to{opacity:.45}}',
+  '#vsCount{position:absolute;left:0;right:0;top:38%;text-align:center;pointer-events:none;font-size:72px;font-weight:700;color:#fff3c8;text-shadow:0 0 22px rgba(255,190,90,.95),0 3px 6px rgba(0,0,0,.7);opacity:0}',
+  '#vsCount.show{opacity:1}#vsCount.wait{font-size:20px;letter-spacing:.2em;color:#e9d8ff;text-shadow:0 2px 5px rgba(0,0,0,.8)}'
 ].join('\n');
 function mkEl(tag,id,cls,parent){var el=document.createElement(tag);if(id)el.id=id;if(cls)el.className=cls;parent.appendChild(el);return el;}
-// 只在 ?versus 時叫一次：讀網址、加 CSS、建預告列／對手連擊數／紅閃／我的 KO 寶石
-function enable(qs){var f=/[?&]foe=(\d+)/.exec(qs),v=/[?&]lv=([123])/.exec(qs),gb=/[?&]gb=(combo|move)/.exec(qs),n=CONFIG.stages.length;on=true;if(gb)VS_DEF.garbage.mode=gb[1];
-  foe=f?Math.min(n-1,+f[1]):(Math.random()*n)|0;lv=v?+v[1]:2;
-  document.documentElement.classList.add('versus');mkEl('style','vsCss','',document.head).textContent=CSS;
+// 只在 ?versus 時叫一次：讀網址、加 CSS、建預告列／對手連擊數／紅閃／我的 KO 寶石／倒數；雙畫面時開始聽殼的訊息
+function enable(qs){var f=/[?&]foe=(\d+)/.exec(qs),v=/[?&]lv=([123])/.exec(qs),gb=/[?&]gb=(combo|move)/.exec(qs),hp=/[?&]hp=(\d+)/.exec(qs),sd=/[?&]side=([ab])/.exec(qs),au=/[?&]auto=([123])/.exec(qs),n=CONFIG.stages.length;
+  on=true;if(gb)VS_DEF.garbage.mode=gb[1];if(hp)VS_DEF.hp=Math.max(100,+hp[1]);
+  foe=f?Math.min(n-1,+f[1]):(Math.random()*n)|0;lv=v?+v[1]:2;myId=sd?sd[1]:'a';auto=au?+au[1]:0;linked=/[?&]link=parent(&|$)/.test(qs);mute=/[?&]mute=1(&|$)/.test(qs);
+  document.documentElement.classList.add('versus');if(linked)document.documentElement.classList.add('vslink');mkEl('style','vsCss','',document.head).textContent=CSS;
   warnEl=mkEl('div','vsWarn','',teamBarEl);warnFxEl=mkEl('div','vsWarnFx','',teamBarEl);
-  foeEl=mkEl('div','vsFoe','hud bhud',frameEl);flashEl=mkEl('div','vsFlash','',frameEl);
+  foeEl=mkEl('div','vsFoe','hud bhud',frameEl);flashEl=mkEl('div','vsFlash','',frameEl);countEl=mkEl('div','vsCount','',frameEl);
   var chips=document.getElementById('chips');myGemsEl=document.createElement('span');myGemsEl.className='vsGems';chips.parentNode.insertBefore(myGemsEl,chips);
-  document.getElementById('againBtn').textContent='再來一局';}
+  document.getElementById('againBtn').textContent='再來一局';
+  if(mute){var keep=null;try{keep=localStorage.getItem('fox3-muted');}catch(_){}AudioFX.setMuted(true);   // 這一份不出聲；存檔裡的靜音設定放回原樣（兩個 iframe 共用同一份）
+    try{if(keep==null)localStorage.removeItem('fox3-muted');else localStorage.setItem('fox3-muted',keep);}catch(_){}}
+  side=new VsSide(VS_DEF,myId);side.hooks={idle:function(){return G.mode==='playing'&&!S.locked;},
+    locked:function(){return lockedNow()+SES.mech.lock.pending;},
+    lock:function(k){SES.mech.lock.pending+=k;return k;},
+    clearLocks:function(){SES.mech.lock.pending=0;SES.pendingUnlock=true;},
+    addEnergy:function(e){for(var i=0;i<battle.energy.length;i++)battle.addEnergy(i,e);},
+    resetCombo:function(){battle.combo=0;lastCombo=0;comboEl.classList.remove('show');}};
+  if(linked){waiting=true;side.out=function(msg){window.parent.postMessage(msg,'*');};window.addEventListener('message',onMsg);}}
+// 雙畫面：殼轉來的訊息（對方的 atk／gb／st／ko／ult、殼自己的 start／over／again）
+function onMsg(e){var d=e.data;if(!d||d.vs!==1||d.from===myId||!side)return;
+  if(d.type==='start'){seedNext=d.seed;waiting=false;countLeft=Math.max(0,+d.count||0);startTrial();}   // 同一個種子重開一場（beginBattle → begin），倒數完才開打
+  else if(d.type==='again'){waiting=true;countLeft=0;held=true;side.reset();G.mode='intro';S.sel=null;S.hint=null;showPanel(null);}   // 回到等 start
+  else side.recv(d);}
 function lockedNow(){var n=0;board.g.forEach(function(row){row.forEach(function(o){if(o&&o.locked)n++;});});return n;}
-// 血的真值在 VsMatch；畫面讀的是 battle 上的數字
-function sync(){var a=match.sides[0],b=match.sides[1];battle.teamMax=a.max;battle.teamHp=a.hp;battle.bossMax=b.max;battle.bossHp=foeShow==null?b.hp:foeShow;}
+// 我的血的真值在 side；對方的血是聽來的（side.opp）；畫面讀的是 battle 上的數字
+function sync(){var o=side.opp;battle.teamMax=side.max;battle.teamHp=myShow==null?side.hp:myShow;battle.bossMax=o.max;battle.bossHp=foeShow==null?Math.max(0,o.hp):foeShow;}
 function gemsHtml(left){var h='';for(var k=0;k<VS_DEF.koWin;k++)h+='<i'+(k<left?'':' class="gone"')+'></i>';return h;}
 function lastGem(el){var list=el.querySelectorAll('i:not(.gone)');return list[list.length-1]||null;}
 function teamY(){return L.teamY+L.teamH*0.88;}
-// 心狐的護盾（battle.shield，flow 的大招設的）：擋掉她下一次打我的一半。掛到 VsMatch 我這邊的 shield 上；被用掉了就把 battle.shield 收掉
-function shieldSync(b,me){if(shieldOn&&!me.shield){b.shield=false;shieldOn=false;}if(b.shield&&!shieldOn){me.shield=CONFIG.ult.heart.shield;shieldOn=true;}}
-function begin(){var st=CONFIG.stages[foe];match=new VsMatch(VS_DEF);bot=new VsBot(match,1,lv);
-  match.sides[0].hooks={idle:function(){return G.mode==='playing'&&!S.locked;},
-    locked:function(){return lockedNow()+SES.mech.lock.pending;},
-    lock:function(n){SES.mech.lock.pending+=n;return n;},
-    clearLocks:function(){SES.mech.lock.pending=0;SES.pendingUnlock=true;},
-    addEnergy:function(v){for(var i=0;i<battle.energy.length;i++)battle.addEnergy(i,v);},
-    resetCombo:function(){battle.combo=0;lastCombo=0;comboEl.classList.remove('show');}};
-  board.rnd=vsRng(match.seed);   // 我的盤面：這一場的種子（接下來 dropInBoard 的開局、之後的補珠都從這條亂數流拿）
-  SES.ULT_SEL=[0,0,0,0,0,0];   // 灰盒：六隻狐狸都放原版大招（不看存檔帶的變奏）
-  koPending=koBusy=endShown=shieldOn=false;foeShow=null;lastCombo=0;warnKey=foeKey='';warnEl.innerHTML=warnFxEl.innerHTML='';foeEl.className='hud bhud';flashEl.classList.remove('on');
+function elXY(el){var r=el.getBoundingClientRect(),f=frameEl.getBoundingClientRect();return {x:r.left+r.width/2-f.left,y:r.top+r.height/2-f.top};}
+// 心狐的護盾（battle.shield，flow 的大招設的）：擋掉她下一次打我的一半。掛到我這邊的 shield 上；被用掉了就把 battle.shield 收掉
+function shieldSync(b){if(shieldOn&&!side.shield){b.shield=false;shieldOn=false;}if(b.shield&&!shieldOn){side.setShield(CONFIG.ult.heart.shield);shieldOn=true;}}
+// auto：這一份由電腦下棋。盤面停下來之後想一下（跟 VsBot 同一個節奏），有大招就放、不然隨機挑一步能消的走
+function autoStep(dt){var b=VS_DEF.bot;if(S.locked||G.mode!=='playing'){autoWait=null;return;}
+  if(autoWait==null)autoWait=b.think[auto-1]*(b.jitter[0]+autoRnd()*(b.jitter[1]-b.jitter[0]));
+  autoWait-=dt;if(autoWait>0)return;autoWait=null;
+  for(var i=0;i<battle.energy.length;i++)if(battle.energy[i]>=CONFIG.ult.max&&tryUlt(i))return;
+  var mv=vsMoves(board);if(!mv.length)return;var p=mv[(autoRnd()*mv.length)|0];attemptSwap(p[0],p[1],p[2],p[3]);}
+function begin(){var st=CONFIG.stages[foe],seed=seedNext!=null?seedNext:(Math.random()*2147483646)|0;seedNext=null;
+  if(linked){held=true;if(waiting)side.reset();else side.start(seed);}   // 雙畫面：等 start 的時候先擺著（不算開打）
+  else {held=false;local=new VsLocal(VS_DEF);local.join(side);bot=new VsBot(local.join(new VsSide(VS_DEF,myId==='a'?'b':'a')),lv);bot.start(seed);side.start(seed);}
+  board.rnd=vsRng(seed);autoRnd=vsRng(seed*31+17+(myId==='a'?0:7919));autoWait=null;   // 我的盤面：這一場的種子（接下來 dropInBoard 的開局、之後的補珠都從這條亂數流拿）
+  SES.ULT_SEL=[0,0,0,0,0,0];   // 六隻狐狸都放原版大招（不看存檔帶的變奏）
+  endShown=shieldOn=false;foeShow=myShow=hurt=null;lastCombo=0;warnKey=foeKey='';warnEl.innerHTML=warnFxEl.innerHTML='';foeEl.className='hud bhud';flashEl.classList.remove('on');
   // battle 的這幾個方法換成走對戰規則的（只換這一個物件；Battle 本身、別的 Battle 都不動）
-  battle.hitBoss=function(d){var r=match.damage(1,d);if(r.dealt<=0)return {killed:false,enraged:false,dealt:0};
-    this.total+=r.dealt;if(r.ko){koPending=true;foeShow=0;}sync();
-    return {killed:false,enraged:false,dealt:r.dealt,seg:r.ko};};   // seg：flow 的 onShotHit 當成「一條血打空」→ 最後一擊慢動作
-  battle.heal=function(hearts){var got=match.heal(0,hearts);sync();return got;};
-  battle.healPct=function(){var got=match.gain(0,Math.round(match.sides[0].max*VS_DEF.ult.heal));sync();return got;};   // 只有心狐大招會叫：對戰版回 VS_DEF.ult.heal
+  battle.hitBoss=function(d){var r=side.hit(d,-1);if(r.dealt<=0)return {killed:false,enraged:false,dealt:0};
+    this.total+=r.dealt;sync();return {killed:false,enraged:false,dealt:r.dealt};};
+  battle.heal=function(hearts){var got=side.heal(hearts);sync();return got;};
+  battle.healPct=function(){var got=side.gain(Math.round(side.max*VS_DEF.ult.heal));sync();return got;};   // 只有心狐大招會叫：對戰版回 VS_DEF.ult.heal
   battle.shot=function(type,n,S2){var b=this;return vsCapped(b,VS_DEF.comboCap,function(){return Battle.prototype.shot.call(b,type,n,S2);});};   // 連擊加成封頂
   battle.ultDamage=function(type,alt){var b=this;return vsCapped(b,VS_DEF.comboCap,function(){return Battle.prototype.ultDamage.call(b,type,alt);});};   // 火狐、影襲也照封頂的連擊數
-  battle.tick=function(dt){var me=match.sides[0];Battle.prototype.tick.call(this,dt);
-    shieldSync(this,me);match.tick(dt);bot.tick(dt);shieldSync(this,me);
-    this.time=match.left();sync();return [];};   // 原版 tick 的事件（BOSS 攻擊、時間到）對戰都不用
-  bossBarEl.querySelector('.name').textContent=st.name+' Lv'+lv;var at=bossBarEl.querySelector('.attr');at.textContent='無';at.className='attr a-none';
+  battle.tick=function(dt){Battle.prototype.tick.call(this,dt);   // 原版 tick 的事件（BOSS 攻擊、時間到）對戰都不用
+    shieldSync(this);side.tick(dt);if(bot){bot.s.slow=0;bot.tick(dt);}   /* 電腦跟我同一個時鐘走（dt 已經是慢動作換算過的，它自己的 slow 不用再算） */if(local)local.tick();shieldSync(this);
+    if(auto)autoStep(dt);this.time=side.left();sync();return [];};
+  bossBarEl.querySelector('.name').textContent=st.name+(linked?'':' Lv'+lv);var at=bossBarEl.querySelector('.attr');at.textContent='無';at.className='attr a-none';
   bossBarEl.classList.add('segs');bossBarEl.querySelector('.gems').innerHTML=gemsHtml(VS_DEF.koWin);myGemsEl.innerHTML=gemsHtml(VS_DEF.koWin);   // 寶石＝還能被 KO 幾次
-  bossBarEl.classList.remove('vsInv');teamBarEl.classList.remove('vsInv');battle.time=match.left();sync();}
+  bossBarEl.classList.remove('vsInv');teamBarEl.classList.remove('vsInv');battle.time=side.left();sync();
+  if(linked&&!helloSent){helloSent=true;side.send('hello',{ver:1,card:{name:auto?'電腦 Lv'+auto:'玩家',look:null}});}}   // 載入好了：告訴殼（名帖之後才有，先放名字）
 // ---- 這一格發生的事 ----
-function foeAct(e){if(e.dmg<=0&&!e.blocked)return;var bp=bossScreen(),to={x:L.W/2+rand(-L.W*0.2,L.W*0.2),y:teamY()},col=e.orb>=0?typeColor(e.orb):FOE_COL;
+function foeAct(e){var bp=bossScreen(),to={x:L.W/2+rand(-L.W*0.2,L.W*0.2),y:teamY()},col=e.orb>=0?typeColor(e.orb):FOE_COL;
   BS.boss.attack();beam(bp.x,bp.y,to.x,to.y,L.cs*0.3,col,0.32);ringFx(to.x,to.y,L.cs*0.25,L.cs*0.9,col,0.3);AudioFX.hit(false);if(e.blocked)AudioFX.shield();
   addShake(Math.min(9,2+e.dmg/120));teamBarEl.classList.remove('shake');void teamBarEl.offsetWidth;teamBarEl.classList.add('shake');
-  popNum(to.x,to.y-8,'-'+e.dmg,'team',e.blocked?'護盾擋下 '+e.blocked:'');updateBars();}
-function myKo(e){var g=lastGem(myGemsEl),p={x:L.W/2,y:teamY()};if(g)g.classList.add('gone');
+  popNum(to.x,to.y-8,'-'+e.dmg,'team',e.blocked?'護盾擋下 '+e.blocked:'');}
+// 寶石碎掉：原地脹大淡掉、碎片光點噴開、一圈光、玻璃聲
+function shatterGem(g,col){if(!g)return;var q=elXY(g);g.classList.add('gone');AudioFX.glass();ringFx(q.x,q.y,L.cs*0.15,L.cs*1.5,WHITE$1,0.4);
+  for(var k=0;k<14;k++){var a=k/14*Math.PI*2+0.2*(k%2),sp=L.cs*(1.4+0.5*(k%3));emit(q.x,q.y,Math.cos(a)*sp,Math.sin(a)*sp,0.55,L.cs*(k%2?0.07:0.11),k%3?col:WHITE$1,L.cs*3.5);}}
+// 血條 ko.fill 秒從 0 補滿（只是畫面：血當下就滿了）。set(v)：把顯示的血設成 v（null＝照真的）
+function refill(max,set){var ses=SES;set(0);sync();updateBars();AudioFX.refill(VS_DEF.ko.fill);
+  tween(VS_DEF.ko.fill,function(v){if(SES!==ses)return;set(Math.round(max*v));sync();updateBars();}).then(function(){if(SES!==ses)return;set(null);sync();updateBars();});}
+// 我被 KO（主要的表演在這一份）：隊伍血條旁碎一顆寶石、紅閃、狐狸挨打、血條補滿
+function myDown(e){var p={x:L.W/2,y:teamY()},last=e.n>=VS_DEF.koWin;shatterGem(lastGem(myGemsEl),MY_GEM_COL);
   flashEl.classList.remove('on');void flashEl.offsetWidth;flashEl.classList.add('on');AudioFX.bossAttack();addShake(14);BS.foxes.forEach(function(f){f.hit();});
-  ringFx(p.x,p.y,L.cs*0.5,L.cs*4,new THREE.Color(0xff6a8a),0.6);showBanner('被 KO 了！　'+e.kos+'／'+VS_DEF.koWin);updateBars();}
+  ringFx(p.x,p.y,L.cs*0.5,L.cs*4,new THREE.Color(0xff6a8a),0.6);if(!linked)showBanner('被 KO 了！　'+e.n+'／'+VS_DEF.koWin);
+  if(!last)refill(side.max,function(v){myShow=v;});}
+// 我 KO 了她：BOSS 血條旁同時碎一顆、她震一下、血條補滿；第 koWin 次＝她倒下（勝負等裁判宣布）
+function foeDown(e){var bp=bossScreen(),last=e.n>=VS_DEF.koWin;shatterGem(lastGem(bossBarEl.querySelector('.gems')),GEM_COL);
+  BS.boss.hit();addShake(10);ringFx(bp.x,bp.y,L.cs*0.6,L.cs*4,WHITE$1,0.5);AudioFX.lastHit(true);if(!linked)showBanner('K.O.！　'+e.n+'／'+VS_DEF.koWin);
+  if(last){foeShow=0;sync();BS.boss.defeat();}else refill(side.opp.max,function(v){foeShow=v;});}
 function breakWarn(n){for(var k=0;k<Math.min(n,WARN_MAX);k++){var el=mkEl('i','','vl broke',warnFxEl);(function(el){setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},480);})(el);}}
 function onEv(e){var bp=bossScreen(),g=VS_DEF.garbage,wy=teamY()-L.tbH;
-  if(e.type==='act'&&e.side===1)foeAct(e);
-  else if(e.type==='send'&&e.from===1){BS.boss.attack();AudioFX.charge();ringFx(L.W/2,wy,L.cs*0.3,L.cs*1.4,FOE_COL,0.35);}   // 她送干擾過來：預告列多幾個鎖
-  else if(e.type==='send'&&e.from===0)popNum(bp.x,bp.y-L.cs*0.6,'鎖 ×'+e.n*g.locks,'water','送出干擾');
-  else if(e.type==='cancel'&&e.side===0){breakWarn(e.n);AudioFX.unlock();popNum(L.W/2,wy-4,'抵銷 ×'+e.n,'heal','');}   // 我的連擊把預告列上的鎖打掉
-  else if(e.type==='cancel'&&e.side===1)popNum(bp.x,bp.y-L.cs*0.6,'抵銷','down','');
-  else if(e.type==='wipe'&&e.side===0){breakWarn(e.n);AudioFX.unlock();}   // 水狐大招清掉預告列上的鎖
-  else if(e.type==='drop'&&e.to===1&&e.locks>0)popNum(bp.x,bp.y-L.cs*0.2,'鎖住 '+e.locks+' 顆','down','');   // 灰盒沒有小盤面：用字講她被鎖了
+  if(e.type==='hurt'){if(!hurt)hurt={dmg:0,blocked:0,orb:-1};hurt.dmg+=e.dmg;hurt.blocked+=e.blocked;if(e.orb>=0)hurt.orb=e.orb;}   // 這一格挨的打加總成一個數字
+  else if(e.type==='incoming'){BS.boss.attack();AudioFX.charge();ringFx(L.W/2,wy,L.cs*0.3,L.cs*1.4,FOE_COL,0.35);}   // 她送干擾過來：預告列多幾個鎖
+  else if(e.type==='send')popNum(bp.x,bp.y-L.cs*0.6,'鎖 ×'+e.n*g.locks,'water','送出干擾');
+  else if(e.type==='cancel'){breakWarn(e.n);AudioFX.unlock();popNum(L.W/2,wy-4,'抵銷 ×'+e.n,'heal','');}   // 我的連擊把預告列上的鎖打掉
+  else if(e.type==='wipe'){breakWarn(e.n);AudioFX.unlock();}   // 水狐大招清掉預告列上的鎖
   else if(e.type==='rage'){showBanner('決勝時刻！傷害 ×'+e.mul);AudioFX.enrage();}
-  else if(e.type==='ko'&&e.to===0)myKo(e);}
-// ---- 我 KO 她：最後一擊慢動作（flow.js）演完 → 她的寶石碎一顆（最終戰那套，FINAL.gem）→ 血條補滿繼續；第 koWin 次＝打贏 ----
-function koShow(){var ses=SES,win=!!match.over,g=lastGem(bossBarEl.querySelector('.gems'));koBusy=true;G.mode='intro';S.sel=null;S.hint=null;BS.boss.hit();addShake(5);
-  FINAL.gem(g).then(function(){if(SES!==ses)return null;var bp=bossScreen();addShake(12);ringFx(bp.x,bp.y,L.cs*0.6,L.cs*4,WHITE$1,0.6);
-    if(win){koBusy=false;endShown=true;G.mode='won';BS.boss.defeat();showBanner('K.O.！');after(1.4,function(){if(SES===ses)result();});return null;}
-    showBanner('K.O.！　'+match.sides[0].kos+'／'+VS_DEF.koWin);AudioFX.refill(KO_FILL);
-    return tween(KO_FILL,function(v){foeShow=Math.round(match.sides[1].max*v);sync();updateBars();}).then(function(){if(SES!==ses)return;
-      foeShow=null;koBusy=false;sync();updateBars();if(G.mode==='intro')G.mode='playing';});});}
-// 簡單結算：勝／敗、雙方 KO 數、我的最高連擊、再來一局
-function pct(s){return Math.round(s.hp/s.max*100)+'%';}
-function result(){var o=match.over,a=match.sides[0],b=match.sides[1],w=o.winner;G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
+  else if(e.type==='oppUlt'){var u=CONFIG.ult[['fire','water','wood','light','dark','heart'][e.fox]];if(u)popNum(bp.x,bp.y-L.cs*1.2,u.name,'ult','對手的大招');}
+  else if(e.type==='down')myDown(e);
+  else if(e.type==='ko')foeDown(e);
+  else if(e.type==='timeout'&&G.mode!=='result'){G.mode='intro';S.sel=null;S.hint=null;showBanner('時間到');}}   // 我的時鐘到了：停住，等裁判宣布
+// 簡單結算（單頁模式；雙畫面由殼顯示）：勝／敗、雙方 KO 數、我的最高連擊、再來一局
+function pct(hp,max){return Math.round(Math.max(0,hp)/max*100)+'%';}
+function result(){var o=side.over,p=side.opp,w=o.winner==='draw'?-1:o.winner===myId?0:1,mine=p.ko,hers=side.downs;G.mode='result';S.sel=null;S.hint=null;comboEl.classList.remove('show');
   if(w===0)AudioFX.win();else AudioFX.lose();
   document.getElementById('rTitle').textContent=w===0?'勝利':w===1?'失敗':'平手';
-  document.getElementById('rSub').textContent=o.by==='ko'?(w===0?'把對手 KO 了 '+a.kos+' 次':'被對手 KO 了 '+b.kos+' 次'):
-    '時間到，'+(a.kos!==b.kos?'KO 多的贏':w<0?'KO 和剩下的血都一樣':'KO 一樣多，比剩下的血（'+pct(a)+'：'+pct(b)+'）');
-  document.getElementById('rDrop').textContent='KO　我 '+a.kos+'：'+b.kos+' 對手';
+  document.getElementById('rSub').textContent=o.by==='ko'?(w===0?'把對手 KO 了 '+mine+' 次':'被對手 KO 了 '+hers+' 次'):
+    '時間到，'+(mine!==hers?'KO 多的贏':w<0?'KO 和剩下的血都一樣':'KO 一樣多，比剩下的血（'+pct(side.hp,side.max)+'：'+pct(p.hp,p.max)+'）');
+  document.getElementById('rDrop').textContent='KO　我 '+mine+'：'+hers+' 對手';
   document.getElementById('rDmg').textContent=battle.total.toLocaleString('zh-TW');
   document.getElementById('rCombo').textContent=battle.maxCombo;
-  document.getElementById('rTime').textContent=Math.ceil(match.left())+' 秒';
+  document.getElementById('rTime').textContent=Math.ceil(side.left())+' 秒';
   showPanel('result');}
 // 預告列：一個干擾一個小鎖，上面的數字＝還有幾秒落下（到期了在等盤面停＝！）
 function drawWarn(){var key='',h='',n=0;
-  match.sides[0].queue.forEach(function(e){var t=Math.max(0,Math.ceil(e.t));for(var k=0;k<e.n;k++){if(++n>WARN_MAX)continue;key+=t+',';h+='<i class="vl'+(t<=1?' hot':'')+'"><b>'+(t>0?t:'!')+'</b></i>';}});
+  side.queue.forEach(function(e){var t=Math.max(0,Math.ceil(e.t));for(var k=0;k<e.n;k++){if(++n>WARN_MAX)continue;key+=t+',';h+='<i class="vl'+(t<=1?' hot':'')+'"><b>'+(t>0?t:'!')+'</b></i>';}});
   if(n>WARN_MAX){key+='+'+(n-WARN_MAX);h+='<em>+'+(n-WARN_MAX)+'</em>';}
   if(key!==warnKey){warnKey=key;warnEl.innerHTML=h;}}
 // 對手現在幾連擊：顯示在她頭上（原本 BOSS 攻擊倒數的位置）
-function drawFoe(){var c=bot.bt.combo,show=c>=2&&(G.mode==='playing'||G.mode==='intro'||G.mode==='ult'||G.mode==='paused'),key=show?String(c):'';
+function drawFoe(){var c=side.opp.combo,show=c>=2&&side.live&&!side.over&&(G.mode==='playing'||G.mode==='intro'||G.mode==='ult'||G.mode==='paused'),key=show?String(c):'';
   if(show){var p=toScreen(BS.bossPoint(-1.05,1.8));foeEl.style.left=p.x+'px';foeEl.style.top=p.y+'px';}
   if(key!==foeKey){foeKey=key;if(show)foeEl.textContent=c+' 連'+(c>=10?'！！':c>=5?'！':'');foeEl.className='hud bhud'+(show?' show':'')+(c>=10?' t10':c>=5?' t5':'');}}
-function update(){if(!on||!match)return;
-  if(!match.over&&battle.combo!==lastCombo){lastCombo=battle.combo;match.setCombo(0,battle.combo);}   // 我的連擊變了（變多、歸零）→ 照連擊數產生干擾
-  if(match.ev.length){var evs=match.ev.splice(0);evs.forEach(onEv);}
-  if((koPending||koBusy)&&!S.locked)S.stableAt=S.time;   // KO 演出中我的連擊不倒數（電腦那邊整個停住，連擊也沒斷；演完從頭算 2 秒）
-  if(koPending){if(G.mode==='playing'&&slowOn())G.mode='intro';   // KO 那一下的慢動作還在演：盤面先停住（電腦、時間也停）
-    if((G.mode==='playing'||G.mode==='intro')&&!slowOn()){koPending=false;koShow();}}   /* 慢動作演完才碎寶石；放大招的特寫中（'ult'）先等 */
-  else if(match.over&&!endShown&&!koBusy&&G.mode!=='ult'&&G.mode!=='paused'){var ses=SES,w=match.over.winner;endShown=true;   // 時間到、或我被 KO 滿了：停下來，等一下跳結算
-    G.mode=w===0?'won':'lost';S.sel=null;S.hint=null;if(match.over.by==='time')showBanner('時間到');after(1.3,function(){if(SES===ses)result();});}
-  bossBarEl.classList.toggle('vsInv',match.sides[1].invuln>0&&!koBusy&&!match.over);teamBarEl.classList.toggle('vsInv',match.sides[0].invuln>0&&!match.over);
-  drawWarn();drawFoe();}
-// 水狐「潮汐封印」的對戰版：清掉自己預告列上最多 VS_DEF.ult.clear 個干擾（原版的「BOSS 攻擊倒數延後」在對戰沒有東西可以延後）
-function ult(key){if(key!=='water')return false;var n=match.wipe(0,VS_DEF.ult.clear),x=L.W/2,y=teamY()-L.tbH,col=typeColor(1);
+// 雙畫面：等殼的 start 時寫「等待對手」；倒數時跳大數字
+function drawCount(){var key=!linked||side.over?'':waiting?'w':countLeft>0?String(Math.ceil(countLeft)):'';
+  if(key!==countKey){countKey=key;countEl.textContent=key==='w'?'等待對手…':key;countEl.className=key?'show'+(key==='w'?' wait':''):'';}}
+function update(rdt){if(!on||!side)return;var gems=bossBarEl.querySelectorAll('.gems i:not(.gone)').length;
+  if(held&&!waiting){countLeft=Math.max(0,countLeft-rdt);   // 雙畫面：倒數完、珠子也落好了才開打
+    if(countLeft<=0&&side.live&&G.mode==='intro'&&!S.locked){held=false;G.mode='playing';S.lastAct=S.time;}}
+  if(side.active()&&battle.combo!==lastCombo){lastCombo=battle.combo;side.setCombo(battle.combo);}   // 我的連擊變了（變多、歸零）→ 告訴對方、照連擊數產生干擾（mode 'combo'）
+  if(side.ev.length){var evs=side.ev.splice(0);evs.forEach(onEv);}
+  if(hurt){foeAct(hurt);hurt=null;}
+  if(bot)bot.s.ev.length=0;
+  sync();if(side.opp.ko<VS_DEF.koWin&&gems!==VS_DEF.koWin-side.opp.ko&&foeShow==null)bossBarEl.querySelector('.gems').innerHTML=gemsHtml(VS_DEF.koWin-side.opp.ko);   /* 寶石數跟聽來的對不上（漏了訊息）：照 st 補正 */
+  updateBars();
+  if(side.over&&!endShown&&G.mode!=='ult'&&G.mode!=='paused'){var ses=SES,w=side.over.winner;endShown=true;   // 裁判宣布了：停下來；單頁模式等一下跳結算，雙畫面由殼顯示
+    G.mode=w===myId?'won':'lost';S.sel=null;S.hint=null;comboEl.classList.remove('show');
+    if(linked)showBanner(w===myId?'勝利！':w==='draw'?'平手':'落敗…');else after(1.3,function(){if(SES===ses)result();});}
+  bossBarEl.classList.toggle('vsInv',side.opp.inv&&foeShow==null&&!side.over);teamBarEl.classList.toggle('vsInv',side.invuln>0&&!side.over);
+  drawWarn();drawFoe();drawCount();}
+// 放大招：告訴對方（先給顯示用）。水狐「潮汐封印」的對戰版：清掉自己預告列上最多 VS_DEF.ult.clear 個干擾（原版的「BOSS 攻擊倒數延後」在對戰沒有東西可以延後）
+function ult(key,i){side.send('ult',{fox:i});if(key!=='water')return false;var n=side.wipe(VS_DEF.ult.clear),x=L.W/2,y=teamY()-L.tbH,col=typeColor(1);
   for(var w=0;w<3;w++)(function(w){after(w*0.1,function(){ringFx(x,y,L.cs*0.3,L.cs*(1.6+w*0.7),col,0.45);});})(w);
   popNum(x,y-6,n?'清掉 '+n+' 個干擾':'沒有干擾可以清','water',CONFIG.ult.water.name);return true;}
 function ultDesc(key){var u=CONFIG.ult,c=VS_DEF.comboCap;
@@ -8906,15 +8990,18 @@ function ultDesc(key){var u=CONFIG.ult,c=VS_DEF.comboCap;
 var VS={
   get on(){return on;},
   enable:enable,
+  linked:function(){return linked;},
+  hold:function(){return held;},
   foe:function(){return foe;},
   stage:function(){return vsStage(CONFIG.stages[foe]);},
   begin:begin,
+  warp:function(rdt){return side&&side.live?side.warp(rdt):rdt;},
   update:update,
-  moved:function(steps){if(match)match.moveDone(0,vsCount(steps));},
+  moved:function(steps){if(side)side.moveDone(vsCount(steps));},
   ult:ult,
   ultDesc:ultDesc,
-  // 測試用（window.__game.VS.dev()）：這一場的 VsMatch、電腦
-  dev:function(){return {match:match,bot:bot,def:VS_DEF};}
+  // 測試用（window.__game.VS.dev()）：我這一邊（side）、單頁模式的本地線和電腦（local、bot）、數字（def）
+  dev:function(){return {side:side,local:local,bot:bot,def:VS_DEF,id:myId,linked:linked,auto:auto,waiting:waiting,held:held};}
 };
 
 // 入口：接在所有 module 的最後，組好除錯入口 window.__game、開始遊戲。
