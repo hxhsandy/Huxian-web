@@ -2503,7 +2503,9 @@ var BS=(function(){
         dm.position.set(cx+ox*co2+oz*si,cy+oy,cz-ox*si+oz*co2);dm.rotation.set(0,psi,0);dm.scale.set(r,r*0.78,r);dm.updateMatrix();cm.setMatrixAt(n++,dm.matrix);});});
     cm.instanceMatrix.needsUpdate=true;}
   // BOSS：九關都照 characters.js 的 BOSS_LOOK_DEF（長相：毛色、眼睛、尾巴條數、飾品…；2026-09-30 搬過去給狐狸捏臉器用），這裡只給戰鬥的大小、坐姿、尾巴長度
-  function makeBoss(k,st){var L=bossLook(k,st),b=createFox(Object.assign(lookOpts(L),{scale:2.2*(L.size||1),tailLen:0.8,tailR:0.2,tailFan:fitFan(L.tailFan,L.tails,L.spread),pose:{pivot:-0.5,head:0.64}}));
+  function makeBoss(k,st){return bossOf(bossLook(k,st));}
+  // 照一筆長相 L（BOSS_LOOK_DEF 那種物件）做一隻坐在台上的狐狸（九關的 BOSS、對戰名帖上對手捏的那隻都走這裡）
+  function bossOf(L){var b=createFox(Object.assign(lookOpts(L),{scale:2.2*(L.size||1),tailLen:0.8,tailR:0.2,tailFan:fitFan(L.tailFan,L.tails,L.spread),pose:{pivot:-0.5,head:0.64}}));
     b.group.position.set(0,0.02,0.05);b.group.userData.baseY=0.02;plat.add(b.group);return b;}
   var bossList=[makeBoss(0),makeBoss(1),makeBoss(2)];   // 第一到三關：白露、玄楓、妲己
   bossList.forEach(function(b,i){if(i)b.group.visible=false;});
@@ -2955,7 +2957,7 @@ var BS=(function(){
   //   set(資料) 把白天背景整個拆掉照新資料重建（set(null) 回到內建）；plat、rimN 給編輯器算台緣上的位置
   api.dayDev=function(){return {DEF:DAY_DEF,cur:function(){return dayDef||DAY_DEF;},set:function(d){dayDef=d||null;if(dayBg){dayBg.dispose();dayBg=null;}if(curK>=0)api.setStage(curK);},
     bg:function(){return dayBg;},stage:function(){return curK;},plat:plat,rimN:rimN,cam:bcam,scene:sc};};
-  api.setStage=function(k){curK=k;if(!bossList[k]&&LATE_BOSS[k]){bossList[k]=LATE_BOSS[k]();allTips[k]=bossList[k].tips();}
+  api.setStage=function(k){curK=k;if(cardB)cardB.group.visible=false;   /* 對戰名帖的那隻先收起來（要用的話 versus/view.js 會再叫 cardBoss） */if(!bossList[k]&&LATE_BOSS[k]){bossList[k]=LATE_BOSS[k]();allTips[k]=bossList[k].tips();}
     ensureForms(k);Object.keys(formList).forEach(function(j){formList[j].forEach(function(b){if(b)b.group.visible=false;});});   // 形態：每次進關都從基本那隻開始
     bossList.forEach(function(b,i){b.group.visible=i===k;});boss=bossList[k];api.boss=boss;tips=allTips[k];while(tipGlow.length<tips.length)tipGlow.push(tipGlowSprite());
     var dj=!!(CONFIG.stages[k]&&CONFIG.stages[k].style==='daji');sky.show(dj);
@@ -2970,6 +2972,15 @@ var BS=(function(){
     moonBase.setHex(dj?0xff6a5c:0xffffff);moonK=1;moon.material.color.copy(moonBase);skyMat.uniforms.tintK.value=0;api.feetEmbers(false);if(veil)veil.forEach(function(v){v.s.visible=false;});halos.forEach(function(h,j){h.material.color.setHex(dj?(j?0xff7a68:0xc86a86):(j?0xffe6b0:0x9fb0e0));});   // 第三關：偏紅的血月（場景打光不變）
     paintFire(FIRECOL[k]||FIRECOL[0]);};
   function paintFire(fc){fireP.forEach(function(q,i){q.s.material.color.setHex(i%3?fc[0]:fc[1]);q.life=0;});tipGlow.forEach(function(g){g.material.color.setHex(fc[2]);});}
+  // 對戰名帖（src/versus/view.js；一般關卡不會叫）：台上換成照 L 這筆長相做的狐狸（L 要先檢查過：view.js 的 cardLook）；同一個 L 物件再叫只是重新顯示，不重建。
+  //   L＝null：收掉、換回這一關原本的 BOSS。要在 setStage 之後叫（setStage 會把它藏起來、換回這一關的）。尾尖狐火照 L.fire
+  var cardB=null,cardL=null;
+  api.cardBoss=function(L){
+    if(cardB&&L!==cardL){plat.remove(cardB.group);disposeFox(cardB);cardB=null;cardL=null;}
+    if(!L){if(boss!==bossList[curK])api.setStage(curK);return;}
+    if(!cardB){cardB=bossOf(L);cardL=L;}
+    bossList.forEach(function(b){if(b)b.group.visible=false;});Object.keys(formList).forEach(function(j){formList[j].forEach(function(b){if(b)b.group.visible=false;});});
+    cardB.group.visible=true;boss=cardB;api.boss=cardB;tips=cardB.tips();while(tipGlow.length<tips.length)tipGlow.push(tipGlowSprite());paintFire(L.fire);};
   // 換成這一關的第 i 個形態（0＝基本）：狂暴的光、正在演的動作接著原本的；尾巴換一組、狐火換這個形態的顏色。這一關沒有那個形態就不動
   api.bossForm=function(i){var k=curK,nb=i?formList[k]&&formList[k][i]:bossList[k];if(!nb||nb===boss)return;var old=boss;
     nb.reset();nb.setGlow(old.glowLevel());nb.charge(0);old.group.visible=false;nb.group.visible=true;boss=nb;api.boss=nb;
@@ -8814,6 +8825,8 @@ var ULTS={
 //     雙畫面（&link=parent&side=a｜b）：這一份是外面的殼裡的一個 iframe，訊息經過殼（window.parent.postMessage）、殼當裁判。
 //       載入好送 hello → 等殼的 start（同種子、倒數）才開打 → over 由殼宣布（自己的結算面板不跳）→ again 回到等 start。暫停鈕藏起來。
 //       倒數的大數字、勝負的橫幅、KO 的橫幅遊戲裡都不畫（殼畫）。
+//       名帖（第五輪）：start 帶 {me:我的名帖, foe:對手的名帖}（{v:1,name,scene:'night'｜'day',look:{一整筆長相}}）——台上的狐狸照 foe.look 做、名字用 foe.name、
+//       我自己的戰鬥背景照 me.scene（night＝第一關的夜晚、day＝第四關的白天）。look 是外面來的資料，先過 cardLook 檢查（見那裡）。沒給就照 &foe= 的索引。單頁模式不吃名帖
 //       光飛到隔壁：我這一份的位置（geo：台上的狐狸、盤面、隊伍）和每一波消掉的攻擊珠在哪（fx）送給殼，殼畫光飛到另一份台上的狐狸；
 //       收到的 atk 等 VS_DEF.fx.travel 秒（光飛過來的時間）才生效，這段時間台上的狐狸蓄力（排著的傷害越多越亮），生效那一刻她打一發、隊伍挨打
 //     &auto=1｜2｜3   這一份由電腦下棋（真的盤面、真的動畫，照機器人的節奏走步、有大招就放）；&mute=1 這一份不出聲（不改存檔裡的靜音設定）
@@ -8843,6 +8856,7 @@ var side=null,local=null,bot=null;   // side：我這一邊；local／bot：單�
 var held=false,waiting=false,countLeft=0,seedNext=null,helloSent=false;   // 雙畫面：held＝還不能開打（等 start、倒數中）；waiting＝在等殼的 start；countLeft＝倒數還剩幾秒；seedNext＝殼給的種子
 var endShown=false,foeShow=null,myShow=null,lastCombo=0,shieldOn=false,hurt=null;   // foeShow／myShow：補血動畫中血條上顯示的血（null＝照真的）；hurt：這一格挨的打（加總成一個數字）
 var autoWait=null,autoRnd=null;   // auto：盤面停下來之後還要想幾秒、它挑步用的亂數
+var foeCard=null,cardKey='',SCENE={night:0,day:3};   // foeCard：這一場對手的名帖（檢查過的）{name, look, ok}，沒有＝null；cardKey：上一張的內容（一樣就不重做）；SCENE：自己的背景借哪一關的（第一關夜晚、第四關白天）
 var warnEl=null,warnFxEl=null,foeEl=null,flashEl=null,myGemsEl=null,countEl=null,warnKey='',foeKey='',countKey='',geoKey='',glow=0;   // geoKey：上次送給殼的位置；glow：台上的狐狸現在蓄力到多少（0～1）
 var FOE_COL=new THREE.Color(0xc9a0ff),GEM_COL=new THREE.Color(0xe9d8ff),MY_GEM_COL=new THREE.Color(0xffb0c8),WARN_MAX=10;   // WARN_MAX：預告列最多畫幾個圖示（再多寫 +n）
 var CSS=[
@@ -8870,6 +8884,50 @@ var CSS=[
   '#vsCount.show{opacity:1}#vsCount.wait{font-size:20px;letter-spacing:.2em;color:#e9d8ff;text-shadow:0 2px 5px rgba(0,0,0,.8)}'
 ].join('\n');
 function mkEl(tag,id,cls,parent){var el=document.createElement(tag);if(id)el.id=id;if(cls)el.className=cls;parent.appendChild(el);return el;}
+// ---- 名帖：外面來的長相先檢查（之後開放給所有人，這裡是入口）----
+//   只留認得的欄位；顏色要是 0～0xffffff 的數字；數字夾在合理範圍；字串只收列出來的那幾種；飾品要是遊戲裡有的。不合格的欄位就略過（那一項照模型預設的）。
+//   整筆壞掉（不是物件、沒有 colors、尾巴擺法缺了又補不出來、做模型時出錯）就退回 base（從第幾隻開始捏的，0～8；沒有＝第 0 隻）的原樣
+var C='c',B='b';function N(a,b){return ['n',a,b];}function I(a,b){return ['i',a,b];}function E(){return ['e'].concat([].slice.call(arguments));}
+var LOOK_SCHEMA={colors:{fur:C,chest:C,paw:C,nose:C,earIn:C,earTip:C,tip:C,blush:C,mark:C,outline:C,eye:C,tail:C},glow:C,fire:[C,C,C],tails:I(1,9),spread:N(0.3,2.5),tipFrac:N(0,1),tipSoft:B,
+  tailL:N(0.4,2),tailW:N(0.4,2),size:N(0.6,1.4),headK:N(0.6,1.6),marks:B,sly:B,shadow:C,lash:B,bells:B,ribbons:C,eyeGrad:[C,C],
+  earFlower:{side:E(-1,1),cols:[C,C],line:C,lineW:N(0,0.5),grad:N(0,3),center:C},
+  face:{eye:E('round','slit','smile','sly'),ew:N(0.3,2.5),eh:N(0.3,2.5),gap:N(-0.2,0.2),ey:N(-0.2,0.2),tilt:N(-1.5,1.5),hl:B,hls:N(0.2,3),pupil:C,pw:N(0.2,4),smileW:N(0.001,0.03),eyeGlow:N(0,1),
+    blush:B,markBrow:B,shadowS:N(0.2,3),earBack:N(-1.5,1.5),earOut:N(-1.5,1.5),
+    tears:{col:C,n:I(1,2),len:N(0,0.3),w:N(0.001,0.03),x:N(-0.1,0.1),glow:N(0,1)},
+    brow:{type:E('gem','crescent','flame','diamond','dots','none'),col:C,s:N(0.005,0.12),y:N(0,0.3),glow:N(0,1)}}};
+function num(v){return typeof v==='number'&&isFinite(v);}
+// 照 schema 檢查一個值；不合格回傳 undefined
+function clean(v,sc){var out,k,i;
+  if(sc===C)return num(v)&&v>=0&&v<=0xffffff?Math.floor(v):undefined;
+  if(sc===B)return typeof v==='boolean'?v:undefined;
+  if(Array.isArray(sc)&&sc[0]==='n')return num(v)?Math.max(sc[1],Math.min(sc[2],v)):undefined;
+  if(Array.isArray(sc)&&sc[0]==='i')return num(v)?Math.max(sc[1],Math.min(sc[2],Math.round(v))):undefined;
+  if(Array.isArray(sc)&&sc[0]==='e')return sc.indexOf(v)>0?v:undefined;
+  if(Array.isArray(sc)){if(!Array.isArray(v)||v.length!==sc.length)return undefined;out=[];for(i=0;i<sc.length;i++){var x=clean(v[i],sc[i]);if(x===undefined)return undefined;out.push(x);}return out;}   // 固定長度的陣列：有一格不合格就整個不要
+  if(!v||typeof v!=='object'||Array.isArray(v))return undefined;
+  out={};for(k in sc)if(Object.prototype.hasOwnProperty.call(sc,k)&&Object.prototype.hasOwnProperty.call(v,k)){var y=clean(v[k],sc[k]);if(y!==undefined)out[k]=y;}return out;}
+function baseLook(b){var L=BOSS_LOOK_DEF[num(b)?Math.max(0,Math.min(BOSS_LOOK_DEF.length-1,Math.round(b))):0],o={};
+  ['colors','glow','fire','tails','tailFan','spread','tipFrac','tipSoft','tailL','tailW','size','headK','marks','sly','shadow','lash','bells','ribbons','eyeGrad','earFlower','outfit','face'].forEach(function(k){if(L[k]!==undefined)o[k]=JSON.parse(JSON.stringify(L[k]));});return o;}
+// 名帖的長相 → 可以拿去做模型的長相。回傳 {look, ok}：ok＝false 表示整筆退回 base 的原樣
+function cardLook(raw){var base=baseLook(raw&&typeof raw==='object'?raw.base:0),L=clean(raw,LOOK_SCHEMA);
+  if(!L||!L.colors||!Object.keys(L.colors).length||L.tails===undefined)return {look:base,ok:false};
+  if(!L.fire)L.fire=base.fire;if(L.glow===undefined)L.glow=base.glow;   // 狐火、尾巴的光一定要有：沒給就照 base 的
+  var fan=raw.tailFan,good=Array.isArray(fan)&&fan.length>=1&&fan.length<=9&&fan.every(function(p){return Array.isArray(p)&&p.length===3&&p.every(function(q){return num(q)&&Math.abs(q)<=3;});});
+  L.tailFan=good?fan.map(function(p){return p.slice();}):base.tailFan;   // 尾巴擺法：條數對不上時 render/battle.js 的 fitFan 會重排
+  if(raw.outfit&&typeof raw.outfit==='object'){var of={};['head','neck','tail'].forEach(function(s){var id=raw.outfit[s];if(typeof id==='string'&&Object.prototype.hasOwnProperty.call(FOX_ITEMS,id)&&FOX_ITEMS[id].slot===s)of[s]=id;});if(Object.keys(of).length)L.outfit=of;}
+  return {look:L,ok:true};}
+function cardName(v){var s=typeof v==='string'?Array.from(v.replace(/[\u0000-\u001f\u007f]/g,'').trim()).slice(0,8).join(''):'';return s||'對手';}   // 名字：最多 8 個字、控制字元拿掉、空的＝「對手」
+// start 帶來的名帖：me.scene 決定我自己的背景，foe 決定台上那隻和名字。內容跟上一場一樣就沿用（不重做模型）
+function setCards(me,foeC){var key=JSON.stringify([me&&me.scene,foeC||null]);
+  APP.stage=me&&typeof me==='object'&&Object.prototype.hasOwnProperty.call(SCENE,me.scene)?SCENE[me.scene]:foe;   // 沒給（或不認得）＝照 &foe= 的那一關
+  if(key===cardKey)return;cardKey=key;geoKey='';
+  if(!foeC||typeof foeC!=='object'){foeCard=null;return;}
+  var c=cardLook(foeC.look);foeCard={name:cardName(foeC.name),look:c.look,ok:c.ok};}
+// 台上換成名帖上的那隻（做模型時出錯就退回 base 的原樣，再不行就用這一關原本的）
+function putCard(){if(!foeCard){BS.cardBoss(null);return;}
+  try{BS.cardBoss(foeCard.look);}catch(err){console.warn('名帖的長相做不出來，退回原樣',err);
+    try{foeCard.look=baseLook(0);foeCard.ok=false;BS.cardBoss(foeCard.look);}catch(e2){foeCard=null;BS.cardBoss(null);}}
+  BS.boss.reset();}
 // 只在 ?versus 時叫一次：讀網址、加 CSS、建預告列／對手連擊數／紅閃／我的 KO 寶石／倒數；雙畫面時開始聽殼的訊息
 // &def=：把網址給的數字深層合併進 VS_DEF（物件往下合、其他（數字、字串、陣列）整個換掉）
 function merge(dst,src){Object.keys(src).forEach(function(k){var a=dst[k],b=src[k];
@@ -8894,7 +8952,7 @@ function enable(qs){var f=/[?&]foe=(\d+)/.exec(qs),v=/[?&]lv=([123])/.exec(qs),g
   if(linked){waiting=true;side.out=function(msg){window.parent.postMessage(msg,'*');};window.addEventListener('message',onMsg);}}
 // 雙畫面：殼轉來的訊息（對方的 atk／gb／st／ko／ult、殼自己的 start／over／again）
 function onMsg(e){var d=e.data;if(!d||d.vs!==1||d.from===myId||!side)return;
-  if(d.type==='start'){seedNext=d.seed;waiting=false;countLeft=Math.max(0,+d.count||0);startTrial();}   // 同一個種子重開一場（beginBattle → begin），倒數完才開打
+  if(d.type==='start'){seedNext=d.seed;waiting=false;countLeft=Math.max(0,+d.count||0);setCards(d.me,d.foe);startTrial();}   // 同一個種子重開一場（beginBattle → begin），倒數完才開打；名帖：背景、台上的狐狸
   else if(d.type==='again'){waiting=true;countLeft=0;held=true;side.reset();G.mode='intro';S.sel=null;S.hint=null;showPanel(null);}   // 回到等 start
   else side.recv(d);}
 function lockedNow(){var n=0;board.g.forEach(function(row){row.forEach(function(o){if(o&&o.locked)n++;});});return n;}
@@ -8912,7 +8970,7 @@ function autoStep(dt){var b=VS_DEF.bot;if(S.locked||G.mode!=='playing'){autoWait
   autoWait-=dt;if(autoWait>0)return;autoWait=null;
   for(var i=0;i<battle.energy.length;i++)if(battle.energy[i]>=CONFIG.ult.max&&tryUlt(i))return;
   var mv=vsMoves(board);if(!mv.length)return;var p=mv[(autoRnd()*mv.length)|0];attemptSwap(p[0],p[1],p[2],p[3]);}
-function begin(){var st=CONFIG.stages[foe],seed=seedNext!=null?seedNext:(Math.random()*2147483646)|0;seedNext=null;
+function begin(){var st=CONFIG.stages[APP.stage],seed=seedNext!=null?seedNext:(Math.random()*2147483646)|0;seedNext=null;
   side.delay=linked?VS_DEF.fx.travel:0;   // 雙畫面：收到的 atk 等光飛過來才生效
   if(linked){held=true;if(waiting)side.reset();else side.start(seed);}   // 雙畫面：等 start 的時候先擺著（不算開打）
   else {held=false;local=new VsLocal(VS_DEF);local.join(side);bot=new VsBot(local.join(new VsSide(VS_DEF,myId==='a'?'b':'a')),lv);bot.start(seed);side.start(seed);}
@@ -8932,7 +8990,8 @@ function begin(){var st=CONFIG.stages[foe],seed=seedNext!=null?seedNext:(Math.ra
     // 台上的狐狸蓄力：排著還沒生效的傷害越多越亮（慢慢跟上去）。借 BOSS 的蓄力樣子：flow 每格拿 battle.charging 和 1−battle.atk／charge 去畫（對戰關卡的 charge＝1）
     var want=side.inbox.length?Math.min(1,0.3+0.7*side.charge()/(side.max*VS_DEF.fx.full)):0;glow+=(want-glow)*Math.min(1,dt*(want>glow?14:8));if(glow<0.02&&!want)glow=0;
     this.charging=glow>0;this.atk=glow>0?1-glow:Infinity;return [];};
-  bossBarEl.querySelector('.name').textContent=st.name+(linked?'':' Lv'+lv);var at=bossBarEl.querySelector('.attr');at.textContent='無';at.className='attr a-none';
+  if(linked)putCard();   // 名帖：台上換成對手捏的那隻（沒有名帖＝這一關原本的）
+  bossBarEl.querySelector('.name').textContent=foeCard?foeCard.name:st.name+(linked?'':' Lv'+lv);var at=bossBarEl.querySelector('.attr');at.textContent='無';at.className='attr a-none';
   bossBarEl.classList.add('segs');bossBarEl.querySelector('.gems').innerHTML=gemsHtml(VS_DEF.koWin);myGemsEl.innerHTML=gemsHtml(VS_DEF.koWin);   // 寶石＝還能被 KO 幾次
   bossBarEl.classList.remove('vsInv');teamBarEl.classList.remove('vsInv');battle.time=side.left();sync();
   if(linked&&!helloSent){helloSent=true;side.send('hello',{ver:1,card:{name:auto?'電腦 Lv'+auto:'玩家',look:null}});geoKey='';}}   // 載入好了：告訴殼（名帖之後才有，先放名字）；位置接著送
@@ -9030,7 +9089,7 @@ var VS={
   linked:function(){return linked;},
   hold:function(){return held;},
   foe:function(){return foe;},
-  stage:function(){return vsStage(CONFIG.stages[foe]);},
+  stage:function(){return vsStage(CONFIG.stages[APP.stage]);},
   begin:begin,
   warp:function(rdt){return side&&side.live?side.warp(rdt):rdt;},
   update:update,
@@ -9039,7 +9098,7 @@ var VS={
   ult:ult,
   ultDesc:ultDesc,
   // 測試用（window.__game.VS.dev()）：我這一邊（side）、單頁模式的本地線和電腦（local、bot）、數字（def）
-  dev:function(){return {side:side,local:local,bot:bot,def:VS_DEF,id:myId,linked:linked,auto:auto,waiting:waiting,held:held};}
+  dev:function(){return {side:side,local:local,bot:bot,def:VS_DEF,id:myId,linked:linked,auto:auto,waiting:waiting,held:held,card:foeCard,cardLook:cardLook,cardName:cardName};}
 };
 
 // 入口：接在所有 module 的最後，組好除錯入口 window.__game、開始遊戲。

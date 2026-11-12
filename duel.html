@@ -91,7 +91,8 @@ var Q=new URLSearchParams(location.search),GAME=Q.get('game')||'versus.html',LAG
     A=Q.has('a')?+Q.get('a'):3,B=Q.has('b')?+Q.get('b'):4,LV=Q.get('lv')||'2';
 // 名帖（card.html 捏的，存在 localStorage foxvs-card：{v:1,name,scene,look}）：我的那張傳給兩邊——左邊拿來決定自己的畫面是黑夜還是白天，右邊拿來做台上那隻狐狸
 var CARD=null;try{var cd=JSON.parse(localStorage.getItem('foxvs-card')||'null');if(cd&&cd.v===1&&cd.look)CARD=cd;}catch(_){}
-var CPU_CARD={v:1,name:'電腦 Lv'+LV,scene:'night'};   // 電腦那一份自己的名帖（它台上站的是我；它的長相先照網址的 b＝借哪一隻 BOSS）
+var BOSS_NAMES=['白露','玄楓','妲己','桃夭','塗山','天狐','青燐','夢婆','九尾'];
+var CPU_CARD={v:1,name:BOSS_NAMES[B]||'電腦',scene:'night',look:{base:B}};   // 電腦的名帖：長相只給 base（遊戲會照那一隻 BOSS 原本的樣子做）、名字用那隻的名字
 var DEF={time:180,koWin:3,rage:[90,120]};   // 殼當裁判用的數字（跟遊戲裡 VS_DEF 一樣；之後從 hello 拿）
 var $=function(id){return document.getElementById(id);},pa=$('pa'),pb=$('pb'),fa=$('fa'),fb=$('fb'),mid=$('mid');
 // 左邊＝我（台上是對手 B 的長相）；右邊＝對手那一份（台上是我 A 的長相）、電腦下棋、不出聲
@@ -127,7 +128,7 @@ function koShow(victim){var v=victim==='a'?pa:pb,w=victim==='a'?pb:pa;[pa,pb].fo
   clearTimeout(koShow.t);koShow.t=setTimeout(function(){v.classList.remove('koed');w.classList.remove('kowin');},1250);var d=$('duel');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');koSound();}
 function say(s,keep){var m=$('msg');m.textContent=s;m.classList.add('on');if(!keep)setTimeout(function(){m.classList.remove('on');},900);}
 // 開始：兩個畫面壓暗、各蓋一個大大的倒數（下面寫「你的盤面／對手」），數完才亮起來（2026-11-13 CK：倒數看不清、第一次玩不知道哪邊是自己）
-function start(){state='count';clearResult();var sd=(Math.random()*2147483646)|0;send('a',{type:'start',seed:sd,count:COUNT,me:CARD,foe:null});send('b',{type:'start',seed:sd,count:COUNT,me:CPU_CARD,foe:CARD});[pa,pb].forEach(function(p){p.classList.add('dimmed');});
+function start(){state='count';clearResult();var sd=(Math.random()*2147483646)|0;send('a',{type:'start',seed:sd,count:COUNT,me:CARD,foe:CPU_CARD});send('b',{type:'start',seed:sd,count:COUNT,me:CPU_CARD,foe:CARD});[pa,pb].forEach(function(p){p.classList.add('dimmed');});
   for(var i=0;i<COUNT;i++)(function(i){setTimeout(function(){if(state!=='count')return;[pa,pb].forEach(function(p){var c=p.querySelector('.cnt');c.querySelector('b').textContent=COUNT-i;c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');});tone(520,500,0.12,0.2,'triangle');},i*1000);})(i);
   setTimeout(function(){if(state!=='count')return;state='play';t0=performance.now();held=0;[pa,pb].forEach(function(p){p.classList.remove('dimmed');p.querySelector('.cnt').classList.remove('pop');});tone(780,1040,0.35,0.25,'triangle');},COUNT*1000);}
 function clearResult(){[pa,pb].forEach(function(p){p.classList.remove('dimmed','won');var r=p.querySelector('.res');r.className='res';r.textContent='';});}
@@ -137,7 +138,7 @@ function showResult(winner){[['a',pa],['b',pb]].forEach(function(x){var r=x[1].q
 function over(winner,by){if(state==='over')return;state='over';both({type:'over',winner:winner,by:by});setTimeout(function(){showResult(winner);$('again').style.display='inline-block';},700);}
 addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var k=ev.source===fa.contentWindow?'a':ev.source===fb.contentWindow?'b':null;if(!k)return;
   var o=k==='a'?'b':'a';linked=true;
-  if(m.type==='hello'){side[k].hello=true;if(m.card&&m.card.name){$(k==='a'?'nameA':'nameB').textContent=k==='a'&&CARD?CARD.name:m.card.name;if(k==='b')pb.querySelector('.who2').textContent='對手・'+m.card.name;else if(CARD)pa.querySelector('.who2').textContent='你・'+CARD.name;}if(m.def)Object.assign(DEF,m.def);draw();
+  if(m.type==='hello'){side[k].hello=true;if(m.card&&m.card.name){$(k==='a'?'nameA':'nameB').textContent=k==='a'?(CARD?CARD.name:m.card.name):CPU_CARD.name;if(k==='b')pb.querySelector('.who2').textContent='對手・'+CPU_CARD.name+'（'+m.card.name+'）';else if(CARD)pa.querySelector('.who2').textContent='你・'+CARD.name;}if(m.def)Object.assign(DEF,m.def);draw();
     if(side.a.hello&&side.b.hello&&state==='wait')start();return;}
   if(m.type==='st'){side[k].st=m;draw();danger(k,m.pend||0);}
   if(m.type==='geo'){side[k].geo=m;return;}
