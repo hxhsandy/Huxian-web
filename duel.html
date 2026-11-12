@@ -8,7 +8,7 @@
 <!-- 狐仙對戰的「殼」（2026-11-13 遊星；約定在 docs/09b_versus_link.md）：同一頁並排兩個遊戲畫面（兩個 iframe，各跑一份 versus.html），
      殼負責排版、在兩邊之間轉訊息、當裁判（時間、勝負）。單一檔案、不用組建；放在網站上 versus.html 的旁邊。
      網址參數：?a=0～8 我的狐狸長相（預設 3）　&b=0～8 對手（預設 4）　&lv=1｜2｜3 右邊電腦的難度（預設 2）　&game=遊戲檔名（預設 versus.html）　&lag=毫秒（轉訊息時故意慢，模擬網路）
-     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&kotest 中間多一顆「試 KO」 -->
+     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&def=JSON（換 VS_DEF 的數字，兩邊一起）　&kotest 中間多一顆「試 KO」 -->
 <style>
 html,body{margin:0;height:100%;background:#05060c;color:#fff8ec;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;overflow:hidden}
 #duel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:0}
@@ -83,7 +83,7 @@ var Q=new URLSearchParams(location.search),GAME=Q.get('game')||'versus.html',LAG
 var DEF={time:180,koWin:3,rage:[90,120]};   // 殼當裁判用的數字（跟遊戲裡 VS_DEF 一樣；之後從 hello 拿）
 var $=function(id){return document.getElementById(id);},pa=$('pa'),pb=$('pb'),fa=$('fa'),fb=$('fb'),mid=$('mid');
 // 左邊＝我（台上是對手 B 的長相）；右邊＝對手那一份（台上是我 A 的長相）、電腦下棋、不出聲
-var EXTRA=(Q.get('hp')?'&hp='+Q.get('hp'):'')+(Q.get('gb')?'&gb='+Q.get('gb'):'');   /* 兩份要給一樣的 */
+var EXTRA=(Q.get('hp')?'&hp='+Q.get('hp'):'')+(Q.get('gb')?'&gb='+Q.get('gb'):'')+(Q.get('def')?'&def='+encodeURIComponent(Q.get('def')):'');   /* 兩份要給一樣的 */
 fa.src=GAME+'?versus&link=parent&side=a&foe='+B+(Q.get('la')?'&auto='+Q.get('la'):'')+EXTRA;
 fb.src=GAME+'?versus&link=parent&side=b&foe='+A+'&auto='+LV+'&mute=1'+EXTRA;
 /* ---------- 排版：兩個 9:16 的畫面照視窗高度縮放，中間留一條；畫面太窄（手機直拿）只留左邊 ---------- */
@@ -131,7 +131,7 @@ var tick=0;document.addEventListener('visibilitychange',function(){if(document.h
 /* ---------- 危險條：盤面旁邊一條直的，對方送來、還沒落下的干擾越多越滿（Tetris Battle 盤面旁那條紅的） ---------- */
 var PEND_MAX=8;function danger(k,n){var d=(k==='a'?pa:pb).querySelector('.danger');d.firstChild.style.height=Math.min(100,n/PEND_MAX*100)+'%';d.classList.toggle('hot',n>=PEND_MAX*0.6);}
 /* ---------- 飛過去的光：這一邊消掉的珠子變成同顏色的光點，一串弧線飛到「另一邊畫面台上、自己的狐狸」身上 ---------- */
-var FXC=$('fx'),fxg=FXC.getContext('2d'),parts=[],fxOn=false,ORBC=['#ff8a5c','#5cb4ff','#4ad6a4','#ffd65c','#a88cff'],TRAVEL=0.45;
+var FXC=$('fx'),fxg=FXC.getContext('2d'),parts=[],fxOn=false,ORBC=['#ff8a5c','#5cb4ff','#4ad6a4','#ffd65c','#a88cff'],TRAVEL=0.65;   /* 光從珠子消掉那一刻起飛，約 0.65 秒後對方那份才收到 atk、台上的狐狸開始蓄力（再 0.45 秒打下去）：光到＝開始蓄力 */
 function fxSize(){var r=Math.min(devicePixelRatio||1,2);FXC.width=innerWidth*r;FXC.height=innerHeight*r;fxg.setTransform(r,0,0,r,0,0);}addEventListener('resize',fxSize);fxSize();
 function target(k){var o=k==='a'?'b':'a',p=(o==='a'?pa:pb).getBoundingClientRect(),g=side[o].geo;   // k 這邊的光飛到另一邊（o）畫面裡台上的狐狸
   return g&&g.avatar?{x:p.left+g.avatar.x,y:p.top+g.avatar.y}:{x:p.left+p.width/2,y:p.top+p.height*0.22};}
@@ -143,7 +143,8 @@ function fxLoop(){var now=performance.now()/1000;fxg.clearRect(0,0,innerWidth,in
   parts=parts.filter(function(q){var k=(now-q.t0)/TRAVEL;if(k<0)return true;if(k>1.35)return false;
     if(k<=1){var e=k*k*(3-2*k),u=1-e,x=u*u*q.x0+2*u*e*q.cx+e*e*q.x1,y=u*u*q.y0+2*u*e*q.cy+e*e*q.y1;q.tr.push([x,y]);if(q.tr.length>12)q.tr.shift();
       q.tr.forEach(function(pt,i){var a=(i+1)/q.tr.length;fxg.globalAlpha=a*0.85;fxg.fillStyle=q.c;fxg.beginPath();fxg.arc(pt[0],pt[1],q.r*(0.35+0.65*a),0,6.283);fxg.fill();});
-      fxg.globalAlpha=0.9;fxg.fillStyle='#fff';fxg.beginPath();fxg.arc(x,y,q.r*0.45,0,6.283);fxg.fill();}
+      fxg.globalAlpha=0.55;fxg.fillStyle=q.c;fxg.shadowColor=q.c;fxg.shadowBlur=18;fxg.beginPath();fxg.arc(x,y,q.r*1.5,0,6.283);fxg.fill();fxg.shadowBlur=0;   /* 光暈 */
+      fxg.globalAlpha=1;fxg.fillStyle='#fff';fxg.beginPath();fxg.arc(x,y,q.r*0.55,0,6.283);fxg.fill();}
     else{var b=(k-1)/0.35;fxg.globalAlpha=(1-b)*0.8;fxg.strokeStyle=q.c;fxg.lineWidth=2.5;fxg.beginPath();fxg.arc(q.x1,q.y1,6+b*22,0,6.283);fxg.stroke();}   /* 到了：一小圈光 */
     return true;});
   fxg.globalAlpha=1;fxg.globalCompositeOperation='source-over';if(parts.length)requestAnimationFrame(fxLoop);else{fxOn=false;fxg.clearRect(0,0,innerWidth,innerHeight);}}
