@@ -8,7 +8,7 @@
 <!-- 狐仙對戰的「殼」（2026-11-13 遊星；約定在 docs/09b_versus_link.md）：同一頁並排兩個遊戲畫面（兩個 iframe，各跑一份 versus.html），
      殼負責排版、在兩邊之間轉訊息、當裁判（時間、勝負）。單一檔案、不用組建；放在網站上 versus.html 的旁邊。
      網址參數：?a=0～8 我的狐狸長相（預設 3）　&b=0～8 對手（預設 4）　&lv=1｜2｜3 右邊電腦的難度（預設 2）　&game=遊戲檔名（預設 versus.html）　&lag=毫秒（轉訊息時故意慢，模擬網路）
-     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&def=JSON（換 VS_DEF 的數字，兩邊一起）　&kotest 中間多一顆「試 KO」　&room=房號（連線：兩個人各開一個視窗進同一個房號；現在的傳輸是 BroadcastChannel＝只能同一台電腦、同一個瀏覽器，之後換成伺服器）　&novs 不演開場的 VS 頁　&vs=VS 頁的檔名（預設 vs.html） -->
+     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&def=JSON（換 VS_DEF 的數字，兩邊一起）　&kotest 中間多一顆「試 KO」　&room=房號（連線：兩個人各開這一頁進同一個房號）　&ws=郵局的網址（wss://…；沒有就用 BroadcastChannel＝只能同一台電腦、同一個瀏覽器）　&novs 不演開場的 VS 頁　&vs=VS 頁的檔名（預設 vs.html） -->
 <style>
 html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;overflow:hidden}
 #duel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:0}
@@ -189,8 +189,15 @@ function onNet(d){if(!d||d.id===ME)return;
     if(ty==='st'){side.b.st=m;draw();danger('b',m.pend||0);}
     if(ty==='ko'){side.b.st.ko=m.n;draw();koShow('b');if(m.n>=DEF.koWin)setTimeout(function(){over('a','ko');},50);}}}
 function lobby(on,txt){var e=$('lobby');e.style.display=on?'flex':'none';if(txt)$('lobbyTxt').innerHTML=txt;}
-if(ROOM){try{var bc=new BroadcastChannel('foxvs-'+ROOM);NET={send:function(o){o.id=ME;bc.postMessage(o);}};bc.onmessage=function(e){onNet(e.data);};}catch(_){NET={send:function(){}};}
-  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）</small>');
+// 傳輸：有郵局的網址（WS_URL，或網址 ?ws=）就走 WebSocket（wss://…/room/房號；server/foxvs-relay），沒有就用 BroadcastChannel（同一台電腦同一個瀏覽器）
+var WS_URL=Q.get('ws')||'';   /* ← Cloudflare 的郵局部署好之後把網址寫在這裡（wss://foxvs-relay.<帳號>.workers.dev） */
+function netWS(){var ws=null,q=[],dead=false;function open(){ws=new WebSocket(WS_URL.replace(/\/$/,'')+'/room/'+ROOM);
+    ws.onopen=function(){q.splice(0).forEach(function(x){ws.send(x);});};
+    ws.onmessage=function(e){var d;try{d=JSON.parse(e.data);}catch(_){return;}if(d&&d.t==='bye'){if(PEER)PEER.last=-1e9;return;}onNet(d);};
+    ws.onclose=function(){if(dead)return;setTimeout(open,2000);};ws.onerror=function(){try{ws.close();}catch(_){}};}
+  open();return {send:function(o){o.id=ME;var x=JSON.stringify(o);if(ws&&ws.readyState===1)ws.send(x);else if(q.length<200)q.push(x);}};}
+if(ROOM){if(WS_URL)NET=netWS();else try{var bc=new BroadcastChannel('foxvs-'+ROOM);NET={send:function(o){o.id=ME;bc.postMessage(o);}};bc.onmessage=function(e){onNet(e.data);};}catch(_){NET={send:function(){}};}
+  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>'+(WS_URL?'':'（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）')+'</small>');
   NET.send({t:'hi',card:CARD});setInterval(function(){if(!PEER)NET.send({t:'hi',card:CARD});else{NET.send({t:'ping'});if(netRdy&&state==='wait')NET.send({t:'ready'});
     var quiet=performance.now()-PEER.last;   /* 對方多久沒消息：6 秒先提醒（回來了就收掉），30 秒才當作離線 */
     if(state!=='over'){if(quiet>30000){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<br><a href="duel.html">回去跟電腦打</a>');}else if(quiet>6000){lobby(true,'對手沒有回應…<small>等她回來（她的視窗被蓋住或切到背景時會停住）</small>');stalled=true;}else if(stalled){stalled=false;lobby(false);}}}},1500);}
