@@ -8624,9 +8624,9 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
 var VS_DEF = {
   seam: [0, 0.55, 1, 0.45],          // 中線：左端 (u,v) → 右端 (u,v)
   fov: 30, dist: 20,                  // 相機
-  foxH: 0.235,                        // 狐狸（腳到耳尖）大約佔畫面高度的幾成
-  a: { fox: [0.27, 0.905], yaw: 0.62, name: [0.655, 0.625], card: [0.94, 0.705] },   // 我：狐狸腳的位置、轉向、名字中心、小卡（右上角對齊的點）
-  b: { fox: [0.73, 0.40], yaw: -0.62, name: [0.345, 0.175], card: [0.03, 0.262] },    // 對手：小卡是左上角
+  foxH: 0.3, headBack: 0.8, headUp: -0.28,          // headBack：頭往鏡頭轉回來多少（0＝跟身體同方向、1＝正對鏡頭）；headUp：頭抬多高（介紹頁第二關是 -0.55，這裡抬高一點才看得到臉）                        // 狐狸（腳到耳尖）大約佔畫面高度的幾成
+  a: { fox: [0.27, 0.905], yaw: 0.5, name: [0.655, 0.625], card: [0.94, 0.705] },   // 我：狐狸腳的位置、轉向、名字中心、小卡（右上角對齊的點）
+  b: { fox: [0.73, 0.40], yaw: -0.5, name: [0.345, 0.175], card: [0.03, 0.262] },    // 對手：小卡是左上角
   nameW: 0.62, nameH: 0.135,          // 名字那塊板子的寬（佔畫面寬）、高（佔畫面高）
   vs: [0.5, 0.5], vsW: 0.36,          // VS 的位置、寬
   t: { open: 0.0, fox: 0.12, slam: 0.62, nameB: 0.95, nameA: 1.15, cards: 1.5, hint: 2.5, ready: 3.0 }   // 進場的時間表（秒）
@@ -8666,7 +8666,7 @@ function makeVS(host) {
   cam.position.set(0, 0, D.dist); sc.add(cam);
   // 燈光跟封面、戰鬥同一套月光
   var hemi = new THREE.HemisphereLight(0x7486c6, 0x1a1f3a, 0.6), amb = new THREE.AmbientLight(0x2a3566, 0.35), key = new THREE.DirectionalLight(0xfff0cc, 0.9), rim = new THREE.DirectionalLight(0x8496d8, 0.42);
-  key.position.set(-3, 6, 8); rim.position.set(2, 4, 9); [hemi, amb, key, rim].forEach(function (l) { sc.add(l); });
+  key.position.set(-2, 7, -10); rim.position.set(2, 4, 9);   /* 跟介紹頁一樣：主光從後上方（月亮那邊）打過來，前面只有柔和的補光，白毛才不會爆 */ [hemi, amb, key, rim].forEach(function (l) { sc.add(l); });
 
   /* ---------- 背景（貼在相機上，最先畫）：兩半的顏色、對沖的流線、中間的狐火線、進場時從中線往兩邊亮開 ---------- */
   var bgMat = new THREE.ShaderMaterial({
@@ -8743,10 +8743,13 @@ function makeVS(host) {
   var side = { a: null, b: null }, cards = { a: null, b: null };
   var shock = new THREE.Sprite(new THREE.SpriteMaterial({ map: ringTex, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 })); shock.renderOrder = 890; cam.add(shock);
   function buildSide(k, card) {
-    var old = side[k]; if (old) { sc.remove(old.G); disposeFox(old.fox); }
+    var old = side[k]; if (old) { sc.remove(old.G); old.fires.forEach(function (f) { sc.remove(f); f.material.dispose(); }); disposeFox(old.fox); }   /* 尾尖的狐火也要收（2026-11-13 CK：多換幾次糊成一片白光） */
     var lookI = Math.max(0, Math.min(BOSS_LOOK_DEF.length - 1, card.look | 0)), LK = bossLook(lookI, card.style), col = ELEM[card.elem] && card.elem !== 'none' ? ELEM[card.elem].color : (LK.glow || ELEM.none.color);   /* 無屬性：那一半的顏色跟著狐狸自己的光 */
-    var G = new THREE.Group(), fox = createFox(Object.assign(lookOpts(LK), { scale: 1, tailLen: 0.8, tailR: 0.2, tailFan: fitFan(LK.tailFan, LK.tails, LK.spread), pose: { pivot: -0.5, head: 0.64 } }));
-    fox.setScale((LK.size || 1)); G.add(fox.group); fox.look(D[k].yaw, -D[k].yaw * 0.35);
+    // 姿勢（2026-11-13 CK）：第二關介紹頁那種往前撲的樣子（屁股翹高、耳朵往後壓），身體朝對手、頭稍微轉回來看鏡頭
+    var pp = 0.05, G = new THREE.Group(), fox = createFox(Object.assign(lookOpts(LK), { scale: LK.size || 1, tailLen: 0.8, tailR: 0.2, earBack: 0.5,
+      tailFan: fitFan([[0.4, 0.6, -0.2], [0, 0, -0.35], [-0.4, -0.6, -0.2]], LK.tails, LK.spread),
+      pose: { pivot: pp, head: D.headUp, tilt: 0.06, legF: [[-pp - 1.85, 0.32, 1.45], [-pp - 1.6, -0.3, 1.4]], legB: [[1.1, 0.14, 1.3, 0, 0.02], [0.9, -0.14, 1.3, 0, 0.02]] } }));
+    G.add(fox.group); fox.look(D[k].yaw, -D[k].yaw * D.headBack);
     var pad = new THREE.Mesh(PLANE, new THREE.MeshBasicMaterial({ map: glowTex, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.75 }));
     pad.rotation.x = -Math.PI / 2; pad.scale.set(1.9, 1.3, 1); pad.position.y = 0.01; pad.raycast = noRay; G.add(pad);
     var ring = new THREE.Mesh(PLANE, new THREE.MeshBasicMaterial({ map: ringTex, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 }));
