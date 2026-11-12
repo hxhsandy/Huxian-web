@@ -37,20 +37,36 @@ html,body{margin:0;height:100%;background:#05060c;color:#fff8ec;font-family:"Not
 @keyframes plusPop{0%{opacity:0;transform:translateY(30%) scale(.6)}18%{opacity:1;transform:translateY(0) scale(1.12)}28%{transform:translateY(0) scale(1)}75%{opacity:1;transform:translateY(-12%) scale(1)}100%{opacity:0;transform:translateY(-40%) scale(1)}}
 #duel.shake{animation:duelShake .35s}
 @keyframes duelShake{0%,100%{transform:none}20%{transform:translate(-7px,4px)}40%{transform:translate(6px,-5px)}60%{transform:translate(-4px,-3px)}80%{transform:translate(3px,2px)}}
+.panel .who2{position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);padding:3px 16px 4px;border-radius:999px;font-size:13px;font-weight:900;letter-spacing:.3em;text-indent:.3em;white-space:nowrap;z-index:3;pointer-events:none}
+#pa{box-shadow:0 0 0 2.5px #f3d9a0,0 0 26px rgba(255,190,90,.55),0 10px 40px rgba(0,0,0,.6)}   /* 我的畫面：金框發光（2026-11-13 CK：第一次玩會不知道哪一個版面是我的） */
+#pa .who2{background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;border:1.5px solid #fff3d0;box-shadow:0 2px 10px rgba(240,150,40,.6)}
+#pb .who2{background:#1b2040;color:#c9cfee;border:1.5px solid #55608c}
+.panel.dimmed .dim{opacity:1}
+.panel .cnt{position:absolute;left:0;right:0;top:34%;text-align:center;z-index:2;pointer-events:none;opacity:0}
+.panel .cnt b{display:block;font:900 calc(var(--pw)*0.5) "Noto Serif HK","Noto Serif TC",serif;line-height:1;color:#fff6dc;text-shadow:0 0 calc(var(--pw)*0.08) #ffb84a,0 calc(var(--pw)*0.012) 0 #7a3b10}
+.panel .cnt span{display:block;margin-top:calc(var(--pw)*0.05);font:900 calc(var(--pw)*0.085) "Noto Serif TC",serif;letter-spacing:.2em}
+#pa .cnt span{color:#ffd978}#pb .cnt span{color:#c9cfee}
+.panel .cnt.pop{opacity:1}.panel .cnt.pop b{animation:cntPop .9s ease-out}
+@keyframes cntPop{0%{transform:scale(2.2);opacity:0}22%{transform:scale(1);opacity:1}100%{transform:scale(.92);opacity:1}}
+.panel .res{position:absolute;left:0;right:0;top:38%;text-align:center;z-index:2;pointer-events:none;opacity:0;font:900 calc(var(--pw)*0.3) "Noto Serif HK","Noto Serif TC",serif;letter-spacing:.08em;text-indent:.08em;transform:scale(.6);transition:opacity .25s,transform .35s cubic-bezier(.2,1.6,.4,1)}
+.panel .res.on{opacity:1;transform:none}
+.panel .res.win{color:#fff3d0;text-shadow:0 0 calc(var(--pw)*0.09) #ffb84a,0 0 calc(var(--pw)*0.03) #fff,0 calc(var(--pw)*0.014) 0 #7a3b10}
+.panel .res.lose{color:#9aa0b8;text-shadow:0 calc(var(--pw)*0.012) 0 #1a1c2a;font-size:calc(var(--pw)*0.24)}
+.panel.won{box-shadow:0 0 0 3px #fff3d0,0 0 60px rgba(255,200,100,.85),0 10px 40px rgba(0,0,0,.6)!important}
 #again{display:none;margin-top:6px;padding:8px 20px;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 15px "Noto Serif TC",serif;letter-spacing:.2em;cursor:pointer}
 #note{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:11px sans-serif;opacity:.4}
 </style>
 </head>
 <body>
 <div id="duel">
-  <div class="panel" id="pa"><iframe id="fa" allow="autoplay"></iframe><div class="dim"></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
+  <div class="panel" id="pa"><iframe id="fa" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>你的盤面</span></div><div class="res"></div><div class="who2">你</div><div class="koT">K.O.</div><div class="plus">+1</div></div>
   <div id="mid">
     <div class="who" id="nameB">對手</div><div class="kos" id="koB"></div>
     <div id="clock">3:00</div><div id="vsMark">VS</div>
     <div class="kos" id="koA"></div><div class="who" id="nameA">我</div>
     <button id="again" type="button">再來一局</button>
   </div>
-  <div class="panel" id="pb"><iframe id="fb" allow="autoplay"></iframe><div class="dim"></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
+  <div class="panel" id="pb"><iframe id="fb" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>對手</span></div><div class="res"></div><div class="who2">對手</div><div class="koT">K.O.</div><div class="plus">+1</div></div>
 </div>
 <div id="msg"></div>
 <div id="note">狐仙對戰・雙畫面試看</div>
@@ -86,19 +102,24 @@ function koSound(){tone(160,42,0.5,0.5,'sine');tone(90,40,0.6,0.35,'triangle',0.
 function koShow(victim){var v=victim==='a'?pa:pb,w=victim==='a'?pb:pa;[pa,pb].forEach(function(p){p.classList.remove('koed','kowin');});void v.offsetWidth;v.classList.add('koed');w.classList.add('kowin');
   clearTimeout(koShow.t);koShow.t=setTimeout(function(){v.classList.remove('koed');w.classList.remove('kowin');},1250);var d=$('duel');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');koSound();}
 function say(s,keep){var m=$('msg');m.textContent=s;m.classList.add('on');if(!keep)setTimeout(function(){m.classList.remove('on');},900);}
-function start(){state='count';both({type:'start',seed:(Math.random()*2147483646)|0,count:COUNT});   /* 倒數的大數字兩個畫面自己會跳；裁判的時間從倒數完開始算 */
-  setTimeout(function(){if(state==='count'){state='play';t0=performance.now();held=0;}},COUNT*1000);}
-function over(winner,by){if(state==='over')return;state='over';both({type:'over',winner:winner,by:by});
-  say(winner==='draw'?'平手':winner==='a'?'勝利！':'落敗……',true);$('again').style.display='inline-block';}
+// 開始：兩個畫面壓暗、各蓋一個大大的倒數（下面寫「你的盤面／對手」），數完才亮起來（2026-11-13 CK：倒數看不清、第一次玩不知道哪邊是自己）
+function start(){state='count';clearResult();both({type:'start',seed:(Math.random()*2147483646)|0,count:COUNT});[pa,pb].forEach(function(p){p.classList.add('dimmed');});
+  for(var i=0;i<COUNT;i++)(function(i){setTimeout(function(){if(state!=='count')return;[pa,pb].forEach(function(p){var c=p.querySelector('.cnt');c.querySelector('b').textContent=COUNT-i;c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');});tone(520,500,0.12,0.2,'triangle');},i*1000);})(i);
+  setTimeout(function(){if(state!=='count')return;state='play';t0=performance.now();held=0;[pa,pb].forEach(function(p){p.classList.remove('dimmed');p.querySelector('.cnt').classList.remove('pop');});tone(780,1040,0.35,0.25,'triangle');},COUNT*1000);}
+function clearResult(){[pa,pb].forEach(function(p){p.classList.remove('dimmed','won');var r=p.querySelector('.res');r.className='res';r.textContent='';});}
+// 結果：各蓋在自己的畫面上——贏的那邊金色「勝利」＋畫面發光，輸的那邊壓暗＋「落敗」（2026-11-13 CK：打在中間一瞬間搞不清誰贏）
+function showResult(winner){[['a',pa],['b',pb]].forEach(function(x){var r=x[1].querySelector('.res'),w=winner===x[0],d=winner==='draw';r.textContent=d?'平手':w?'勝利':'落敗';r.className='res on '+(w?'win':'lose');x[1].classList.toggle('won',w);x[1].classList.toggle('dimmed',!w);});
+  if(winner==='a')[0,0.12,0.24,0.4].forEach(function(w,i){tone([523,659,784,1047][i],[523,659,784,1047][i],i===3?0.7:0.16,0.22,'triangle',w);});else if(winner==='b'){tone(330,220,0.5,0.22,'triangle');tone(220,150,0.8,0.2,'triangle',0.35);}}
+function over(winner,by){if(state==='over')return;state='over';both({type:'over',winner:winner,by:by});setTimeout(function(){showResult(winner);$('again').style.display='inline-block';},700);}
 addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var k=ev.source===fa.contentWindow?'a':ev.source===fb.contentWindow?'b':null;if(!k)return;
   var o=k==='a'?'b':'a';linked=true;
-  if(m.type==='hello'){side[k].hello=true;if(m.card&&m.card.name)$(k==='a'?'nameA':'nameB').textContent=m.card.name;if(m.def)Object.assign(DEF,m.def);draw();
+  if(m.type==='hello'){side[k].hello=true;if(m.card&&m.card.name){$(k==='a'?'nameA':'nameB').textContent=m.card.name;if(k==='b')pb.querySelector('.who2').textContent='對手・'+m.card.name;}if(m.def)Object.assign(DEF,m.def);draw();
     if(side.a.hello&&side.b.hello&&state==='wait')start();return;}
   if(m.type==='st'){side[k].st=m;draw();}
   if(m.type==='ko'){side[k].st.ko=m.n;draw();koShow(k);if(m.n>=DEF.koWin)setTimeout(function(){over(o,'ko');},LAG+50);}
   if(m.type==='geo'||m.type==='fx')return;   /* 第二步：光流（殼自己畫），不轉 */
   setTimeout(function(){send(o,m);},LAG);});
-$('again').addEventListener('click',function(){$('again').style.display='none';$('msg').classList.remove('on');side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';setTimeout(start,400);});
+$('again').addEventListener('click',function(){$('again').style.display='none';clearResult();side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';setTimeout(start,400);});
 var tick=0;document.addEventListener('visibilitychange',function(){if(document.hidden)hidAt=performance.now();else if(hidAt){held+=performance.now()-hidAt;hidAt=0;}});
 function fmt(s){s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+('0'+s%60).slice(-2);}
 setInterval(function(){var c=$('clock');if(state!=='play'){if(state==='wait'&&!linked)c.textContent='—';return;}
