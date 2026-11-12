@@ -1414,7 +1414,7 @@ VsSide.prototype.recv=function(msg){var d=this.def;
   else if(msg.type==='ult')this.ev.push({type:'oppUlt',fox:msg.fox});};
 // 對方的一發生效：自己算護盾、無敵，扣血；不管有沒有扣到都記「處理到第幾發」（ack，下一則 st 帶回去）
 VsSide.prototype.land=function(msg){if(msg.id>this.ack){this.ack=msg.id;this.dirty=true;}
-  if(!this.active()||this.invuln>0||!(msg.dmg>0))return;   // 無敵、時間到了、打完了：不算
+  if(!this.active()||this.invuln>0||!(msg.dmg>0)||this.downs>=this.def.koWin)return;   // 無敵、時間到了、打完了、已經被 KO 滿了（在等裁判宣布）：不算
   var cut=this.shield>0?Math.round(msg.dmg*this.shield):0,dealt=Math.min(msg.dmg-cut,this.hp);this.shield=0;this.hp-=dealt;this.stat.taken+=dealt;this.dirty=true;
   this.ev.push({type:'hurt',dmg:dealt,blocked:cut,orb:msg.orb==null?-1:msg.orb});if(this.hp<=0)this.down();};
 VsSide.prototype.calm=function(){this.gen=0;this.combo=0;if(this.hooks&&this.hooks.resetCombo)this.hooks.resetCombo();};   // 連擊歸零
@@ -8921,7 +8921,7 @@ function cardName(v){var s=typeof v==='string'?Array.from(v.replace(/[\u0000-\u0
 function setCards(me,foeC){var key=JSON.stringify([me&&me.scene,foeC||null]);
   APP.stage=me&&typeof me==='object'&&Object.prototype.hasOwnProperty.call(SCENE,me.scene)?SCENE[me.scene]:foe;   // 沒給（或不認得）＝照 &foe= 的那一關
   if(key===cardKey)return;cardKey=key;geoKey='';
-  if(!foeC||typeof foeC!=='object'){foeCard=null;return;}
+  if(!foeC||typeof foeC!=='object'){foeCard=APP.stage===foe?null:{name:CONFIG.stages[foe].name,look:baseLook(foe),ok:true};return;}   /* 沒有對手的名帖：台上還是 &foe= 的那一隻。背景被 me.scene 換到別關了，就照那一隻的長相另外做（不然會變成那個場景原本的 BOSS；遊星 2026-11-13 發現） */
   var c=cardLook(foeC.look);foeCard={name:cardName(foeC.name),look:c.look,ok:c.ok};}
 // 台上換成名帖上的那隻（做模型時出錯就退回 base 的原樣，再不行就用這一關原本的）
 function putCard(){if(!foeCard){BS.cardBoss(null);return;}

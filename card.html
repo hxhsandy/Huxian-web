@@ -8709,269 +8709,174 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.__CARD_MODE=1;document.addEventListener('DOMContentLoaded',function(){
+<script>document.addEventListener('DOMContentLoaded',function(){
 /* =====================================================================
-   狐仙三消 狐狸捏臉器（2026-09-30 遊星做，CK 要的：九隻 BOSS 的長相都能調——眼睛、淚痕、額頭裝飾、顏色、尾巴、鬼火、大小；每隻可以存好幾個樣式）
-   這一頁 = 遊戲檔 game.html 原封不動＋最後面插入這支（editor/build_fox_editor.js 組的：npm run build:editor-fox → editor-fox.html）。
-   遊戲裡沒有捏臉器；捏臉器透過遊戲留的介面 window.__game.BS.bossDev() 讀 BOSS_LOOK_DEF（render/characters.js），用遊戲自己的 createFox 在中間的轉台做一隻；
-   左邊是遊戲本身：看介紹頁（TEAM.dev().rebuildCover）或戰鬥（bossDev().rebuild，戰鬥停住）時，改的東西也會套上去（只在這一頁，不會存進遊戲）。
-   草稿存在這一頁自己的 localStorage（fox3-foxed-1），遊戲讀不到；改好按「匯出」貼給遊星，寫進遊戲的 BOSS_LOOK_DEF 才算數。
-   樣式：每隻的「基本」是遊戲用的；其他樣式（例如夢婆的「紅眼」）只記跟基本不一樣的地方，遊戲目前還沒用到（之後要接狂暴換臉之類再接）。
-   形態（2026-11-07 CK 要的）：夢婆（笑臉／睜眼）、九尾（冥／丘／月）的每個形態在上面是獨立一個按鈕，遊戲會用（BOSS_LOOK_DEF 的 forms：
-   夢婆狂暴時睜眼、九尾最終戰換段時換）。資料一樣是「第一個形態＝基本、其他＝同名的樣式（只記跟第一個不一樣的地方）」。
-   名帖模式（2026-11-13，狐仙對戰用；editor/build_card_editor.js 組的 card.html，多一行 window.__CARD_MODE=1）：同一支程式給玩家捏「自己上場的那一隻」——
-   左邊的遊戲藏起來、只留轉台；選一隻當底開始捏（九隻各自記得改過什麼）、取名字、選自己的畫面要黑夜還是白天，按「上場」把名帖存進 localStorage
-   （foxvs-card：{v:1,name,scene,look}，look＝一整筆 BOSS_LOOK_DEF 那種物件＋base）再跳去對戰（duel.html，或網址 ?next= 指定的頁）。
-   形態、樣式、匯出匯入、介紹頁專用的東西（鬼火、真結局狐火）都不顯示。手機上轉台在上、面板在下。沒有 __CARD_MODE 時跟原本的捏臉器一模一樣。
+   狐仙對戰 名帖頁（2026-11-13 遊星；玩家捏「自己上場的那一隻」）
+   這一頁 = 遊戲檔 game.html 原封不動＋最後面插入這支（editor/build_card_editor.js → card.html）。跟內部用的捏臉器（fox_editor_js.html）分開：
+   CK 11/13：捏臉器太像內部工具、太囉嗦——玩家只要「幾張預設的臉（用圖選、不寫 BOSS 名字）＋全隨機骰子」，細部分類收起來，點進去才有拉條和調色；
+   介面要半透明、有設計感（排法參考 CK 給的兩張捏臉畫面：整頁是角色本人、右邊一排分類、下面是那一類的選項；長相用我們自己的金色襯線風格）；
+   坐姿用換裝頁那種自然的坐法（pose.sitLegs：後腿貼地，不會卡進身體）。
+   資料：一筆 BOSS_LOOK_DEF 那種物件 L（從某一隻預設複製來再改，記 base）。草稿存 localStorage foxvs-card-draft2；按「上場」存 foxvs-card
+   （{v:1,name,scene,look}，對戰的殼 duel.html 讀它）再跳去對戰（或網址 ?next= 指定的頁）。
    ===================================================================== */
 (function(){
-  var G=window.__game;if(!G||!G.BS||!G.BS.bossDev||!G.TEAM||!G.TEAM.dev){console.error('捏臉器：找不到遊戲的 BS.bossDev()');return;}
-  var CARD=!!window.__CARD_MODE,CARD_KEY='foxvs-card',cardName='',cardScene='night';
-  var dev=G.BS.bossDev(),THREE=window.THREE,DRAFT_KEY=CARD?'foxvs-card-draft':'fox3-foxed-1',gameEl=document.getElementById('game'),PW=380,TAU=Math.PI*2;
+  var G=window.__game;if(!G||!G.BS||!G.BS.bossDev){console.error('名帖：找不到遊戲的 BS.bossDev()');return;}
+  var dev=G.BS.bossDev(),THREE=window.THREE,DRAFT_KEY='foxvs-card-draft2',CARD_KEY='foxvs-card',TAU=Math.PI*2;
   function clone(o){return JSON.parse(JSON.stringify(o));}
   function isObj(v){return !!v&&typeof v==='object'&&!Array.isArray(v);}
-  var ORIG=clone(dev.DEF),looks=clone(ORIG),cur=0,style=null,view='team',dirty=true,saveT=0,applyT=0,panel=null,body=null;
-  // createFox 沒給顏色時用的（render/characters.js createFox 開頭那一份）
+  function baseLook(k){var c=clone(dev.DEF[k]);['forms','formAt','styles','wisps','fireEnd','name','outfit'].forEach(function(a){delete c[a];});c.base=k;return c;}
   var CDEF={fur:0xe58a45,chest:0xf6ecdc,paw:0x3b2519,nose:0x3b2519,earIn:0xf3c9ab,earTip:0x3b2519,tip:0xf6ecdc,blush:0xf2a4a0,mark:0x9a78d6,outline:0xd6b56f,eye:0x1d1420};
-  var FDEF={ew:1,eh:1,gap:0,ey:0,tilt:0,hls:1,pw:1,smileW:0.0075,eyeGlow:0,shadowS:1,earBack:0,earOut:0,pupil:0x0d1a10};
   var TEARS0={col:0xb8ff4a,n:1,len:0.1,w:0.0065,x:0,glow:0},BROW0={type:'gem',col:0xf2c65a,s:0.035,y:0.15,glow:0};
-  // 一鍵套用（只改臉的一部分，其他照舊）
-  var PRESETS=[
-    ['豎瞳淚痕（青燐試色版）',{colors:{eye:0x9dff3a},face:{eye:'slit',ew:0.92,eh:1.28,pupil:0x0d2219,pw:1.1,hl:false,eyeGlow:0.45,blush:false,markBrow:false,
-      tears:{col:0x9dff3a,n:1,len:0.11,w:0.0068,x:0.004,glow:0.35},brow:{type:'gem',col:0xd8f25a,s:0.034,y:0.165,glow:0.35}}}],
-    ['瞇瞇眼＋紅眼影（夢婆笑臉）',{shadow:0xd8344a,face:{eye:'smile',smileW:0.0075,blush:false}}],
-    ['睜眼紅瞳（夢婆狂暴）',{shadow:0xd8344a,colors:{eye:0xd8203a},face:{eye:'round',eh:1.08,hl:true,eyeGlow:0.3,blush:false}}],
-    ['血淚（最終）',{face:{hl:false,tears:{col:0xb3121f,n:1,len:0.12,w:0.0075,x:0,glow:0}}}],
-    ['沒有白色亮點',{face:{hl:false}}],
-    ['原本的臉（清掉捏臉）',{face:null}]];
+  var L=baseLook(3),name='',scene='night',cat='preset',dirty=true,saveT=0;
+  function save(){try{localStorage.setItem(DRAFT_KEY,JSON.stringify({v:2,look:L,name:name,scene:scene}));}catch(e){}}
+  (function(){try{var d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');if(d&&d.v===2&&isObj(d.look)&&isObj(d.look.colors)){L=d.look;name=String(d.name||'').slice(0,8);scene=d.scene==='day'?'day':'night';return;}
+    var c=JSON.parse(localStorage.getItem(CARD_KEY)||'null');if(c&&c.v===1&&isObj(c.look)&&isObj(c.look.colors)){L=c.look;name=String(c.name||'').slice(0,8);scene=c.scene==='day'?'day':'night';}}catch(e){}})();
+  function getP(path){var o=L;for(var i=0;i<path.length;i++){if(o==null)return undefined;o=o[path[i]];}return o;}
+  function setP(path,v){var o=L;for(var i=0;i<path.length-1;i++){var k=path[i];if(!isObj(o[k])&&!Array.isArray(o[k]))o[k]=k==='tears'?clone(TEARS0):k==='brow'?clone(BROW0):{};o=o[k];}
+    var a=path[path.length-1];if(v===undefined)delete o[a];else o[a]=v;changed();}
+  function changed(){dirty=true;clearTimeout(saveT);saveT=setTimeout(save,400);}
+  function faceV(k,d){var f=L.face;return f&&f[k]!=null?f[k]:d;}
+  function eyeType(){return L.face&&L.face.eye||(L.sly?'sly':'round');}
 
-  /* ---------- 資料：looks[k] 是第 k 隻的「基本」，looks[k].styles[名字] 是其他樣式（只記不一樣的地方） ---------- */
-  function merged(k,st){var L=looks[k],S=st&&L.styles&&L.styles[st],o={},a;for(a in L)if(a!=='styles')o[a]=L[a];if(!S)return o;
-    for(a in S){var v=S[a];o[a]=isObj(v)&&isObj(o[a])?Object.assign({},o[a],v):v;}return o;}
-  function M(){return merged(cur,style);}
-  function getV(path){var o=M();for(var i=0;i<path.length;i++){if(o==null)return undefined;o=o[path[i]];}return o;}
-  function target(){var L=looks[cur];if(!style)return L;L.styles=L.styles||{};return (L.styles[style]=L.styles[style]||{});}
-  function setV(path,v){var t=target(),m=M(),a=path[0];
-    if(path.length===1){if(v===undefined&&!style)delete t[a];else t[a]=v===undefined?null:v;}
-    else if(path.length===2){var b=path[1];
-      if(Array.isArray(m[a])){t[a]=(t[a]||m[a]).slice();t[a][b]=v;}
-      else{if(!isObj(t[a]))t[a]=style?{}:Object.assign({},m[a]||{});if(v===undefined&&!style)delete t[a][b];else t[a][b]=v;}}
-    else{var b2=path[1],c=path[2];if(!isObj(t[a]))t[a]=style?{}:Object.assign({},m[a]||{});
-      var base=(m[a]||{})[b2];t[a][b2]=Object.assign({},b2==='tears'?TEARS0:b2==='brow'?BROW0:{},isObj(base)?base:{},isObj(t[a][b2])?t[a][b2]:{});t[a][b2][c]=v;}
-    changed();}
-  function faceV(k,dflt){var f=getV(['face']);return f&&f[k]!=null?f[k]:dflt;}
-  function eyeType(){var m=M();return m.face&&m.face.eye||(m.sly?'sly':'round');}
-  function changed(){dirty=true;clearTimeout(saveT);saveT=setTimeout(save,400);clearTimeout(applyT);applyT=setTimeout(applyGame,260);}
-  // 形態是 2026-11-07 加的：之前的草稿、匯出碼沒有 forms，照遊戲的補上（形態名字、什麼時候換、介紹頁鬼火、每個形態的樣式）；已經有 forms 的不動
-  function addForms(list){list.forEach(function(L,k){var O=ORIG[k];if(!O.forms||L.forms)return;L.forms=clone(O.forms);L.formAt=O.formAt;
-    if(O.wisps!=null&&!('wisps' in L))L.wisps=O.wisps;L.styles=L.styles||{};O.forms.forEach(function(n,i){if(i&&!L.styles[n])L.styles[n]=clone((O.styles||{})[n]||{});});});return list;}
-  function save(){try{localStorage.setItem(DRAFT_KEY,JSON.stringify({v:1,looks:looks,cur:cur,style:CARD?null:style,name:cardName,scene:cardScene}));}catch(e){}}
-  function load(){try{var d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');if(d&&d.v===1&&d.looks&&d.looks.length===ORIG.length){looks=addForms(d.looks);cur=d.cur|0;style=d.style||null;if(CARD){style=null;cardName=String(d.name||'').slice(0,8);cardScene=d.scene==='day'?'day':'night';}
-      if(style&&!(looks[cur].styles&&looks[cur].styles[style]))style=null;}}catch(e){}}
-
-  /* ---------- 中間的轉台：遊戲的 createFox 做一隻，燈光跟戰鬥一樣 ---------- */
-  var cv=document.createElement('canvas');cv.id='feStage';document.body.appendChild(cv);
-  var R=new THREE.WebGLRenderer({canvas:cv,antialias:true});R.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
-  var sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(28,1,0.1,100),BG=[0x1d2440,0xe4e8f2],bgi=0;
-  sc.add(new THREE.HemisphereLight(0x7486c6,0x1a1f3a,.6));sc.add(new THREE.AmbientLight(0x2a3566,.35));
+  /* ---------- 舞台：整頁就是狐狸（畫布透明，後面是黑夜／白天的漸層） ---------- */
+  var bg=document.createElement('div');bg.id='cdBg';document.body.appendChild(bg);
+  var cv=document.createElement('canvas');cv.id='cdStage';document.body.appendChild(cv);
+  var R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});R.setPixelRatio(Math.min(window.devicePixelRatio||1,2));R.setClearColor(0x000000,0);
+  var sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(28,1,0.1,100);
+  var hemi=new THREE.HemisphereLight(0x7486c6,0x1a1f3a,.6),amb=new THREE.AmbientLight(0x2a3566,.35);sc.add(hemi);sc.add(amb);
   var ml=new THREE.DirectionalLight(0xfff0cc,.9);ml.position.set(4.4,9.8,-24).normalize().multiplyScalar(10);sc.add(ml);
   var fl=new THREE.DirectionalLight(0x8496d8,.42);fl.position.set(2,4,9);sc.add(fl);
-  var floor=new THREE.Mesh(new THREE.CircleGeometry(1.0,64),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.16,depthWrite:false}));floor.rotation.x=-Math.PI/2;floor.position.y=0.002;sc.add(floor);
-  var fox=null,yaw=0.4,pitch=0.14,dist=6.4,auto=false,drag=null,look0=[0.4,0.14,6.4];
-  function buildFox(){var L=M();if(fox){sc.remove(fox.group);dev.disposeFox(fox);}
-    fox=dev.createFox(Object.assign(dev.lookOpts(L),{scale:L.size||1,tailLen:0.8,tailR:0.2,tailFan:dev.fitFan(L.tailFan,L.tails,L.spread),pose:{pivot:-0.45,head:0.28}}));
+  var floor=new THREE.Mesh(new THREE.CircleGeometry(0.62,64),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.14,depthWrite:false}));floor.rotation.x=-Math.PI/2;floor.position.y=0.002;sc.add(floor);
+  var fox=null,yaw=0.42,pitch=0.12,dist=6.2,drag=null,tNow=0,last=performance.now(),W=1,H=1;
+  // 坐姿：換裝頁那種（後腿是貼地的大腿＋腳掌，不會折進身體裡；2026-11-13 CK）
+  function makeFox(look){return dev.createFox(Object.assign(dev.lookOpts(look),{scale:look.size||1,tailLen:0.8,tailR:0.2,tailFan:dev.fitFan(dev.DEF[look.base|0].tailFan,look.tails,look.spread),pose:{pivot:-0.16,head:0.17,lower:0.05,sitLegs:true}}));}
+  function buildFox(){if(fox){sc.remove(fox.group);dev.disposeFox(fox);fox=null;}
+    try{fox=makeFox(L);}catch(e){console.error(e);L=baseLook(L.base|0);fox=makeFox(L);}
     sc.add(fox.group);fox.look(yaw,0);fox.update(0,tNow);dirty=false;}
-  function place(){var gw=CARD?0:gameEl.getBoundingClientRect().right,ph=CARD&&window.innerWidth<760,W=ph?window.innerWidth:Math.max(10,window.innerWidth-PW-gw),H=ph?Math.round(window.innerHeight*0.42):window.innerHeight;
-    if(CARD){document.body.classList.toggle('fePh',ph);dist=ph?5.6:6.4;}cv.style.left=gw+'px';cv.style.width=W+'px';cv.style.height=H+'px';R.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix();}
-  var tNow=0,last=performance.now();
-  function frame(now){var dt=Math.min(0.05,(now-last)/1000);last=now;tNow+=dt;
-    if(view==='battle'&&G.G.mode==='playing')G.G.mode='edit';   // 戰鬥停住：不計時、BOSS 不出手、盤面點不動
-    if(dirty)buildFox();
-    if(auto&&!drag)yaw+=dt*0.6;
-    var ty=0.62*(M().size||1);cam.position.set(0,ty+dist*Math.sin(pitch),dist*Math.cos(pitch));cam.lookAt(0,ty,0);
-    if(fox){fox.look(yaw,0);fox.update(dt,tNow);}
-    R.setClearColor(CARD?(cardScene==='day'?0xbfd9f2:0x1d2440):BG[bgi],1);R.render(sc,cam);requestAnimationFrame(frame);}
+  function place(){W=window.innerWidth;H=window.innerHeight;R.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix();
+    var wide=W>H*1.1;document.body.classList.toggle('cdWide',wide);
+    if(wide)cam.setViewOffset(W,H,W*0.16,-H*0.02,W,H);else cam.setViewOffset(W,H,0,H*0.2,W,H);   /* 直的畫面：狐狸往上讓出下面的面板；橫的：往左讓出右邊 */
+    dist=wide?6.4:Math.max(7.2,6.3*Math.max(1,0.62*H/W));}
+  function frame(now){var dt=Math.min(0.05,(now-last)/1000);last=now;tNow+=dt;if(dirty)buildFox();
+    var ty=0.5*(L.size||1);cam.position.set(0,ty+dist*Math.sin(pitch),dist*Math.cos(pitch));cam.lookAt(0,ty,0);
+    if(fox){fox.look(yaw,0);fox.update(dt,tNow);}R.render(sc,cam);requestAnimationFrame(frame);}
   cv.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY,yaw:yaw,pitch:pitch};cv.setPointerCapture(e.pointerId);});
-  cv.addEventListener('pointermove',function(e){if(!drag)return;yaw=drag.yaw+(e.clientX-drag.x)*0.012;pitch=Math.max(-0.35,Math.min(1.2,drag.pitch+(e.clientY-drag.y)*0.006));});
+  cv.addEventListener('pointermove',function(e){if(!drag)return;yaw=drag.yaw+(e.clientX-drag.x)*0.012;pitch=Math.max(-0.2,Math.min(0.9,drag.pitch+(e.clientY-drag.y)*0.006));});
   cv.addEventListener('pointerup',function(){drag=null;});cv.addEventListener('pointercancel',function(){drag=null;});
-  cv.addEventListener('wheel',function(e){e.preventDefault();dist=Math.max(2.2,Math.min(12,dist*(e.deltaY>0?1.08:1/1.08)));},{passive:false});
+  // 預設的小圖：用同一個舞台各拍一張（不寫名字，用圖選）
+  var thumbs=[];
+  function snapThumbs(){var keepL=L;R.setSize(132,132,false);cam.aspect=1;cam.clearViewOffset();cam.updateProjectionMatrix();floor.visible=false;
+    dev.DEF.forEach(function(_,k){var lk=baseLook(k),f=makeFox(lk);sc.add(f.group);f.look(0.35,0);f.update(0,1);var ty=0.56*(lk.size||1);cam.position.set(0,ty+0.4,3.3);cam.lookAt(0,ty,0);R.render(sc,cam);thumbs[k]=cv.toDataURL('image/png');sc.remove(f.group);dev.disposeFox(f);});
+    floor.visible=true;L=keepL;place();}
 
-  /* ---------- 左邊的遊戲：介紹頁／戰鬥（改的東西套上去，只在這一頁） ---------- */
-  function cleanLook(k,st){var c=clone(merged(k,st));delete c.styles;return c;}
-  function applyGame(){if(CARD)return;dev.set(cur,cleanLook(cur,style));if(view==='team')G.TEAM.dev().rebuildCover(cur);else if(view==='battle')dev.rebuild(cur);}
-  function showView(v){if(CARD)return;view=v||view;dev.set(cur,cleanLook(cur,style));
-    if(view==='team'){G.goTeam(cur);G.TEAM.dev().rebuildCover(cur);}
-    else{G.APP.stage=cur;G.startTrial();dev.rebuild(cur);}
-    syncHead();}
-  function pickBoss(k){if(k===cur)return;if(CARD){cur=k;style=null;dirty=true;save();buildPanel();return;}dev.set(cur,cleanLook(cur,null));   // 離開的那隻換回它的基本長相
-    if(view==='team')G.TEAM.dev().rebuildCover(cur);else dev.rebuild(cur);
-    cur=k;style=null;dirty=true;save();showView();buildPanel();}
-  function pickStyle(s){style=s;dirty=true;save();applyGame();buildPanel();}
-  function pickForm(k,s){if(k!==cur)pickBoss(k);if(s!==style)pickStyle(s);}
-  function formName(k,st){var F=looks[k].forms;if(!F)return null;return st?(F.indexOf(st)>0?st:null):F[0];}
-
-  /* ---------- 右邊的面板 ---------- */
+  /* ---------- 介面（半透明、浮在狐狸上面） ---------- */
   function el(tag,cls,html){var d=document.createElement(tag);if(cls)d.className=cls;if(html!=null)d.innerHTML=html;return d;}
-  function btn(parent,label,fn,cls){var b=el('button',cls||'feBtn',label);b.type='button';b.addEventListener('click',fn);parent.appendChild(b);return b;}
-  function hex(n){return '#'+('000000'+(n>>>0).toString(16)).slice(-6);}
-  function sec(title,open){var d=el('details','feSec');if(open)d.open=true;d.appendChild(el('summary',null,title));body.appendChild(d);return d;}
-  function row(parent,label){var r=el('div','feRow');r.appendChild(el('label',null,label));parent.appendChild(r);return r;}
-  function range(parent,label,path,min,max,step,dflt,fmt){var r=row(parent,label),v=getV(path);if(v==null)v=dflt;
-    var inp=el('input');inp.type='range';inp.min=min;inp.max=max;inp.step=step;inp.value=v;var out=el('span','feVal',(fmt||String)(+v));
-    inp.addEventListener('input',function(){var x=+inp.value;out.textContent=(fmt||String)(x);setV(path,x);});r.appendChild(inp);r.appendChild(out);return inp;}
-  function color(parent,label,path,dflt){var r=row(parent,label),v=getV(path);if(v==null)v=dflt;var inp=el('input');inp.type='color';inp.value=hex(v);
-    inp.addEventListener('input',function(){setV(path,parseInt(inp.value.slice(1),16));});r.appendChild(inp);r.appendChild(el('span','feVal',''));return inp;}
-  function check(parent,label,on,fn){var l=el('label','feChk'),c=el('input');c.type='checkbox';c.checked=!!on;c.addEventListener('change',function(){fn(c.checked);});l.appendChild(c);l.appendChild(document.createTextNode(label));parent.appendChild(l);return c;}
-  function select(parent,label,opts,val,fn){var r=row(parent,label),s=el('select');opts.forEach(function(o){var op=el('option',null,o[1]);op.value=o[0];s.appendChild(op);});s.value=val;
-    s.addEventListener('change',function(){fn(s.value);});r.appendChild(s);r.appendChild(el('span','feVal',''));return s;}
-  function note(parent,html){parent.appendChild(el('p','feNote',html));}
-  function f3(x){return x.toFixed(3);}function f2(x){return x.toFixed(2);}
-  function makePanel(){panel=el('div','fePanel');panel.innerHTML=CARD?'<div class="feHead"><div><b>狐仙對戰・名帖</b><small>捏一隻自己的狐狸，她會站在對手的台上</small></div></div><div class="feScroll"></div>':'<div class="feHead"><div><b>狐仙三消 捏臉器</b><small>九隻 BOSS 的長相：改好按「匯出」貼給遊星</small></div></div><div class="feScroll"></div>';
-    document.body.appendChild(panel);body=panel.querySelector('.feScroll');}
-  function syncHead(){Array.prototype.forEach.call(panel.querySelectorAll('.feView'),function(b){b.classList.toggle('on',b.dataset.v===view);});}
-  // 名帖：存進 localStorage（對戰的殼讀它），再跳去對戰
-  function cardLook(){var c=cleanLook(cur,null);['forms','formAt','wisps','fireEnd'].forEach(function(a){delete c[a];});c.base=cur;return c;}
-  function goBattle(){var nm=(cardName||'').trim()||ORIG[cur].name;try{localStorage.setItem(CARD_KEY,JSON.stringify({v:1,name:Array.from(nm).slice(0,8).join(''),scene:cardScene,look:cardLook()}));}catch(e){alert('存不起來（瀏覽器不讓這一頁存東西）');return;}
+  function hex(n){return '#'+('000000'+((n>>>0)&0xffffff).toString(16)).slice(-6);}
+  function num(h){return parseInt(h.slice(1),16);}
+  var FUR=['#fbf2ec','#f3efe9','#ffd9b0','#e58a45','#f6a5c0','#c9a6ff','#9277d2','#88ccff','#5fd0b0','#6b4a3a','#3b3654','#22263a'];
+  var ACC=['#ff5a7a','#ff9a4a','#ffd24a','#9dff3a','#4ad6a4','#5cb4ff','#8b6fe2','#f075a6','#ffffff','#1d1420'];
+  var CATS=[['preset','預設'],['eye','眼睛'],['face','臉'],['fur','毛色'],['tail','尾巴'],['fire','狐火'],['body','體型']];
+  var ui=el('div');ui.id='cdUI';document.body.appendChild(ui);
+  ui.innerHTML='<div class="cdTop"><a class="cdIcon" id="cdBack" href="duel.html" title="回對戰">‹</a><input id="cdName" type="text" maxlength="8" placeholder="取個名字"><button class="cdIcon" id="cdScene" type="button"></button></div>'+
+    '<div class="cdTabs" id="cdTabs"></div><div class="cdSheet"><div class="cdNow" id="cdNow"></div><div class="cdBody" id="cdBody"></div></div>'+
+    '<div class="cdBar"><button id="cdRand" type="button" class="cdBtn">🎲 全隨機</button><button id="cdGo" type="button" class="cdGo">上場！</button></div>';
+  var body=document.getElementById('cdBody'),nameEl=document.getElementById('cdName'),sceneEl=document.getElementById('cdScene');
+  nameEl.value=name;nameEl.addEventListener('input',function(){name=nameEl.value;clearTimeout(saveT);saveT=setTimeout(save,400);});
+  function syncScene(){document.body.classList.toggle('cdDay',scene==='day');sceneEl.textContent=scene==='day'?'☀️':'🌙';sceneEl.title=scene==='day'?'我的畫面：白天（點一下換黑夜）':'我的畫面：黑夜（點一下換白天）';
+    hemi.intensity=scene==='day'?0.85:0.6;amb.intensity=scene==='day'?0.5:0.35;}
+  sceneEl.addEventListener('click',function(){scene=scene==='day'?'night':'day';syncScene();save();});
+  CATS.forEach(function(c){var b=el('button','cdTab',c[1]);b.type='button';b.dataset.c=c[0];b.addEventListener('click',function(){cat=c[0];build();});document.getElementById('cdTabs').appendChild(b);});
+  function rowEl(label){var r=el('div','cdRow');r.appendChild(el('label',null,label));body.appendChild(r);return r;}
+  function range(label,path,min,max,step,d){var r=rowEl(label),v=getP(path);if(v==null)v=d;var i=el('input');i.type='range';i.min=min;i.max=max;i.step=step;i.value=v;
+    i.addEventListener('input',function(){setP(path,+i.value);});r.appendChild(i);}
+  function chips(label,opts,val,fn){var r=rowEl(label),w=el('div','cdChips');opts.forEach(function(o){var b=el('button','cdChip'+(o[0]===val?' on':''),o[1]);b.type='button';b.addEventListener('click',function(){fn(o[0]);build();});w.appendChild(b);});r.appendChild(w);}
+  function toggle(label,on,fn){chips(label,[['1','有'],['0','沒有']],on?'1':'0',function(v){fn(v==='1');});}
+  function color(label,val,pal,fn){var r=rowEl(label),w=el('div','cdSw'),cur=hex(val==null?0:val);
+    pal.forEach(function(c){var b=el('button','cdDot'+(c===cur?' on':''));b.type='button';b.style.background=c;b.addEventListener('click',function(){fn(num(c));build();});w.appendChild(b);});
+    var pk=el('label','cdPick'),i=el('input');i.type='color';i.value=cur;i.addEventListener('input',function(){fn(num(i.value));});pk.appendChild(i);w.appendChild(pk);r.appendChild(w);}
+  function colorP(label,path,d,pal){color(label,getP(path)==null?d:getP(path),pal,function(v){setP(path,v);});}
+  function build(){var y=body.scrollTop;body.innerHTML='';Array.prototype.forEach.call(document.querySelectorAll('.cdTab'),function(b){b.classList.toggle('on',b.dataset.c===cat);});
+    document.getElementById('cdNow').textContent=cat==='preset'?'選一張臉開始':'調整中：'+CATS.filter(function(c){return c[0]===cat;})[0][1];
+    var f=L.face||{},et=eyeType();
+    if(cat==='preset'){var g=el('div','cdPre');thumbs.forEach(function(src,k){var b=el('button','cdPreB'+(k===(L.base|0)?' on':''));b.type='button';b.style.backgroundImage='url('+src+')';
+        b.addEventListener('click',function(){L=baseLook(k);changed();build();});g.appendChild(b);});body.appendChild(g);
+      var rs=el('button','cdBtn cdReset','↺ 這張臉改回原本的樣子');rs.type='button';rs.addEventListener('click',function(){L=baseLook(L.base|0);changed();build();});body.appendChild(rs);}
+    if(cat==='eye'){chips('眼型',[['round','圓眼'],['slit','豎瞳'],['smile','瞇瞇眼'],['sly','丹鳳眼']],et,function(v){setP(['face','eye'],v);});
+      color('顏色',L.eyeGrad?L.eyeGrad[0]:(getP(['colors','eye'])==null?CDEF.eye:getP(['colors','eye'])),ACC,function(v){delete L.eyeGrad;setP(['colors','eye'],v);});
+      range('寬',['face','ew'],0.5,1.8,0.01,1);range('高',['face','eh'],0.3,1.8,0.01,1);range('距離',['face','gap'],-0.035,0.05,0.001,0);range('高低',['face','ey'],-0.05,0.05,0.001,0);range('上挑',['face','tilt'],-0.9,0.9,0.01,0);
+      range('發光',['face','eyeGlow'],0,1,0.01,0);
+      if(et!=='smile')toggle('亮點',faceV('hl',et!=='slit'),function(v){setP(['face','hl'],v);});
+      toggle('睫毛',!!L.lash,function(v){setP(['lash'],v||undefined);});}
+    if(cat==='face'){toggle('腮紅',faceV('blush',true),function(v){setP(['face','blush'],v);});if(faceV('blush',true))colorP('腮紅色',['colors','blush'],CDEF.blush,ACC);
+      toggle('眼影',L.shadow!=null,function(v){setP(['shadow'],v?0xe0455c:undefined);});if(L.shadow!=null)colorP('眼影色',['shadow'],0xe0455c,ACC);
+      var bt=f.brow&&f.brow.type||'none';chips('額頭',[['none','沒有'],['gem','寶石'],['crescent','月牙'],['flame','火焰'],['diamond','菱形'],['dots','三點']],bt,function(v){setP(['face','brow','type'],v);if(v!=='none'&&L.marks)setP(['face','markBrow'],false);});
+      if(bt!=='none'){colorP('額飾色',['face','brow','col'],BROW0.col,ACC);range('額飾大小',['face','brow','s'],0.012,0.075,0.001,BROW0.s);}
+      var hasT=!!(f.tears&&f.tears.col!=null);toggle('淚痕',hasT,function(v){setP(['face','tears'],v?clone(TEARS0):undefined);});if(hasT)colorP('淚痕色',['face','tears','col'],TEARS0.col,ACC);
+      toggle('臉上紋路',!!L.marks,function(v){setP(['marks'],v);});if(L.marks)colorP('紋路色',['colors','mark'],CDEF.mark,ACC);}
+    if(cat==='fur'){colorP('毛',['colors','fur'],CDEF.fur,FUR);colorP('胸口',['colors','chest'],CDEF.chest,FUR);colorP('耳尖',['colors','earTip'],CDEF.earTip,ACC.concat(FUR.slice(9)));colorP('耳朵裡',['colors','earIn'],CDEF.earIn,FUR);
+      colorP('腳掌',['colors','paw'],CDEF.paw,FUR.concat(ACC.slice(0,4)));colorP('鼻子',['colors','nose'],CDEF.nose,['#3b2519','#151120','#8a4058','#4a3560','#f075a6','#22263a']);}
+    if(cat==='tail'){range('幾條',['tails'],1,9,1,L.tails||1);range('張開',['spread'],0.4,1.8,0.01,1);range('長度',['tailL'],0.6,1.6,0.01,1);range('粗細',['tailW'],0.6,1.6,0.01,1);
+      colorP('尾尖',['colors','tip'],CDEF.tip,ACC.concat(FUR.slice(0,2)));range('尾尖多長',['tipFrac'],0.05,0.95,0.01,L.tipFrac||0.3);}
+    if(cat==='fire'){color('狐火',(L.fire&&L.fire[2])||0xb07cff,ACC,function(v){var c=new THREE.Color(v),li=c.clone().lerp(new THREE.Color(0xffffff),0.45);L.fire=[v,li.getHex(),v];L.glow=v;changed();});
+      body.appendChild(el('p','cdNote','尾巴尖上的那團火，上場才看得到。'));}
+    if(cat==='body'){range('整隻大小',['size'],0.7,1.4,0.01,1);range('頭的大小',['headK'],0.8,1.3,0.01,1);range('耳朵往後',['face','earBack'],-0.3,1,0.01,0);range('耳朵往外',['face','earOut'],-0.3,0.6,0.01,0);
+      toggle('耳邊金鈴',!!L.bells,function(v){setP(['bells'],v||undefined);});if(L.bells)colorP('飄帶',['ribbons'],0xd8344a,ACC);}
+    body.scrollTop=cat==='preset'?0:y;}
+  /* ---------- 全隨機：隨便挑一張臉，配一組合得來的顏色、眼型、尾巴 ---------- */
+  function hsl(h,s,l){return new THREE.Color().setHSL(((h%1)+1)%1,s,l).getHex();}
+  function rr(a,b){return a+Math.random()*(b-a);}function pick(a){return a[Math.floor(Math.random()*a.length)];}
+  function randomize(){var k=Math.floor(Math.random()*dev.DEF.length),h=Math.random(),dark=Math.random()<0.3,h2=h+rr(0.3,0.7),tip=hsl(h2,rr(0.65,0.9),rr(0.55,0.68));L=baseLook(k);
+    L.colors=Object.assign({},L.colors,{fur:hsl(h,rr(0.2,0.6),dark?rr(0.2,0.34):rr(0.78,0.94)),chest:hsl(h,0.25,dark?rr(0.8,0.9):0.97),paw:hsl(h,0.4,dark?0.13:rr(0.4,0.6)),nose:dark?0x151120:hsl(h,0.4,0.25),
+      earIn:hsl(h2+0.04,0.6,0.84),earTip:tip,tip:tip,mark:tip,blush:hsl(rr(0.92,1.02),0.8,0.72),eye:Math.random()<0.4?0x1d1420:hsl(h2+0.5,0.8,0.45)});delete L.colors.tail;delete L.eyeGrad;
+    L.fire=[tip,new THREE.Color(tip).lerp(new THREE.Color(0xffffff),0.45).getHex(),tip];L.glow=tip;L.tails=pick([1,2,3,3,4,5,5,6,7,9]);L.spread=rr(0.8,1.25);L.tipFrac=rr(0.15,0.5);L.size=rr(0.92,1.08);
+    L.marks=Math.random()<0.5;L.lash=Math.random()<0.35||undefined;if(Math.random()<0.3)L.shadow=hsl(rr(0.9,1.0),0.7,0.55);else delete L.shadow;if(!L.lash)delete L.lash;
+    var et=pick(['round','round','round','slit','smile','sly']);L.face={eye:et,ew:rr(0.9,1.15),eh:rr(0.9,1.2),tilt:rr(-0.1,0.3),blush:Math.random()<0.75};delete L.sly;
+    if(Math.random()<0.4)L.face.brow={type:pick(['gem','crescent','flame','diamond','dots']),col:hsl(h2+rr(-0.05,0.05),0.8,0.68),s:0.035,y:0.15,glow:0.2};
+    if(et==='slit')L.face.pupil=0x0d1a10;changed();build();}
+  document.getElementById('cdRand').addEventListener('click',randomize);
+  function go(){var nm=(name||'').trim()||'無名狐狸';try{localStorage.setItem(CARD_KEY,JSON.stringify({v:1,name:Array.from(nm).slice(0,8).join(''),scene:scene,look:L}));}catch(e){alert('存不起來（瀏覽器不讓這一頁存東西）');return;}
     save();var nx=/[?&]next=([^&]+)/.exec(location.search);location.href=nx?decodeURIComponent(nx[1]):'duel.html';}
-  function cardTop(){var h=el('div','feCard');body.appendChild(h);
-    var r=el('div','feRow feName');r.appendChild(el('label',null,'名字'));var inp=el('input');inp.type='text';inp.maxLength=8;inp.placeholder=ORIG[cur].name+'（最多 8 個字）';inp.value=cardName;
-    inp.addEventListener('input',function(){cardName=inp.value;clearTimeout(saveT);saveT=setTimeout(save,400);});r.appendChild(inp);h.appendChild(r);
-    var sr=el('div','feBtns');h.appendChild(sr);sr.appendChild(el('span','feNote','我的畫面：'));
-    [['night','🌙 黑夜'],['day','☀️ 白天']].forEach(function(o){btn(sr,o[1],function(){cardScene=o[0];save();buildPanel();},'feBtn'+(cardScene===o[0]?' on':''));});
-    note(h,'從哪一隻開始捏（每一隻改過的地方都會記得）：');
-    var bb=el('div','feBoss');h.appendChild(bb);ORIG.forEach(function(o,k){btn(bb,o.name,function(){pickBoss(k);},'feBtn'+(k===cur?' on':''));});
-    var gr=el('div','feBtns');h.appendChild(gr);btn(gr,'🎲 隨機一隻',function(){var k;do{k=Math.floor(Math.random()*ORIG.length);}while(k===cur);pickBoss(k);});
-    btn(gr,'這隻重設',function(){if(!confirm('把「'+ORIG[cur].name+'」改回原本的樣子？'))return;looks[cur]=clone(ORIG[cur]);dirty=true;changed();buildPanel();},'feBtn feDel');
-    var tb=el('div','feBtns');h.appendChild(tb);check(tb,'自動轉',auto,function(v){auto=v;});btn(tb,'正面',function(){yaw=0;pitch=0.08;dist=5.2;});btn(tb,'重設視角',function(){yaw=look0[0];pitch=look0[1];dist=look0[2];});
-    var go=btn(h,'上場！',goBattle,'feGo');go.title='存好名帖、去對戰';}
-  function buildPanel(){var y=body.scrollTop;body.innerHTML='';var L=looks[cur],m=M(),f=m.face||{};
-    if(CARD){cardTop();buildEdit(L,m,f);body.scrollTop=y;return;}
-    var bb=el('div','feBoss');body.appendChild(bb);
-    ORIG.forEach(function(o,k){var F=looks[k].forms;
-      if(F&&F.length>1)F.forEach(function(n,i){var st=i?n:null,b=btn(bb,(k+1)+' '+o.name+'・'+n,function(){pickForm(k,st);},'feBtn'+(k===cur&&style===st?' on':''));b.title='第'+(k+1)+'關 '+o.name+' 的「'+n+'」形態';});
-      else{var b=btn(bb,(k+1)+' '+o.name,function(){pickBoss(k);},'feBtn'+(k===cur?' on':''));b.title='第'+(k+1)+'關';}});
-    var fm=formName(cur,style);
-    if(L.forms){var FW={enrage:'狂暴時換成第二個',seg:'最終戰換段時換成那一段的'}[L.formAt]||'';
-      note(body,'現在改的是「<b>'+ORIG[cur].name+'・'+(fm||style)+'</b>」形態。'+(style?'沒改的地方跟「'+L.forms[0]+'」一樣（改「'+L.forms[0]+'」的毛色，這個形態沒另外改的話也會跟著變）。':'這是第一個形態，其他形態沒改的地方都跟它一樣。')+(FW?'遊戲裡：'+FW+'。':''));}
-    // 樣式（有形態的 BOSS 不顯示：形態就是它的樣式）
-    var sb=el('div','feStyles');if(!L.forms)body.appendChild(sb);sb.appendChild(el('span','feNote','樣式：'));
-    btn(sb,'基本（遊戲用）',function(){pickStyle(null);},'feBtn'+(style?'':' on'));
-    Object.keys(L.styles||{}).forEach(function(n){btn(sb,n,function(){pickStyle(n);},'feBtn'+(style===n?' on':''));});
-    var sb2=el('div','feBtns');if(!L.forms)body.appendChild(sb2);
-    btn(sb2,'＋ 新樣式',function(){var n=prompt('新樣式的名字（例如：紅眼、笑臉）','');if(!n)return;n=n.trim();if(!n)return;L.styles=L.styles||{};if(!L.styles[n])L.styles[n]={};pickStyle(n);changed();});
-    if(style){btn(sb2,'改名',function(){var n=prompt('改成什麼名字？',style);if(!n||!(n=n.trim())||n===style)return;L.styles[n]=L.styles[style];delete L.styles[style];style=n;changed();buildPanel();});
-      btn(sb2,'刪掉這個樣式',function(){if(!confirm('刪掉「'+style+'」？'))return;delete L.styles[style];if(!Object.keys(L.styles).length)delete L.styles;style=null;dirty=true;changed();buildPanel();},'feBtn feDel');
-      btn(sb2,'清成跟基本一樣',function(){L.styles[style]={};dirty=true;changed();buildPanel();});}
-    if(!L.forms)note(body,style?'現在改的是「<b>'+style+'</b>」樣式：只記跟基本不一樣的地方。遊戲目前都用基本的。':'現在改的是<b>基本</b>（遊戲裡看到的就是這個）。');
-    // 看哪裡
-    var vb=el('div','feBtns');body.appendChild(vb);vb.appendChild(el('span','feNote','左邊看：'));
-    [['team','介紹頁'],['battle','戰鬥（停住）']].forEach(function(v){var b=btn(vb,v[1],function(){showView(v[0]);},'feBtn feView');b.dataset.v=v[0];});
-    var tb=el('div','feBtns');body.appendChild(tb);tb.appendChild(el('span','feNote','轉台：'));
-    check(tb,'自動轉',auto,function(v){auto=v;});btn(tb,'背景深／淺',function(){bgi=1-bgi;});btn(tb,'正面',function(){yaw=0;pitch=0.08;dist=5.2;});btn(tb,'重設視角',function(){yaw=look0[0];pitch=look0[1];dist=look0[2];});
-    note(body,'轉台：按住拖＝轉狐狸、上下拖＝換角度，滾輪＝拉近拉遠。');
-    // 一鍵套用
-    var pb=el('div','feBtns');body.appendChild(pb);var ps=el('select');ps.appendChild(el('option',null,'一鍵套用…'));PRESETS.forEach(function(p,i){var o=el('option',null,p[0]);o.value=i;ps.appendChild(o);});
-    ps.addEventListener('change',function(){var p=PRESETS[+ps.value];if(!p)return;applyPreset(p[1]);});pb.appendChild(ps);
-    buildEdit(L,m,f);syncHead();body.scrollTop=y;}
-  // 眼睛、特殊、顏色、尾巴、大小（捏臉器和名帖共用）；匯出匯入只有捏臉器有
-  function buildEdit(L,m,f){
-    // 眼睛
-    var s1=sec('眼睛',!CARD||window.innerWidth>=760),et=eyeType();
-    select(s1,'眼型',[['round','圓眼'],['slit','豎瞳'],['smile','瞇瞇眼 ＾＾'],['sly','丹鳳眼']],et,function(v){setV(['face','eye'],v);buildPanel();});
-    color(s1,'眼睛顏色',['colors','eye'],CDEF.eye);
-    if(et!=='smile'){check(s1,'眼睛漸層（下面→上面兩色）',!!m.eyeGrad,function(v){setV(['eyeGrad'],v?[getV(['colors','eye'])||CDEF.eye,0x101010]:undefined);buildPanel();});
-      if(m.eyeGrad){color(s1,'漸層下面',['eyeGrad',0],m.eyeGrad[0]);color(s1,'漸層上面',['eyeGrad',1],m.eyeGrad[1]);}}
-    range(s1,'寬',['face','ew'],0.5,1.8,0.01,FDEF.ew,f2);range(s1,'高',['face','eh'],0.3,1.8,0.01,FDEF.eh,f2);
-    range(s1,'兩眼距離',['face','gap'],-0.035,0.05,0.001,0,f3);range(s1,'上下',['face','ey'],-0.05,0.05,0.001,0,f3);
-    range(s1,'斜度（眼尾上挑）',['face','tilt'],-0.9,0.9,0.01,0,f2);
-    if(et==='slit'){color(s1,'豎瞳顏色',['face','pupil'],FDEF.pupil);range(s1,'豎瞳粗細',['face','pw'],0.3,2.5,0.01,1,f2);}
-    if(et==='smile')range(s1,'瞇瞇眼線粗細',['face','smileW'],0.003,0.015,0.0005,FDEF.smileW,f3);
-    if(et!=='smile'){check(s1,'白色亮點',faceV('hl',et!=='slit'),function(v){setV(['face','hl'],v);buildPanel();});
-      if(faceV('hl',et!=='slit'))range(s1,'亮點大小',['face','hls'],0.4,2.2,0.01,1,f2);}
-    range(s1,'眼睛發光',['face','eyeGlow'],0,1,0.01,0,f2);
-    check(s1,'睫毛',!!m.lash,function(v){setV(['lash'],v||undefined);});
-    // 特殊
-    var s2=sec('特殊（淚痕、額頭、腮紅、眼影、耳朵）',!CARD);
-    check(s2,'淚痕／血淚',!!(f.tears&&f.tears.col!=null),function(v){setV(['face','tears'],v?clone(TEARS0):(style?null:undefined));buildPanel();});
-    if(f.tears&&f.tears.col!=null){color(s2,'淚痕顏色',['face','tears','col'],TEARS0.col);
-      select(s2,'每眼幾道',[['1','一道'],['2','兩道']],String(f.tears.n||1),function(v){setV(['face','tears','n'],+v);});
-      range(s2,'長度',['face','tears','len'],0.03,0.17,0.001,TEARS0.len,f3);range(s2,'粗細',['face','tears','w'],0.003,0.016,0.0005,TEARS0.w,f3);
-      range(s2,'往外偏',['face','tears','x'],-0.02,0.04,0.001,0,f3);range(s2,'淚滴發光',['face','tears','glow'],0,1,0.01,0,f2);}
-    var bt=f.brow&&f.brow.type||'none';
-    select(s2,'額頭裝飾',[['none','沒有'],['gem','圓寶石'],['crescent','月牙'],['flame','火焰'],['diamond','菱形'],['dots','三點']],bt,function(v){setV(['face','brow','type'],v);if(v!=='none'&&bt==='none'&&m.marks)setV(['face','markBrow'],false);buildPanel();});   // 第一次放裝飾：額頭那一撇紋先拿掉（會疊在一起），要的話再勾回來
-    if(bt!=='none'){color(s2,'裝飾顏色',['face','brow','col'],BROW0.col);range(s2,'大小',['face','brow','s'],0.012,0.075,0.001,BROW0.s,f3);
-      range(s2,'高低',['face','brow','y'],0.05,0.23,0.001,BROW0.y,f3);range(s2,'發光',['face','brow','glow'],0,1,0.01,0,f2);}
-    check(s2,'紋路（額頭＋臉頰）',m.marks!==false&&!!m.marks,function(v){setV(['marks'],v);buildPanel();});
-    if(m.marks)check(s2,'額頭那一撇紋',faceV('markBrow',true),function(v){setV(['face','markBrow'],v);});
-    check(s2,'腮紅',faceV('blush',true),function(v){setV(['face','blush'],v);buildPanel();});
-    if(faceV('blush',true))color(s2,'腮紅顏色',['colors','blush'],CDEF.blush);
-    check(s2,'眼影',m.shadow!=null,function(v){setV(['shadow'],v?0xe0455c:(style?null:undefined));buildPanel();});
-    if(m.shadow!=null){color(s2,'眼影顏色',['shadow'],0xe0455c);range(s2,'眼影大小',['face','shadowS'],0.5,1.8,0.01,1,f2);}
-    range(s2,'耳朵往後壓',['face','earBack'],-0.3,1,0.01,0,f2);range(s2,'耳朵往外倒',['face','earOut'],-0.3,0.6,0.01,0,f2);
-    // 顏色
-    var s3=sec('顏色',false);
-    [['fur','毛'],['chest','胸口／臉頰／嘴邊'],['paw','腳掌'],['nose','鼻子'],['earIn','耳朵內側'],['earTip','耳尖'],['mark','紋路'],['outline','金色描邊']].forEach(function(c){color(s3,c[1],['colors',c[0]],CDEF[c[0]]);});
-    // 尾巴與鬼火
-    var s4=sec('尾巴與鬼火',false);
-    range(s4,'幾條尾巴',['tails'],1,9,1,m.tails||1,String);range(s4,'張開',['spread'],0.4,1.8,0.01,1,f2);
-    range(s4,'長度',['tailL'],0.6,1.6,0.01,1,f2);range(s4,'粗細',['tailW'],0.6,1.6,0.01,1,f2);
-    check(s4,'尾巴底色跟毛一樣',m.colors.tail==null,function(v){setV(['colors','tail'],v?(style?null:undefined):(m.colors.fur||CDEF.fur));buildPanel();});
-    if(m.colors.tail!=null)color(s4,'尾巴底色',['colors','tail'],m.colors.fur);
-    color(s4,'尾尖顏色',['colors','tip'],CDEF.tip);range(s4,'尾尖漸層長度',['tipFrac'],0.05,0.95,0.01,m.tipFrac||0.3,f2);
-    check(s4,'尾尖漸層柔一點',!!m.tipSoft,function(v){setV(['tipSoft'],v||undefined);});
-    color(s4,'尾巴發光（蓄力、大招）',['glow'],0xc9a6ff);
-    color(s4,'狐火：火星',['fire',0],m.fire[0]);color(s4,'狐火：亮的火星',['fire',1],m.fire[1]);color(s4,'狐火：尾尖那團光',['fire',2],m.fire[2]);
-    if(m.fireEnd&&!CARD){color(s4,'真結局後介紹頁狐火：火星',['fireEnd',0],m.fireEnd[0]);color(s4,'　　亮的火星',['fireEnd',1],m.fireEnd[1]);color(s4,'　　尾尖那團光',['fireEnd',2],m.fireEnd[2]);}
-    if(!CARD&&(ORIG[cur].wisps!==undefined||m.wisps!=null)){check(s4,'介紹頁身邊三團鬼火（還沒打倒時）',m.wisps!=null,function(v){setV(['wisps'],v?(ORIG[cur].wisps||0xb8ff4a):(style?null:undefined));buildPanel();});
-      if(m.wisps!=null)color(s4,'　　鬼火顏色',['wisps'],m.wisps);}
-    note(s4,CARD?'狐火（尾尖一團光、往上飄的火星）上場才看得到，轉台上沒有。':'狐火（尾尖一團光、往上飄的火星）只在介紹頁和戰鬥看得到，轉台上沒有。');
-    // 大小與飾品
-    var s5=sec('大小與飾品',false);
-    range(s5,'整隻大小',['size'],0.7,1.4,0.01,1,f2);range(s5,'頭的大小',['headK'],0.8,1.3,0.01,1,f2);
-    check(s5,'耳邊金鈴＋紅飄帶',!!m.bells,function(v){setV(['bells'],v||undefined);buildPanel();});
-    if(m.bells)color(s5,'飄帶顏色',['ribbons'],0xd8344a);
-    if(ORIG[cur].earFlower)check(s5,'耳前桃花',!!m.earFlower,function(v){setV(['earFlower'],v?clone(ORIG[cur].earFlower):(style?null:undefined));buildPanel();});
-    if(m.outfit&&!CARD)note(s5,'身上的飾品：'+Object.keys(m.outfit).map(function(k){return m.outfit[k];}).join('、')+'（要換跟遊星說）');
-    if(CARD)return;
-    // 存檔
-    var s6=sec('匯出／匯入',true);
-    var io=el('div','feBtns');s6.appendChild(io);
-    btn(io,'匯出',function(){ta.value='FOXLOOK1:'+JSON.stringify(looks);ta.select();try{document.execCommand('copy');msg.textContent='已複製，貼給遊星就好';}catch(e){msg.textContent='全選複製下面那一串貼給遊星';}});
-    btn(io,'匯入',function(){var t=ta.value.trim();if(t.indexOf('FOXLOOK1:')!==0){msg.textContent='要貼 FOXLOOK1: 開頭的那一串';return;}
-      try{var d=JSON.parse(t.slice(9));if(!Array.isArray(d)||d.length!==ORIG.length)throw 0;looks=addForms(d);style=null;dirty=true;changed();showView();buildPanel();}catch(e){msg.textContent='讀不懂這一串';}});
-    btn(io,'這隻重設',function(){if(!confirm(ORIG[cur].name+' 全部改回遊戲原本的樣子（樣式也會清掉）？'))return;looks[cur]=clone(ORIG[cur]);style=null;dirty=true;changed();buildPanel();},'feBtn feDel');
-    btn(io,'九隻全部重設',function(){if(!confirm('九隻全部改回遊戲原本的樣子？'))return;looks=clone(ORIG);style=null;dirty=true;changed();buildPanel();},'feBtn feDel');
-    var ta=el('textarea','feCode');ta.placeholder='按「匯出」這裡會出現一串 FOXLOOK1:…；要讀回來就把那串貼在這裡按「匯入」';s6.appendChild(ta);var msg=el('p','feNote','');s6.appendChild(msg);}
-  function applyPreset(p){var t=target(),m=M();
-    Object.keys(p).forEach(function(a){var v=p[a];
-      if(a==='face'){if(v===null){if(style)t.face=null;else delete t.face;return;}
-        var nf=Object.assign({},isObj(m.face)?m.face:{},clone(v));t.face=nf;}
-      else if(isObj(v)){t[a]=Object.assign({},style?(t[a]||{}):(m[a]||{}),v);}
-      else t[a]=v;});
-    dirty=true;changed();buildPanel();}
+  document.getElementById('cdGo').addEventListener('click',go);
 
-  var st=document.createElement('style');st.textContent=
-    "#game{margin:0!important}\n#feStage{position:fixed;top:0;z-index:40;touch-action:none;cursor:grab}\n#feStage:active{cursor:grabbing}\n"+
-    ".fePanel{position:fixed;right:0;top:0;bottom:0;width:"+PW+"px;z-index:50;display:flex;flex-direction:column;background:#1b1d2b;color:#e9e6f2;font:13px/1.45 system-ui,-apple-system,\"Segoe UI\",\"Microsoft JhengHei\",\"PingFang TC\",sans-serif;box-shadow:-4px 0 18px rgba(0,0,0,.35);-webkit-user-select:none;user-select:none}\n"+
-    ".feHead{padding:10px 12px;border-bottom:1px solid #33364a}.feHead b{font-size:15px;display:block}.feHead small{color:#9a97b0}\n.feScroll{overflow-y:auto;flex:1;padding:10px 12px 40px}\n"+
-    ".feBoss{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}\n.feStyles,.feBtns{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0;align-items:center}\n"+
-    ".fePanel button{font:inherit;color:#e9e6f2;background:#2c2f44;border:1px solid #444862;border-radius:7px;padding:4px 9px;cursor:pointer}\n.fePanel button:hover{background:#383c57}\n.fePanel button.on{background:#e0679a;border-color:#e0679a;color:#fff}\n.fePanel .feView.on{background:#3d6fd1;border-color:#3d6fd1}\n.fePanel .feDel{color:#ffb3c6;border-color:#6a3a4c}\n"+
-    ".feSec{border-top:1px solid #33364a;margin-top:8px;padding-top:4px}\n.feSec summary{cursor:pointer;font-weight:600;color:#ffd1e2;margin:6px 0}\n"+
-    ".feRow{display:grid;grid-template-columns:128px 1fr 46px;align-items:center;gap:6px;margin:3px 0}\n.feRow label{color:#cfcbe0;font-size:12px}\n.feRow input[type=range]{width:100%;margin:0}\n.feRow input[type=color]{width:52px;height:22px;padding:0;border:1px solid #444862;background:none}\n"+
-    ".feVal{font-variant-numeric:tabular-nums;color:#9a97b0;font-size:11px;text-align:right}\n.feChk{display:flex;align-items:center;gap:5px;color:#cfcbe0;font-size:12px;margin:4px 0;cursor:pointer}\n.feNote{color:#9a97b0;font-size:12px;margin:4px 0}.feNote b{color:#fff}\n"+
-    ".fePanel select{font:inherit;font-size:12px;color:#e9e6f2;background:#2c2f44;border:1px solid #444862;border-radius:6px;padding:2px 4px}\n"+
-    ".feCode{width:100%;height:70px;box-sizing:border-box;font:11px/1.3 monospace;color:#e9e6f2;background:#12131d;border:1px solid #444862;border-radius:6px;padding:4px;-webkit-user-select:text;user-select:text}\n"+
-    (CARD?"#game{display:none!important}\nbody{background:#1d2440}\n.feCard{padding-bottom:6px}\n.feName{grid-template-columns:44px 1fr!important}\n.feName input{font:inherit;font-size:16px;color:#fff;background:#12131d;border:1px solid #444862;border-radius:8px;padding:7px 9px;-webkit-user-select:text;user-select:text}\n"+
-    ".fePanel button.feGo{display:block;width:100%;margin:10px 0 2px;padding:11px 0;font-size:18px;font-weight:900;letter-spacing:.3em;color:#3a1c05;background:linear-gradient(#f6c463,#d98a2b);border:1.5px solid #f3d9a0;border-radius:999px;box-shadow:0 3px 14px rgba(240,150,40,.45)}\n.fePanel button.feGo:hover{background:linear-gradient(#ffd27a,#e59a3b)}\n"+
-    "body.fePh .fePanel{left:0;right:0;top:42%;width:auto;box-shadow:0 -4px 18px rgba(0,0,0,.35)}\nbody.fePh .feHead{display:none}\nbody.fePh .feRow{grid-template-columns:104px 1fr 40px}\n":"")+
-    ".fePhone{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(14,16,32,.94);color:#e9e6f2;font:15px/1.5 system-ui,sans-serif}";
-  document.head.appendChild(st);
-  load();makePanel();buildPanel();
-  if(window.innerWidth<900&&!CARD){var ph=el('div','fePhone','捏臉器要用電腦開（畫面至少 900 像素寬）');document.body.appendChild(ph);}
+  var st=document.createElement('style');st.textContent=[
+    '#game{display:none!important}html,body{overflow:hidden}',
+    '#cdBg{position:fixed;inset:0;z-index:38;background:radial-gradient(circle at 72% 17%,rgba(255,236,190,.6) 0 5%,rgba(255,220,150,.2) 6% 15%,transparent 30%),linear-gradient(#131838,#272c62 55%,#5d4f8f);transition:opacity .3s}',
+    'body.cdDay #cdBg{background:radial-gradient(circle at 72% 16%,rgba(255,255,255,.95) 0 5%,rgba(255,246,205,.4) 6% 17%,transparent 32%),linear-gradient(#8fbdf0,#c9e0f8 52%,#f8dbe8)}',
+    '#cdStage{position:fixed;left:0;top:0;width:100%;height:100%;z-index:40;touch-action:none;cursor:grab}#cdStage:active{cursor:grabbing}',
+    '#cdUI{position:fixed;inset:0;z-index:50;pointer-events:none;color:#fff8ec;font:14px/1.4 "Noto Serif TC","Songti TC","PMingLiU",serif;-webkit-user-select:none;user-select:none;--glass:rgba(16,20,46,.5);--line:rgba(255,255,255,.2);--gold:#e8c67e}',
+    'body.cdDay #cdUI{--glass:rgba(40,48,90,.42)}',
+    '#cdUI>*{pointer-events:auto}#cdUI button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '.cdTop{position:absolute;left:0;right:0;top:calc(10px + env(safe-area-inset-top,0px));display:flex;gap:10px;align-items:center;justify-content:center;padding:0 12px}',
+    '.cdIcon{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;text-decoration:none;color:#fff8ec;background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}',
+    '#cdName{flex:1;max-width:260px;min-width:0;text-align:center;font:900 20px "Noto Serif HK","Noto Serif TC",serif;letter-spacing:.14em;color:#fff8ec;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:8px 14px;outline:none;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);-webkit-user-select:text;user-select:text}',
+    '#cdName::placeholder{color:rgba(255,248,236,.5);font-weight:400}#cdName:focus{border-color:var(--gold)}',
+    '.cdTabs{position:absolute;right:0;top:calc(70px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:2px;padding:6px 0 6px 6px;background:linear-gradient(90deg,transparent,var(--glass) 30%);border-radius:14px 0 0 14px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}',
+    '.cdTab{background:none;border:0;border-right:3px solid transparent;padding:9px 16px 9px 20px;font-size:15px;letter-spacing:.2em;text-align:right;opacity:.72;text-shadow:0 1px 3px rgba(0,0,0,.6)}',
+    '.cdTab.on{opacity:1;color:#ffe9b8;border-right-color:var(--gold);background:linear-gradient(90deg,transparent,rgba(232,198,126,.28));font-weight:900}',
+    '.cdSheet{position:absolute;left:10px;right:10px;bottom:calc(74px + env(safe-area-inset-bottom,0px));max-width:560px;margin:0 auto;background:var(--glass);border:1px solid var(--line);border-radius:18px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.35);overflow:hidden}',
+    '.cdNow{padding:8px 16px 6px;font-size:12px;letter-spacing:.3em;color:#ffe9b8;border-bottom:1px solid var(--line);text-align:center}',
+    '.cdBody{max-height:31vh;overflow-y:auto;padding:8px 14px 12px;-webkit-overflow-scrolling:touch}',
+    '.cdRow{display:grid;grid-template-columns:74px 1fr;align-items:center;gap:10px;min-height:38px}.cdRow label{font-size:13px;letter-spacing:.12em;opacity:.9}',
+    '.cdRow input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:none;margin:0}',
+    '.cdRow input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--gold),rgba(255,255,255,.35))}',
+    '.cdRow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-8.5px;border-radius:50%;background:#fff8ec;border:2px solid var(--gold);box-shadow:0 0 8px rgba(232,198,126,.7)}',
+    '.cdRow input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:rgba(255,255,255,.4)}.cdRow input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff8ec;border:2px solid var(--gold)}',
+    '.cdChips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.cdSw{display:flex;gap:7px;align-items:center;overflow-x:auto;padding:5px 3px;scrollbar-width:none}.cdSw::-webkit-scrollbar{display:none}.cdSw>*{flex:none}',
+    '.cdChip{padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line);font-size:13px;letter-spacing:.08em}.cdChip.on{background:rgba(232,198,126,.3);border-color:var(--gold);color:#ffe9b8}',
+    '.cdDot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.55);padding:0}.cdDot.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 10px rgba(232,198,126,.8)}',
+    '.cdPick{width:28px;height:28px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.7);background:conic-gradient(#f66,#fc6,#6f6,#6cf,#96f,#f6c,#f66);display:inline-block;position:relative}.cdPick input{position:absolute;inset:-6px;width:44px;height:44px;opacity:0;cursor:pointer}',
+    '.cdPre{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.cdPreB{aspect-ratio:1;border-radius:14px;border:1.5px solid var(--line);background:rgba(255,255,255,.07) center/108% no-repeat;padding:0}',
+    '.cdPreB.on{border-color:var(--gold);box-shadow:0 0 12px rgba(232,198,126,.6);background-color:rgba(232,198,126,.18)}',
+    '.cdNote{margin:6px 0 0;font-size:12px;opacity:.7;letter-spacing:.06em}',
+    '.cdBtn{padding:9px 16px;border-radius:999px;background:var(--glass);border:1px solid var(--line);font-size:14px;letter-spacing:.1em;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.cdReset{display:block;margin:10px auto 0;font-size:12px;padding:6px 14px}',
+    '.cdBar{position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));max-width:560px;margin:0 auto;display:flex;gap:10px;align-items:center;justify-content:space-between}',
+    '.cdGo{flex:1;max-width:300px;margin-left:auto;padding:11px 0;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05!important;font:900 18px "Noto Serif TC",serif!important;letter-spacing:.4em;text-indent:.4em;box-shadow:0 3px 16px rgba(240,150,40,.5)}',
+    '.cdGo:active,.cdBtn:active,.cdChip:active{transform:scale(.96)}',
+    'body.cdWide .cdSheet,body.cdWide .cdBar{left:auto;right:150px;margin:0;width:440px}body.cdWide .cdBody{max-height:46vh}body.cdWide .cdTabs{top:50%;transform:translateY(-60%)}body.cdWide .cdTop{justify-content:flex-start;padding-left:20px}'
+  ].join('\n');document.head.appendChild(st);
   window.addEventListener('resize',function(){setTimeout(place,50);});
-  if(!CARD)looks.forEach(function(L,k){if(k!==cur)dev.set(k,cleanLook(k,null));});   // 草稿裡其他隻的基本長相也先套上（左邊切到牠們的時候才看得到）
-  showView('team');setTimeout(place,100);setTimeout(place,800);requestAnimationFrame(frame);
-  window.__foxEd={go:goBattle,card:function(){return {name:cardName,scene:cardScene,look:cardLook()};},looks:function(){return looks;},set:setV,pick:pickBoss,style:pickStyle,preset:function(i){applyPreset(PRESETS[i][1]);},view:showView,cur:function(){return cur;}};   // 自動測試用
+  syncScene();snapThumbs();build();requestAnimationFrame(frame);
+  window.__card={look:function(){return L;},set:setP,cat:function(c){cat=c;build();},random:randomize,go:go,scene:function(s){scene=s;syncScene();}};   // 自動測試用
 })();
 });</script>
 </body>
