@@ -89,7 +89,7 @@ html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-
 <canvas id="fx"></canvas>
 <div id="msg"></div>
 <a id="cardBtn" href="card.html">✎ 我的名帖</a>
-<button id="netBtn" type="button">🤝 跟朋友打（測試）</button>
+<button id="netBtn" type="button">🤝 跟朋友打（測試版）</button>
 <div id="lobby"><div id="lobbyTxt"></div></div>
 <div id="note">狐仙對戰・雙畫面試看</div>
 <script>
@@ -165,13 +165,13 @@ addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var
   if(m.type==='fx'){if(m.kind==='orbs'&&m.pts)fly(k,m.pts);return;}
   if(m.type==='ko'){side[k].st.ko=m.n;draw();koShow(k);if(m.n>=DEF.koWin)setTimeout(function(){over(o,'ko');},LAG+50);}
   if(ROOM){   // 連線：我這份（a）的話送給對方那一台；右邊的鏡像（b）只會送 geo／fx，上面已經處理掉了
-    if(k==='a'){NET.send({t:'g',m:m});if(m.type==='atk')send('b',m);}   /* 我打出去的也給右邊的鏡像演「蓄力→打下去」 */
+    if(k==='a'){NET.send({t:'g',m:m});if(m.type!=='mv')send('b',m);}   /* 我這份送的都給對方那一台；除了 mv（畫面用的，只給對方的鏡像），也給本機右邊的鏡像（它拿來演我打過去的、畫我的血條）——照 09b「連線與鏡像」 */
     return;}
   setTimeout(function(){send(o,m);},LAG);});
 /* ---------- 連線（?room=房號）：兩個人各開一份這一頁。左邊＝自己真的在玩的那份，右邊＝對手畫面的鏡像（照對方傳來的重演）。
    傳輸現在用 BroadcastChannel（同一台電腦、同一個瀏覽器的兩個視窗），之後換成伺服器的 WebSocket，只換 NET 這一小段。
    訊息：hi（我來了＋我的名帖）／ready（兩份遊戲和 VS 頁都好了）／start（開房的那邊發種子）／g（遊戲的訊息原封不動）／clock／over／again／ping ---------- */
-var NET=null,ME=Math.random().toString(36).slice(2,10),PEER=null,netRdy=false;
+var stalled=false,NET=null,ME=Math.random().toString(36).slice(2,10),PEER=null,netRdy=false;
 function isHost(){return !!PEER&&ME<PEER.id;}
 function netReady(){netRdy=true;if(NET)NET.send({t:'ready'});netGo();}
 function netGo(){if(isHost()&&netRdy&&PEER.ready&&state==='wait'){var sd=(Math.random()*2147483646)|0;NET.send({t:'start',seed:sd});startWith(sd,PEER.card);}}
@@ -185,16 +185,15 @@ function onNet(d){if(!d||d.id===ME)return;
   if(d.t==='clock'&&state==='play'){t0=performance.now()-held-d.tt*1000;both({type:'clock',t:d.tt});}
   if(d.t==='over')over(d.winner==='a'?'b':d.winner==='b'?'a':'draw',d.by,true);   /* 對方說的 a 是它自己 */
   if(d.t==='again')doAgain(true);
-  if(d.t==='g'){var m=d.m,ty=m.type;m.vs=1;
-    if(ty==='atk'||ty==='gb'||ty==='ult'){m.from='b';send('a',m);}                      // 對方打我、送我干擾 → 我真的那份
-    else if(ty==='st'||ty==='ko'){m.from='b';send('a',m);send('b',Object.assign({},m,{from:'a'}));   // 對方的血、被 KO → 我那份的 BOSS 血條＋右邊的鏡像
-      if(ty==='st'){side.b.st=m;draw();danger('b',m.pend||0);}else{side.b.st.ko=m.n;draw();koShow('b');if(m.n>=DEF.koWin)setTimeout(function(){over('a','ko');},50);}}
-    else send('b',Object.assign({},m,{from:'a'}));}}                                      // 其他（mv 這種畫面用的）→ 右邊的鏡像
+  if(d.t==='g'){var m=d.m,ty=m.type;m.vs=1;m.from='b';send('a',m);send('b',Object.assign({},m));   // 對方那一台傳來的：from 改成 b，同一則給本機左邊和右邊的鏡像（各自會略過不認得的）
+    if(ty==='st'){side.b.st=m;draw();danger('b',m.pend||0);}
+    if(ty==='ko'){side.b.st.ko=m.n;draw();koShow('b');if(m.n>=DEF.koWin)setTimeout(function(){over('a','ko');},50);}}}
 function lobby(on,txt){var e=$('lobby');e.style.display=on?'flex':'none';if(txt)$('lobbyTxt').innerHTML=txt;}
 if(ROOM){try{var bc=new BroadcastChannel('foxvs-'+ROOM);NET={send:function(o){o.id=ME;bc.postMessage(o);}};bc.onmessage=function(e){onNet(e.data);};}catch(_){NET={send:function(){}};}
   lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）</small>');
   NET.send({t:'hi',card:CARD});setInterval(function(){if(!PEER)NET.send({t:'hi',card:CARD});else{NET.send({t:'ping'});if(netRdy&&state==='wait')NET.send({t:'ready'});
-    if(performance.now()-PEER.last>8000&&state!=='over'){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<br><a href="duel.html">回去跟電腦打</a>');}}},1500);}
+    var quiet=performance.now()-PEER.last;   /* 對方多久沒消息：6 秒先提醒（回來了就收掉），30 秒才當作離線 */
+    if(state!=='over'){if(quiet>30000){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<br><a href="duel.html">回去跟電腦打</a>');}else if(quiet>6000){lobby(true,'對手沒有回應…<small>等她回來（她的視窗被蓋住或切到背景時會停住）</small>');stalled=true;}else if(stalled){stalled=false;lobby(false);}}}},1500);}
 
 function doAgain(fromNet){if(ROOM&&!fromNet)NET.send({t:'again'});$('again').style.display='none';clearResult();side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';
   if(ROOM){netRdy=false;PEER.ready=false;setTimeout(netReady,500);}else setTimeout(start,400);}
@@ -235,7 +234,6 @@ setInterval(function(){var c=$('clock');if(state!=='play'){if(state==='wait'&&!l
     over(ka<kb?'a':kb<ka?'b':Math.abs(ra-rb)<1e-6?'draw':ra>rb?'a':'b','time');}},200);
 $('netBtn').addEventListener('click',function(){var r=prompt('輸入房號（兩個人輸入一樣的就會對上）。留空＝開一間新的',ROOM||'');if(r===null)return;r=r.replace(/[^0-9A-Za-z]/g,'').slice(0,8)||String(1000+Math.floor(Math.random()*9000));location.search='?room='+r;});
 if(ROOM)$('netBtn').textContent='🤝 房號 '+ROOM;
-if(!ROOM&&!Q.has('net'))$('netBtn').style.display='none';   /* 右邊的鏡像（對手畫面照實重演）還沒做好之前，按鈕先藏著：網址加 ?net 才出現 */
 if(!CARD){$('cardBtn').textContent='✎ 捏一隻自己的狐狸';$('cardBtn').classList.add('new');}
 draw();
 window.__duel={net:function(){return {me:ME,peer:PEER,host:isHost(),rdy:netRdy};},fly:fly,danger:danger,ko:koShow,side:side,state:function(){return state;}};   // 測試用
