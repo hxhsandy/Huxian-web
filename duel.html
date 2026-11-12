@@ -8,7 +8,7 @@
 <!-- 狐仙對戰的「殼」（2026-11-13 遊星；約定在 docs/09b_versus_link.md）：同一頁並排兩個遊戲畫面（兩個 iframe，各跑一份 versus.html），
      殼負責排版、在兩邊之間轉訊息、當裁判（時間、勝負）。單一檔案、不用組建；放在網站上 versus.html 的旁邊。
      網址參數：?a=0～8 我的狐狸長相（預設 3）　&b=0～8 對手（預設 4）　&lv=1｜2｜3 右邊電腦的難度（預設 2）　&game=遊戲檔名（預設 versus.html）　&lag=毫秒（轉訊息時故意慢，模擬網路）
-     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&def=JSON（換 VS_DEF 的數字，兩邊一起）　&kotest 中間多一顆「試 KO」 -->
+     開發用：&la=1｜2｜3 左邊也讓電腦下　&hp=雙方的血（試短的場次）　&gb=combo｜move　&def=JSON（換 VS_DEF 的數字，兩邊一起）　&kotest 中間多一顆「試 KO」　&novs 不演開場的 VS 頁　&vs=VS 頁的檔名（預設 vs.html） -->
 <style>
 html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;overflow:hidden}
 #duel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:0}
@@ -64,6 +64,8 @@ html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-
 #duel.narrow #pb iframe{transform-origin:0 0;border-radius:0}
 #duel.narrow .who2,#duel.narrow #pb .danger,#duel.narrow #mid,#duel.narrow~#note{display:none}
 #duel.narrow #pa .danger{right:3px}
+#vsIntro{position:fixed;left:0;top:0;width:100%;height:100%;border:0;z-index:20;background:#05060c;transition:opacity .35s}
+#vsIntro.out{opacity:0;pointer-events:none}
 #again{display:none;position:absolute;left:50%;top:calc(50% + 96px);transform:translateX(-50%);z-index:6;padding:8px 20px;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 15px "Noto Serif TC",serif;letter-spacing:.2em;cursor:pointer}
 #cardBtn{position:absolute;left:10px;bottom:8px;z-index:6;padding:5px 12px;border-radius:999px;border:1px solid #8a93c4;background:rgba(20,24,48,.85);color:#e9e6f2;font:12px sans-serif;text-decoration:none}
 #cardBtn.new{border-color:#f3d9a0;color:#ffe9b8;box-shadow:0 0 12px rgba(255,190,90,.5)}
@@ -135,11 +137,20 @@ function clearResult(){[pa,pb].forEach(function(p){p.classList.remove('dimmed','
 // 結果：各蓋在自己的畫面上——贏的那邊金色「勝利」＋畫面發光，輸的那邊壓暗＋「落敗」（2026-11-13 CK：打在中間一瞬間搞不清誰贏）
 function showResult(winner){[['a',pa],['b',pb]].forEach(function(x){var r=x[1].querySelector('.res'),w=winner===x[0],d=winner==='draw';r.textContent=d?'平手':w?'勝利':'落敗';r.className='res on '+(w?'win':'lose');x[1].classList.toggle('won',w);x[1].classList.toggle('dimmed',!w);});
   if(winner==='a')[0,0.12,0.24,0.4].forEach(function(w,i){tone([523,659,784,1047][i],[523,659,784,1047][i],i===3?0.7:0.16,0.22,'triangle',w);});else if(winner==='b'){tone(330,220,0.5,0.22,'triangle');tone(220,150,0.8,0.2,'triangle',0.35);}}
+/* ---------- 開場的 VS 頁（vs.html 嵌進來蓋在最上面）：兩邊的遊戲在後面載入的同時先演「我 VS 對手」，演完（或點一下跳過）才開始倒數。再來一局不再演 ---------- */
+var vsDone=Q.has('novs'),vsEl=null;
+function maybeStart(){if(side.a.hello&&side.b.hello&&vsDone&&state==='wait')start();}
+function vsEnd(){if(vsDone)return;vsDone=true;if(vsEl){var e=vsEl;e.classList.add('out');setTimeout(function(){e.remove();},450);vsEl=null;}maybeStart();}
+if(!vsDone){vsEl=document.createElement('iframe');vsEl.id='vsIntro';vsEl.src=(Q.get('vs')||'vs.html')+'?embed=1';document.body.appendChild(vsEl);
+  setTimeout(function(){if(vsEl&&!vsEl.dataset.ready)vsEnd();},15000);   /* VS 頁載不起來就跳過 */
+  addEventListener('message',function(ev){var d=ev.data;if(!d||!d.vsintro||!vsEl||ev.source!==vsEl.contentWindow)return;
+    if(d.vsintro==='ready'){vsEl.dataset.ready='1';vsEl.contentWindow.postMessage({vsintro:'cards',a:CARD||{name:'你',look:{base:A}},b:{name:CPU_CARD.name,look:CPU_CARD.look,sub:'電腦 Lv'+LV}},'*');setTimeout(vsEnd,9000);}
+    if(d.vsintro==='done')vsEnd();});}
 function over(winner,by){if(state==='over')return;state='over';both({type:'over',winner:winner,by:by});setTimeout(function(){showResult(winner);$('again').style.display='inline-block';},700);}
 addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var k=ev.source===fa.contentWindow?'a':ev.source===fb.contentWindow?'b':null;if(!k)return;
   var o=k==='a'?'b':'a';linked=true;
   if(m.type==='hello'){side[k].hello=true;if(m.card&&m.card.name){$(k==='a'?'nameA':'nameB').textContent=k==='a'?(CARD?CARD.name:m.card.name):CPU_CARD.name;if(k==='b')pb.querySelector('.who2').textContent='對手・'+CPU_CARD.name+'（'+m.card.name+'）';else if(CARD)pa.querySelector('.who2').textContent='你・'+CARD.name;}if(m.def)Object.assign(DEF,m.def);draw();
-    if(side.a.hello&&side.b.hello&&state==='wait')start();return;}
+    maybeStart();return;}
   if(m.type==='st'){side[k].st=m;draw();danger(k,m.pend||0);}
   if(m.type==='geo'){side[k].geo=m;return;}
   if(m.type==='fx'){if(m.kind==='orbs'&&m.pts)fly(k,m.pts);return;}

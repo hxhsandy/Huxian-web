@@ -7300,7 +7300,7 @@ function line(text){var u=[];Array.prototype.forEach.call(String(text),function(
 function typed(o,dt){if(o.n>=o.u.length)return false;o.acc+=dt;var ch=false;
   while(o.n<o.u.length){var p=o.n>0?o.u[o.n-1]:null,d=(o.u[o.n].d>=0?DOT:CH)+(p&&(p.d<0||p.d===2&&o.u[o.n].d<0)?SLOW[p.c]||0:0);   /* 前一格是一般字、或是「…」的最後一點而下一格是字，才多停（「……」六個點之間平均） */if(o.acc<d)break;o.acc-=d;o.n++;ch=true;}
   return ch;}
-function done(o){return o.n>=o.u.length;}
+function done$1(o){return o.n>=o.u.length;}
 // 逐字音效（2026-09-29 CK）：剛出現的那一格是字、或刪節號的點，就細細叮一聲（CK：每個字都用這聲）；標點、空白不出聲。一格一格跑時才響（點一下整句跑完不響）
 var MUTE=/[，。、？！「」『』：；（）\s]/;
 function blip(o){var x=o.u[o.n-1];if(x&&(x.d>=0||!MUTE.test(x.c)))AudioFX.type();}
@@ -7319,9 +7319,9 @@ function esc(c){return c==='<'?'&lt;':c==='&'?'&amp;':c;}
 function html(o){var h='';o.u.forEach(function(x,i){var on=i<o.n;
   if(x.d<0){h+=on?esc(x.c):'<s>'+esc(x.c)+'</s>';return;}
   if(x.d===0)h+='<span class="dlgDots">';h+='<i'+(on?' class="on"':'')+'></i>';if(x.d===2)h+='</span>';});return h;}
-function render$1(){var o=cur$1.o;textEl$1.innerHTML=html(o);boxEl.classList.toggle('done',done(o));}
+function render$1(){var o=cur$1.o;textEl$1.innerHTML=html(o);boxEl.classList.toggle('done',done$1(o));}
 function tap$1(){if(!cur$1||cur$1.closing>=0||cur$1.age<cur$1.guard)return;var o=cur$1.o;
-  if(!done(o)){o.n=o.u.length;render$1();return;}   // 還在跑：這句直接跑完
+  if(!done$1(o)){o.n=o.u.length;render$1();return;}   // 還在跑：這句直接跑完
   if(cur$1.i+1<cur$1.lines.length){cur$1.i++;cur$1.o=line(cur$1.lines[cur$1.i]);cur$1.age=0;cur$1.guard=GUARD_NEXT;render$1();return;}   // 下一句
   cur$1.closing=0;boxEl.classList.add('out');}   // 講完了：收起來（update 裡淡出完才 resolve）
 boxEl.addEventListener('click',tap$1);
@@ -7337,7 +7337,7 @@ var DLG={
       else if(typed(cur$1.o,dt)){render$1();blip(cur$1.o);}}
     if(floats.length)floats=floats.filter(function(f){
       if(typed(f.o,dt)){f.t.innerHTML=html(f.o);blip(f.o);}
-      if(!done(f.o))return true;
+      if(!done$1(f.o))return true;
       f.hold-=dt;if(f.hold<=0&&!f.out){f.out=true;f.el.classList.remove('show');}
       if(f.hold<=-FADE){f.el.remove();f.res();return false;}
       return true;});
@@ -8631,6 +8631,13 @@ var VS_DEF = {
   vs: [0.5, 0.5], vsW: 0.36,          // VS 的位置、寬
   t: { open: 0.0, fox: 0.12, slam: 0.62, nameB: 0.95, nameA: 1.15, cards: 1.5, hint: 2.5, ready: 3.0 }   // 進場的時間表（秒）
 };
+// 橫的畫面（電腦、雙畫面的殼）：左右版——我在左、對手在右，中線是直的（稍微斜一點），名字在各自那一半的上面、不斜（2026-11-13 CK：原本想的是橫式，左邊資訊、中間對戰線＋VS）
+var VS_WIDE = {
+  wide: true, seam: [0.555, 0, 0.445, 1], foxH: 0.4,
+  a: { fox: [0.27, 0.84], yaw: 0.5, name: [0.265, 0.17], card: [0.06, 0.29] },   // 我：小卡是左上角
+  b: { fox: [0.73, 0.84], yaw: -0.5, name: [0.735, 0.17], card: [0.94, 0.29] },  // 對手：小卡是右上角
+  nameW: 0.4, nameH: 0.2, vs: [0.5, 0.5], vsW: 0.17
+};
 // 屬性：顏色照珠子；相剋照戰鬥公式（火剋木、木剋水、水剋火、光暗互剋：剋制 ×1.5、被剋 ×0.5）
 var ELEM = {};
 CONFIG.orbs.forEach(function (o) { if (o.key !== 'heart') ELEM[o.key] = { name: o.name, color: o.color }; });
@@ -8662,7 +8669,8 @@ function outBack(k) { var s = 1.70158; k -= 1; return k * k * ((s + 1) * k + s) 
 function outCubic(k) { k = 1 - k; return 1 - k * k * k; }
 
 function makeVS(host) {
-  var D = VS_DEF, sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(D.fov, 1, 0.1, 200);
+  var TALL = {}; ['seam', 'foxH', 'a', 'b', 'nameW', 'nameH', 'vs', 'vsW'].forEach(function (k) { TALL[k] = VS_DEF[k]; }); TALL.wide = false;
+  var D = Object.assign({}, VS_DEF, TALL), sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(D.fov, 1, 0.1, 200);
   cam.position.set(0, 0, D.dist); sc.add(cam);
   // 燈光跟封面、戰鬥同一套月光
   var hemi = new THREE.HemisphereLight(0x7486c6, 0x1a1f3a, 0.6), amb = new THREE.AmbientLight(0x2a3566, 0.35), key = new THREE.DirectionalLight(0xfff0cc, 0.9), rim = new THREE.DirectionalLight(0x8496d8, 0.42);
@@ -8744,11 +8752,13 @@ function makeVS(host) {
   var shock = new THREE.Sprite(new THREE.SpriteMaterial({ map: ringTex, transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 })); shock.renderOrder = 890; cam.add(shock);
   function buildSide(k, card) {
     var old = side[k]; if (old) { sc.remove(old.G); old.fires.forEach(function (f) { sc.remove(f); f.material.dispose(); }); disposeFox(old.fox); }   /* 尾尖的狐火也要收（2026-11-13 CK：多換幾次糊成一片白光） */
-    var lookI = Math.max(0, Math.min(BOSS_LOOK_DEF.length - 1, card.look | 0)), LK = bossLook(lookI, card.style), col = ELEM[card.elem] && card.elem !== 'none' ? ELEM[card.elem].color : (LK.glow || ELEM.none.color);   /* 無屬性：那一半的顏色跟著狐狸自己的光 */
+    // 長相：名帖上的一整筆（BOSS_LOOK_DEF 那種物件，look.base＝從哪一隻開始捏的；只有 base 沒有顏色＝那隻 BOSS 原本的樣子），或是索引（借哪一隻 BOSS）
+    var cl = card.look && typeof card.look === 'object' ? card.look : null, lookI = Math.max(0, Math.min(BOSS_LOOK_DEF.length - 1, (cl ? cl.base : card.look) | 0)), LK = cl && cl.colors && cl.tails ? cl : bossLook(lookI, card.style), col = ELEM[card.elem] && card.elem !== 'none' ? ELEM[card.elem].color : (LK.glow || ELEM.none.color);   /* 無屬性：那一半的顏色跟著狐狸自己的光 */
     // 姿勢（2026-11-13 CK）：第二關介紹頁那種往前撲的樣子（屁股翹高、耳朵往後壓），身體朝對手、頭稍微轉回來看鏡頭
-    var pp = 0.05, G = new THREE.Group(), fox = createFox(Object.assign(lookOpts(LK), { scale: LK.size || 1, tailLen: 0.8, tailR: 0.2, earBack: 0.5,
-      tailFan: fitFan([[0.4, 0.6, -0.2], [0, 0, -0.35], [-0.4, -0.6, -0.2]], LK.tails, LK.spread),
-      pose: { pivot: pp, head: D.headUp, tilt: 0.06, legF: [[-pp - 1.85, 0.32, 1.45], [-pp - 1.6, -0.3, 1.4]], legB: [[1.1, 0.14, 1.3, 0, 0.02], [0.9, -0.14, 1.3, 0, 0.02]] } }));
+    var pp = 0.05, G = new THREE.Group(), fox, mk = function (K) { return createFox(Object.assign(lookOpts(K), { scale: K.size || 1, tailLen: 0.8, tailR: 0.2, earBack: 0.5,
+      tailFan: fitFan([[0.4, 0.6, -0.2], [0, 0, -0.35], [-0.4, -0.6, -0.2]], K.tails, K.spread),
+      pose: { pivot: pp, head: D.headUp, tilt: 0.06, legF: [[-pp - 1.85, 0.32, 1.45], [-pp - 1.6, -0.3, 1.4]], legB: [[1.1, 0.14, 1.3, 0, 0.02], [0.9, -0.14, 1.3, 0, 0.02]] } })); };
+    try { fox = mk(LK); } catch (e) { LK = bossLook(lookI); fox = mk(LK); }   /* 名帖壞掉：退回那一隻原本的樣子 */
     G.add(fox.group); fox.look(D[k].yaw, -D[k].yaw * D.headBack);
     var pad = new THREE.Mesh(PLANE, new THREE.MeshBasicMaterial({ map: glowTex, color: col, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.75 }));
     pad.rotation.x = -Math.PI / 2; pad.scale.set(1.9, 1.3, 1); pad.position.y = 0.01; pad.raycast = noRay; G.add(pad);
@@ -8766,17 +8776,19 @@ function makeVS(host) {
   /* ---------- 排版：畫面比例 → 世界座標 ---------- */
   function wpp(d) { return 2 * d * Math.tan(D.fov * Math.PI / 360) / L.H; }   // 距離相機 d 的地方，一個 px 是多少世界單位
   function camAt(o, u, v, d) { var k = wpp(d); o.position.set((u - 0.5) * L.W * k, (0.5 - v) * L.H * k, -d); }
-  var tilt = 0;   // 中線的斜度（弧度，逆時針為正）：名字、VS、小卡都跟著斜
+  var tilt = 0, slideY = 0;   // tilt：名字、VS、小卡斜多少（直的畫面跟著中線斜；橫的不斜）；slideY：狐狸和名字滑進來時每往右 1 往上多少
   function layoutAll() {
     cam.aspect = L.W / L.H; cam.updateProjectionMatrix(); bgMat.uniforms.aspect.value = L.W / L.H;
     var k60 = wpp(60); bg.position.set(0, 0, -60); bg.scale.set(1.6 * L.W * k60, 1.6 * L.H * k60, 1);
-    tilt = Math.atan2((D.seam[1] - D.seam[3]) * L.H, (D.seam[2] - D.seam[0]) * L.W);
+    var wide = L.W > L.H * 1.05; if (wide !== D.wide) { Object.assign(D, wide ? VS_WIDE : TALL); ['a', 'b'].forEach(function (s) { if (side[s]) side[s].fox.look(D[s].yaw, -D[s].yaw * D.headBack); }); }
+    bgMat.uniforms.s0.value.set(D.seam[0], D.seam[1]); bgMat.uniforms.s1.value.set(D.seam[2], D.seam[3]);
+    tilt = D.wide ? 0 : Math.atan2((D.seam[1] - D.seam[3]) * L.H, (D.seam[2] - D.seam[0]) * L.W); slideY = Math.tan(tilt);
     ['a', 'b'].forEach(function (s) { var P = nameP[s], d = 27, k = wpp(d); camAt(P.m, D[s].name[0], D[s].name[1], d); P.m.scale.set(D.nameW * L.W * k, D.nameH * L.H * k, 1); P.m.rotation.z = tilt; P.base = P.m.position.clone();
       var S = side[s]; if (S) { var k0 = wpp(D.dist), fs = D.foxH * L.H * k0 / 1.06; S.G.position.set((D[s].fox[0] - 0.5) * L.W * k0, (0.5 - D[s].fox[1]) * L.H * k0, 0); S.G.scale.setScalar(fs); S.base = S.G.position.clone(); }
       bgMat.uniforms[s === 'a' ? 'foxA' : 'foxB'].value.set(D[s].fox[0], D[s].fox[1] - D.foxH * 0.55); });
     var dv = 12, kv = wpp(dv); camAt(vsP.m, D.vs[0], D.vs[1], dv); vsP.m.rotation.z = tilt; vsP.w = D.vsW * L.W * kv; vsP.m.scale.set(vsP.w, vsP.w * 320 / 512, 1);
     camAt(shock, D.vs[0], D.vs[1], dv);
-    redraw(); if (host && host.onLayout) host.onLayout(tilt);
+    redraw(); if (host && host.onLayout) host.onLayout(tilt, D);
   }
   function redraw() { ['a', 'b'].forEach(function (s) { if (side[s]) drawName(nameP[s], cards[s].name, side[s].col); }); drawVS(); }
 
@@ -8789,7 +8801,7 @@ function makeVS(host) {
     u.open.value = outCubic(seg(T, X.open, X.open + 0.45));
     // 狐狸從兩邊滑進來
     ['a', 'b'].forEach(function (s) { var S = side[s]; if (!S) return; var k = seg(T, X.fox, X.slam), e = outBack(k), dir = s === 'a' ? -1 : 1, off = (1 - e) * 1.1 * L.W * wpp(D.dist) * dir;
-      S.G.position.set(S.base.x + off, S.base.y + off * Math.tan(tilt), S.base.z); S.G.visible = T >= X.fox;   /* 沿著中線的方向滑 */
+      S.G.position.set(S.base.x + off, S.base.y + off * slideY, S.base.z); S.G.visible = T >= X.fox;   /* 沿著中線的方向滑 */
       S.fox.update(dt, t); S.ring.rotation.z = t * 0.5 * dir; S.ring.material.opacity = 0.55 + 0.25 * Math.sin(t * 3);
       S.tips.forEach(function (tp, i) { tp.getWorldPosition(_v); var f = S.fires[i]; f.position.copy(_v); var fl = 0.5 + 0.12 * Math.sin(t * 9 + i * 2.1) + 0.06 * Math.sin(t * 23 + i); f.scale.setScalar(fl * S.G.scale.x); f.visible = S.G.visible; }); });
     once('whoosh', X.fox, function () { AudioFX.slash(); });
@@ -8801,13 +8813,14 @@ function makeVS(host) {
     shock.material.opacity = T >= X.slam + 0.14 ? (1 - ks) * 0.9 : 0; var ss = vsP.w * (0.6 + ks * 3.4); shock.scale.set(ss, ss, 1);
     shake = Math.max(0, shake - dt * 3.2); var sh = shake * shake * 0.16; cam.position.set(Math.sin(t * 71) * sh, Math.cos(t * 83) * sh, D.dist);
     // 名字：沿著中線的方向掃進來（對手從左、我從右）
-    [['b', X.nameB, -1], ['a', X.nameA, 1]].forEach(function (r) { var P = nameP[r[0]], k = seg(T, r[1], r[1] + 0.22), e = outCubic(k), off = (1 - e) * 0.5 * L.W * wpp(27) * r[2];
-      P.m.visible = T >= r[1]; P.m.position.set(P.base.x + off, P.base.y + off * Math.tan(tilt), P.base.z); P.m.material.opacity = clamp01(k * 2);
+    [['b', X.nameB, D.wide ? 1 : -1], ['a', X.nameA, D.wide ? -1 : 1]].forEach(function (r) { var P = nameP[r[0]], k = seg(T, r[1], r[1] + 0.22), e = outCubic(k), off = (1 - e) * 0.5 * L.W * wpp(27) * r[2];
+      P.m.visible = T >= r[1]; P.m.position.set(P.base.x + off, P.base.y + off * slideY, P.base.z); P.m.material.opacity = clamp01(k * 2);
       var pop = 1 + 0.12 * Math.sin(Math.PI * seg(T, r[1] + 0.2, r[1] + 0.4)); P.m.scale.set(D.nameW * L.W * wpp(27) * pop, D.nameH * L.H * wpp(27) * pop, 1);
       once('name' + r[0], r[1] + 0.2, function () { AudioFX.bossAttack(); shake = Math.max(shake, 0.45); }); });
     // 火星：兩半各自的顏色，沿著中線的方向慢慢飄
     embers.forEach(function (s) { var d = s.userData, S = side[d.top ? 'b' : 'a']; if (!S) return; d.u += dt * d.sp * (d.top ? -1 : 1); if (d.u > 1.1) d.u -= 1.2; if (d.u < -0.1) d.u += 1.2;
-      var vm = D.seam[1] + (D.seam[3] - D.seam[1]) * d.u, v = d.top ? vm - 0.03 - d.w * 0.42 : vm + 0.03 + d.w * 0.42; camAt(s, d.u, v + Math.sin(t * 0.8 + d.ph) * 0.01, 40);
+      if (D.wide) { var um = D.seam[0] + (D.seam[2] - D.seam[0]) * d.u; camAt(s, d.top ? um + 0.03 + d.w * 0.44 : um - 0.03 - d.w * 0.44, 1 - d.u + Math.sin(t * 0.8 + d.ph) * 0.01, 40); }   /* 橫的：各自那一半裡往上飄 */
+      else { var vm = D.seam[1] + (D.seam[3] - D.seam[1]) * d.u, v = d.top ? vm - 0.03 - d.w * 0.42 : vm + 0.03 + d.w * 0.42; camAt(s, d.u, v + Math.sin(t * 0.8 + d.ph) * 0.01, 40); }
       s.material.color.setHex(S.col); s.material.opacity = u.open.value * (0.25 + 0.3 * (0.5 + 0.5 * Math.sin(t * 2.3 + d.ph))); s.scale.setScalar(d.sz * (0.5 + 0.2 * Math.sin(t * 3 + d.ph))); });
     if (host && host.onTime) host.onTime(T, X);
   }
@@ -8827,7 +8840,12 @@ function makeVS(host) {
 // 做法：遊戲的主迴圈還在跑（庭院），這裡把 renderer.render／clear 包起來——只有 VS 頁自己畫的時候才真的畫，所以 src/ 一行都不用改。
 //   之後接進遊戲時，vs.js 搬進 src/render/、主迴圈照 APP.screen 交給它畫，這個包法就不用了。
 
-var Q = new URLSearchParams(location.search), SHOT = Q.get('shot') === '1';
+var Q = new URLSearchParams(location.search), EMBED = Q.get('embed') === '1', SHOT = Q.get('shot') === '1' || EMBED;
+// 嵌在對戰的殼裡（?embed=1，2026-11-13）：殼把兩張名帖用訊息傳進來（{vsintro:'cards',a,b}），演完進場就告訴殼（{vsintro:'done'}）；不顯示試看按鈕、準備按鈕，
+//   小卡只列名帖上真的有的東西（稱號、屬性、招牌技、戰績現在名帖上還沒有，之後有了就會出現）。點一下畫面＝跳過。
+// 畫面：把遊戲的畫布放寬成整個視窗（遊戲本來最多只到 9:16）——VS 頁橫的時候是左右版
+function fitAspect() { setDevAspect(window.innerWidth / window.innerHeight); layout(); }
+fitAspect(); window.addEventListener('resize', fitAspect);
 var STAGE_SKILL = ['lock', 'lock', 'charm', 'petal', 'cord', 'shard', 'wisp', 'lethe', 'charm'];
 var TITLES = ['月下守台人', '鎖鏈咒高手', '金鈴一響', '青丘最愛笑', '千年守界', '天門照鏡', '冥界常客', '什麼都忘了', '連擊狂'];
 function preset(i, side) {
@@ -8863,6 +8881,7 @@ css.textContent = [
   '.vsHint span{display:inline-flex;align-items:center;gap:4px;font-weight:700}.vsHint i{width:11px;height:11px;border-radius:50%}',
   '.vsHint .good{color:#fff3c4}.vsHint .good i{box-shadow:0 0 8px 2px currentColor;animation:vsPulse 1s infinite alternate}.vsHint .bad{opacity:.6}',
   '@keyframes vsPulse{from{transform:scale(1)}to{transform:scale(1.35)}}',
+  '#vsHud.wide .vsBrief{font-size:17px;letter-spacing:.14em}#vsHud.wide .vsTitle{font-size:16px}#vsHud.wide .vsChip{font-size:15px;padding:4px 12px 5px}#vsHud.wide .vsRec,#vsHud.wide .vsHint{font-size:14px}',
   '#vsReady{position:absolute;right:5%;bottom:2.4%;padding:7px 24px 8px;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 17px "Noto Serif TC",serif;letter-spacing:.3em;text-indent:.3em;box-shadow:0 3px 14px rgba(240,150,40,.55);opacity:0;transform:translateY(14px);transition:opacity .25s,transform .25s;pointer-events:none}',
   '#vsReady.on{opacity:1;transform:none;pointer-events:auto}#vsReady:active{transform:scale(.95)}',
   '#vsCount{position:absolute;left:0;right:0;top:50%;text-align:center;font:900 120px "Noto Serif HK","Noto Serif TC",serif;color:#fff6dc;text-shadow:0 0 24px #ffb84a,0 4px 0 #7a3b10;transform:translateY(-50%) scale(.2);opacity:0;pointer-events:none}',
@@ -8878,13 +8897,16 @@ hud.innerHTML = '<div class="vsCard b" id="vsCardB"></div><div class="vsCard a" 
 frameEl.appendChild(hud);
 function hexc(c) { return '#' + ('000000' + c.toString(16)).slice(-6); }
 function fillCard(el, c, foe) {
-  var e = VS.elem(c.elem), sk = SKILLS[c.skill], rows = [];
+  var e = VS.elem(c.elem), sk = SKILLS[c.skill], rows = [], chips = '';
   el.style.setProperty('--ec', hexc(e.color));
-  rows.push('<div class="vsTitle">' + c.title + '</div>');
-  rows.push('<div class="vsChips"><span class="vsChip"><i></i>' + e.name + '屬性</span><span class="vsChip sk"><small>招牌技</small>' + sk.name + '</span></div>');
-  rows.push('<div class="vsBrief">' + sk.brief + '</div>');
-  rows.push('<div class="vsRec">' + c.wins + ' 勝　最高 ' + c.best + ' 連' + (c.streak ? '<b>🔥 ' + c.streak + ' 連勝中</b>' : '') + '</div>');
-  if (foe) {   // 我這邊：這場哪個顏色打她比較痛
+  if (c.title) rows.push('<div class="vsTitle">' + c.title + '</div>');
+  if (c.elem) chips += '<span class="vsChip"><i></i>' + e.name + '屬性</span>';
+  if (sk) chips += '<span class="vsChip sk"><small>招牌技</small>' + sk.name + '</span>';
+  if (chips) rows.push('<div class="vsChips">' + chips + '</div>');
+  if (sk) rows.push('<div class="vsBrief">' + sk.brief + '</div>');
+  if (c.sub) rows.push('<div class="vsBrief">' + c.sub + '</div>');
+  if (c.wins != null) rows.push('<div class="vsRec">' + c.wins + ' 勝　最高 ' + c.best + ' 連' + (c.streak ? '<b>🔥 ' + c.streak + ' 連勝中</b>' : '') + '</div>');
+  if (foe && foe.elem) {   // 我這邊：這場哪個顏色打她比較痛
     var m = matchup(foe.elem), h = '';
     if (m.good) h += '<span class="good" style="color:' + hexc(VS.elem(m.good).color) + '"><i style="background:currentColor"></i>' + VS.elem(m.good).name + '珠 ×1.5</span>';
     if (m.bad) h += '<span class="bad"><i style="background:' + hexc(VS.elem(m.bad).color) + '"></i>' + VS.elem(m.bad).name + '珠 ×0.5</span>';
@@ -8896,20 +8918,26 @@ var cardA = document.getElementById('vsCardA'), cardB = document.getElementById(
 var shown = -1;
 var VS = makeVS({
   // 小卡跟著中線斜；位置照 VS_DEF 的比例
-  onLayout: function (tilt) {
-    var deg = (-tilt * 180 / Math.PI).toFixed(2);
-    cardB.style.left = (VS_DEF.b.card[0] * 100) + '%'; cardB.style.top = (VS_DEF.b.card[1] * 100) + '%'; cardB.style.transform = 'rotate(' + deg + 'deg)';
-    cardA.style.right = ((1 - VS_DEF.a.card[0]) * 100) + '%'; cardA.style.top = (VS_DEF.a.card[1] * 100) + '%'; cardA.style.transform = 'rotate(' + deg + 'deg)';
+  onLayout: function (tilt, D) {
+    var deg = (-tilt * 180 / Math.PI).toFixed(2), wide = !!D.wide; hud.classList.toggle('wide', wide);
+    [cardA, cardB].forEach(function (c) { c.style.left = c.style.right = ''; c.style.transform = 'rotate(' + deg + 'deg)'; });
+    // 直的：對手的小卡靠左、我的靠右；橫的（左右版）：我的靠左、對手的靠右
+    cardB.classList.toggle('a', wide); cardB.classList.toggle('b', !wide); cardA.classList.toggle('a', !wide); cardA.classList.toggle('b', wide);
+    function put(c, pos, right) { if (right) c.style.right = ((1 - pos[0]) * 100) + '%'; else c.style.left = (pos[0] * 100) + '%'; c.style.top = (pos[1] * 100) + '%'; }
+    put(cardB, D.b.card, wide); put(cardA, D.a.card, !wide);
   },
   // 進場時間表：小卡一格一格翻開（每翻一格一聲），最後是關鍵珠提示、準備按鈕
   onTime: function (T, X) {
     var rows = [].slice.call(cardB.children).concat([].slice.call(cardA.children)), n = 0;
     rows.forEach(function (r, i) { var hint = r.classList.contains('vsHint'), at = hint ? X.hint : X.cards + i * 0.11, on = T >= at; if (on) n++; r.classList.toggle('on', on); });
     if (n > shown && shown >= 0) AudioFX.tick(); shown = n;
-    readyEl.classList.toggle('on', T >= X.ready && !counting);
+    readyEl.classList.toggle('on', T >= X.ready && !counting && !EMBED);
+    if (EMBED && T >= X.ready + 0.9) done();
   }
 });
 function show() { fillCard(cardB, B, null); fillCard(cardA, A, B); shown = 0; VS.show(A, B); }
+var doneSent = false;
+function done() { if (doneSent) return; doneSent = true; try { window.parent.postMessage({ vsintro: 'done' }, '*'); } catch (e) {} }
 
 /* ---------- 準備好了 → 三、二、一、開始！（試看版：演完重播；之後這裡接戰鬥） ---------- */
 var counting = false;
@@ -8941,7 +8969,13 @@ function loop(now) {
   mine = true; renderer.setRenderTarget(null); renderer.clear(); renderExt(VS.scene, VS.camera); mine = false;
   requestAnimationFrame(loop);
 }
-show(); requestAnimationFrame(loop);
+if (EMBED) {   // 等殼把名帖傳進來才開演；點一下跳過
+  var muteB = document.getElementById('muteBtn'); if (muteB) muteB.style.display = 'none';
+  var got = false; window.addEventListener('message', function (ev) { var d = ev.data; if (!d || d.vsintro !== 'cards' || got) return; got = true; A = d.a || A; B = d.b || B; doneSent = false; show(); });
+  hud.addEventListener('pointerdown', function () { if (got) done(); });
+  VS.show(A, B); VS.replay(); window.parent.postMessage({ vsintro: 'ready' }, '*');
+} else show();
+requestAnimationFrame(loop);
 window.__vs = { VS: VS, show: show, cards: function () { return { a: A, b: B }; }, L: L };
 
 // 對戰 VS 頁試看的入口：遊戲本體（src/）原封不動，前後各插一點試看頁的程式。
