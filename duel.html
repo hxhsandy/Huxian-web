@@ -191,13 +191,15 @@ function onNet(d){if(!d||d.id===ME)return;
 function lobby(on,txt){var e=$('lobby');e.style.display=on?'flex':'none';if(txt)$('lobbyTxt').innerHTML=txt;}
 // 傳輸：有郵局的網址（WS_URL，或網址 ?ws=）就走 WebSocket（wss://…/room/房號；server/foxvs-relay），沒有就用 BroadcastChannel（同一台電腦同一個瀏覽器）
 var WS_URL=Q.get('ws')||'wss://foxvs-relay.hxhsandy1.workers.dev';   /* Cloudflare 的郵局（server/foxvs-relay；CK 2026-11-12 部署）。?ws= 可以換成別的（本機測試用 ws://127.0.0.1:8787） */
+// 等待畫面最下面那一行小字：有沒有連上郵局（連不上＝這個房號已經有兩個人，或這個網路擋了郵局）——兩邊都卡在「等對手進來」時看這一行就知道是哪一邊
+function netSt(k){var e=$('netSt');if(e)e.textContent=k==='ok'?'✓ 已連上，房間裡還沒有別人':k==='bad'?'✗ 連不上（這個房號可能已經有兩個人，或這個網路擋住了）— 每 2 秒重試':'連線中…';if(e)e.style.color=k==='bad'?'#ff9d8a':k==='ok'?'#9be3b0':'';}
 function netWS(){var ws=null,q=[],dead=false;function open(){ws=new WebSocket(WS_URL.replace(/\/$/,'')+'/room/'+ROOM);
-    ws.onopen=function(){q.splice(0).forEach(function(x){ws.send(x);});};
+    ws.onopen=function(){netSt('ok');q.splice(0).forEach(function(x){ws.send(x);});};
     ws.onmessage=function(e){var d;try{d=JSON.parse(e.data);}catch(_){return;}if(d&&d.t==='bye'){if(PEER)PEER.last=-1e9;return;}onNet(d);};
-    ws.onclose=function(){if(dead)return;setTimeout(open,2000);};ws.onerror=function(){try{ws.close();}catch(_){}};}
+    ws.onclose=function(){if(dead)return;netSt('bad');setTimeout(open,2000);};ws.onerror=function(){try{ws.close();}catch(_){}};}
   open();return {send:function(o){o.id=ME;var x=JSON.stringify(o);if(ws&&ws.readyState===1)ws.send(x);else if(q.length<200)q.push(x);}};}
 if(ROOM){if(WS_URL)NET=netWS();else try{var bc=new BroadcastChannel('foxvs-'+ROOM);NET={send:function(o){o.id=ME;bc.postMessage(o);}};bc.onmessage=function(e){onNet(e.data);};}catch(_){NET={send:function(){}};}
-  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>'+(WS_URL?'':'（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）')+'</small>');
+  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>'+(WS_URL?'':'（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）')+'</small><small id="netSt">'+(WS_URL?'連線中…':'')+'</small>');
   NET.send({t:'hi',card:CARD});setInterval(function(){if(!PEER)NET.send({t:'hi',card:CARD});else{NET.send({t:'ping'});if(netRdy&&state==='wait')NET.send({t:'ready'});
     var quiet=performance.now()-PEER.last;   /* 對方多久沒消息：6 秒先提醒（回來了就收掉），30 秒才當作離線 */
     if(state!=='over'){if(quiet>30000){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<br><a href="duel.html">回去跟電腦打</a>');}else if(quiet>6000){lobby(true,'對手沒有回應…<small>等她回來（她的視窗被蓋住或切到背景時會停住）</small>');stalled=true;}else if(stalled){stalled=false;lobby(false);}}}},1500);}
