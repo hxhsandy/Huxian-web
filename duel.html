@@ -190,7 +190,7 @@ function onNet(d){if(!d||d.id===ME)return;
     if(ty==='ko'){side.b.st.ko=m.n;draw();koShow('b');if(m.n>=DEF.koWin)setTimeout(function(){over('a','ko');},50);}}}
 function lobby(on,txt){var e=$('lobby');e.style.display=on?'flex':'none';if(txt)$('lobbyTxt').innerHTML=txt;}
 // 傳輸：有郵局的網址（WS_URL，或網址 ?ws=）就走 WebSocket（wss://…/room/房號；server/foxvs-relay），沒有就用 BroadcastChannel（同一台電腦同一個瀏覽器）
-var WS_URL=Q.get('ws')||'';   /* ← Cloudflare 的郵局部署好之後把網址寫在這裡（wss://foxvs-relay.<帳號>.workers.dev） */
+var WS_URL=Q.get('ws')||'wss://foxvs-relay.hxhsandy1.workers.dev';   /* Cloudflare 的郵局（server/foxvs-relay；CK 2026-11-12 部署）。?ws= 可以換成別的（本機測試用 ws://127.0.0.1:8787） */
 function netWS(){var ws=null,q=[],dead=false;function open(){ws=new WebSocket(WS_URL.replace(/\/$/,'')+'/room/'+ROOM);
     ws.onopen=function(){q.splice(0).forEach(function(x){ws.send(x);});};
     ws.onmessage=function(e){var d;try{d=JSON.parse(e.data);}catch(_){return;}if(d&&d.t==='bye'){if(PEER)PEER.last=-1e9;return;}onNet(d);};
