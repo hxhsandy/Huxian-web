@@ -1315,6 +1315,7 @@ var MECHS=[LOCK,PETAL,CORD,SHARD,LETHE,WISP,CHARM];
 //   vsSim(opt)          兩個機器人打一場，回傳打完的 VsLocal（over、sides[i].stat）
 //   vsSnap(board)／vsUnsnap(board,arr)  盤面壓成一串數字／照那串數字擺回去（連線時真的在玩的那一份把盤面送給對方的鏡像）
 //   鏡像（第六輪，連線）：side.puppet＝true 的 VsSide 只照訊息顯示、不算規則（見 VsSide 的說明）
+//   vsCue(def,key,side,combo)  大招「現在按划算嗎」（第七輪的提示）；vsPair(board)＝盤面上相鄰的一對特殊珠
 //   vsRng(seed)         固定種子的亂數（0～1）；vsCount(steps)＝一步消了幾組、引爆幾次；vsCapped(bt,cap,fn)＝連擊加成封頂之下算傷害；vsMoves(board)＝所有能走的步
 //
 // 每一邊的 hooks（VsSide 要動自己的盤面時叫；電腦的在 VsBot 裡，玩家的在 versus/view.js）：
@@ -1344,6 +1345,10 @@ var VS_DEF={
   // 大招的對戰版（玩家這邊；電腦不放大招）：心狐回血改 heal（護盾照舊）；水狐「潮汐封印」改成沖掉自己預告列上 clearK 比例的干擾
   //   （無條件進位、至少 1 個；快落下的先清。CK 2026-11-13：原本「最多 3 個」太強）
   ult:{heal:0.15,clearK:0.5},
+  // 提示（第七輪；CK 2026-11-15 帶朋友玩：第一次玩的人不知道技能可以放、不知道兩顆特殊珠可以直接互換）。只有畫面多東西，規則和施放時間都不變：
+  //   on＝大招的時機提示（能量滿、而且「現在按划算」時那隻狐狸身上出現「點我」的光，見 vsCue）；text＝提示上要不要帶說這招在幹嘛的那兩三個字（CK 看了再決定留不留）；
+  //   dark＝暗狐連擊到幾連才提示；pair＝盤面停下來時兩顆特殊珠相鄰就馬上提示可以互換（見 vsPair）
+  cue:{on:true,text:true,dark:15,pair:true},
   stEvery:0.1,        // 自己的狀態（st）有變的話最快幾秒送一次
   // 光飛到隔壁（雙畫面）：travel＝收到的 atk 等幾秒才生效（＝殼畫的光飛過去的時間；這段時間台上的狐狸蓄力）；單頁模式、node 不延遲（side.delay＝0）。
   //   full＝排著還沒生效的傷害到血量上限的幾成，蓄力的光就到最強
@@ -1373,6 +1378,19 @@ function vsCount(steps){var o={groups:0,blasts:0};(steps||[]).forEach(function(s
   st.groups.forEach(function(g){if(!g.skip)o.groups++;});o.blasts+=st.blasts.length;});return o;}
 // 連擊加成封頂：把 bt（Battle）的連擊數暫時壓到 cap 以下算 fn()（Battle.shot、ultDamage 都讀 bt.combo），算完還原
 function vsCapped(bt,cap,fn){var c=bt.combo;bt.combo=Math.min(c,cap);try{return fn();}finally{bt.combo=c;}}
+// 大招「現在按划算嗎」（能量滿了才問；只決定要不要提示，按不按得下去不歸它管）。key＝哪一隻、s＝這一邊（VsSide）、combo＝畫面上現在幾連擊：
+//   心狐：缺的血 ≥ 這次會補的量（不會溢出）｜暗狐：連擊到 cue.dark｜水狐：自己的預告列上有干擾可以沖（至少沖掉 1 個）｜火、木、光：能量一滿就算
+function vsCue(def,key,s,combo){
+  if(key==='heart')return s.max-s.hp>=Math.round(s.max*def.ult.heal);
+  if(key==='dark')return combo>=def.cue.dark;
+  if(key==='water')return s.pend()>0;
+  return true;}
+// 盤面上相鄰的一對特殊珠（劍氣／爆符／太極，不管顏色；互換就是組合技，不用成線）：回傳 [[r,c],[r2,c2]]，沒有＝null。
+//   很多對的時候只給一對（從左上掃下來的第一對）；被鎖住的不算
+function vsPair(bd){var d=[[0,1],[1,0]],r,c,k;
+  for(r=0;r<bd.R;r++)for(c=0;c<bd.C;c++)for(k=0;k<2;k++){var r2=r+d[k][0],c2=c+d[k][1];if(r2>=bd.R||c2>=bd.C||(k===0&&bd.wallH(r,c)))continue;
+    var a=bd.g[r][c],b=bd.g[r2][c2];if(a&&b&&a.special&&b.special&&!a.shard&&!b.shard&&bd.isCombo(a,b))return [[r,c],[r2,c2]];}
+  return null;}
 /* 一邊（id＝'a'｜'b'）。自己的：hp／max 血、downs 被 KO 幾次、queue 預告列 [{n:幾個, t:還有幾秒落下}]（舊的在前面）、gen 這一串連擊已經產生幾個干擾、
      invuln 無敵還剩幾秒、shield 下一次挨打擋掉幾成（0＝沒有；用掉就歸零）、combo 現在幾連擊、maxCombo 最高連擊、
      delay 收到的 atk 等幾秒才生效（帶著這一邊的人設；預設 0）、inbox 排著還沒生效的 atk [{msg,left}]、ack 已經處理到對方第幾發 atk、
@@ -8875,6 +8893,10 @@ var ULTS={
 //   VS.update(rdt)   主迴圈每格叫：我的連擊 → 干擾、播這一格發生的事、打完、預告列和對手連擊數、倒數
 //   VS.moved(steps)  我走完一步、盤面停下來（flow 的 attemptSwap）：這一步消了幾組 → 干擾整批送（mode 'move'）
 //   VS.cleared(st)   每一波消除（flow 的 animClear）：雙畫面時把這一波消掉的攻擊珠的位置送給殼（fx）
+//   提示（第七輪，VS_DEF.cue）：只在真的在玩的那一份畫（鏡像、auto 不畫）；都是蓋在畫面上的 DOM（不擋點擊）、不動 flow 的流程和任何施放時間。
+//     大招的時機提示（drawCue）：能量滿、而且現在按划算（core.js 的 vsCue）→ 那隻狐狸身上一圈一圈往內收的金色細光圈＋頭上兩三個字（CUE_WORD；VS_DEF.cue.text 關掉就只剩小菱形）；
+//       條件剛成立那一下多一圈亮光，放了大招、能量沒了、條件不成立就收掉。條件不成立時只有原本的跳
+//     兩顆特殊珠相鄰（drawPair）：盤面停下來時馬上用一圈金框把這一對框在一起、兩顆小光點在中間對穿（＝這兩顆可以互換），不等原本的閒置提示
 //   VS.ult(key,i)    放大招時（flow 的 applyUlt）：告訴對方；這一招有對戰版就在這裡做、回傳 true（水狐：清掉自己預告列上的干擾），沒有就回傳 false 照原版
 //   VS.ultDesc(key)  暫停面板的大招說明：對戰版不一樣的那幾招的字（沒有就 null）
 // 怎麼接的（flow.js 幾乎不用動）：畫面上的 BOSS 血條＝對方的血（聽來的，st 一到就更新）、隊伍血條＝我的血（真值在我的 VsSide），每次變動抄回 battle（sync）。
@@ -8900,6 +8922,9 @@ var mvN=0,mvAt=0,wrapped=false,lastU=null,mvLog={},mirLog={},mir={q:[],cur:null,
 var MV_SYNC=4,MIR_FAST=0.75,MIR_JUMP=10,MIR_STUCK=6;   // 真的那一份每幾秒（盤面停著時）再送一次整個盤面；鏡像每積一則快轉多少倍（最多 4 倍）、積到幾則直接跳、一則卡幾秒沒演完就跳
 var foeCard=null,cardKey='',SCENE={night:0,day:3};   // foeCard：這一場對手的名帖（檢查過的）{name, look, ok}，沒有＝null；cardKey：上一張的內容（一樣就不重做）；SCENE：自己的背景借哪一關的（第一關夜晚、第四關白天）
 var warnEl=null,warnFxEl=null,foeEl=null,flashEl=null,myGemsEl=null,countEl=null,warnKey='',foeKey='',countKey='',geoKey='',glow=0;   // geoKey：上次送給殼的位置；glow：台上的狐狸現在蓄力到多少（0～1）
+// 提示（第七輪）：cueEls＝六隻狐狸各一個提示、cueOn＝現在亮著嗎、cueKey＝上次擺在哪（位置、字的開關變了才重擺）；pairEl／pairKey＝特殊珠那一對的金框
+//   CUE_WORD：提示上的字＝這招在對戰裡真正的效果（火狐連發火球打對手、水狐沖掉自己預告列上的干擾、木狐在盤面生劍氣珠、光狐全隊一段時間增傷、暗狐傷害乘連擊數、心狐回血＋護盾）
+var cueEls=[],cueOn=[],cueKey=[],pairEl=null,pairKey='',CUE_KEYS=['fire','water','wood','light','dark','heart'],CUE_WORD={fire:'火球',water:'沖干擾',wood:'劍氣珠',light:'增傷',dark:'連擊斬',heart:'回血'},CUE_COL=new THREE.Color(0xffe2a0);
 var FOE_COL=new THREE.Color(0xc9a0ff),GEM_COL=new THREE.Color(0xe9d8ff),MY_GEM_COL=new THREE.Color(0xffb0c8),WARN_MAX=10;   // WARN_MAX：預告列最多畫幾個圖示（再多寫 +n）
 var CSS=[
   'html.versus #bossCd,html.versus #homeBtn,html.versus #homeBtn2,html.vslink #pauseBtn{display:none!important}',
@@ -8924,7 +8949,27 @@ var CSS=[
   '#teambar.vsInv .bar,#bossbar.vsInv .bar{animation:vsInv .2s steps(2) infinite}',
   '@keyframes vsInv{to{opacity:.45}}',
   '#vsCount{position:absolute;left:0;right:0;top:38%;text-align:center;pointer-events:none;font-size:72px;font-weight:700;color:#fff3c8;text-shadow:0 0 22px rgba(255,190,90,.95),0 3px 6px rgba(0,0,0,.7);opacity:0}',
-  '#vsCount.show{opacity:1}#vsCount.wait{font-size:20px;letter-spacing:.2em;color:#e9d8ff;text-shadow:0 2px 5px rgba(0,0,0,.8)}'
+  '#vsCount.show{opacity:1}#vsCount.wait{font-size:20px;letter-spacing:.2em;color:#e9d8ff;text-shadow:0 2px 5px rgba(0,0,0,.8)}',
+  /* 提示（第七輪）：--u＝一格珠子的寬。.vsCue 放在那隻狐狸的身體中間：i＝往內收的金色細光圈（兩圈錯開）、b＝頭上的字（下面一顆小菱形指著牠）、s＝兩顆閃一下的小光點 */
+  '.vsCue{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;opacity:0;transition:opacity .2s}.vsCue.on{opacity:1}',
+  '.vsCue i{position:absolute;left:calc(var(--u)*-.62);top:calc(var(--u)*-.62);width:calc(var(--u)*1.24);height:calc(var(--u)*1.24);box-sizing:border-box;border-radius:50%;border:1px solid rgba(255,232,170,.95);box-shadow:0 0 6px rgba(255,200,110,.85),inset 0 0 5px rgba(255,200,110,.5);opacity:0}',
+  '.vsCue.on i{animation:vsCueRing 1.4s ease-in infinite}.vsCue.on i+i{animation-delay:.7s}',
+  '@keyframes vsCueRing{0%{transform:scale(1.25);opacity:0}35%{opacity:.95}100%{transform:scale(.72);opacity:0}}',
+  '.vsCue b{position:absolute;left:0;top:calc(var(--u)*-.96);transform:translate(-50%,-100%) scale(.4);transition:transform .28s cubic-bezier(.3,1.7,.5,1);padding:0 4px 1px;white-space:nowrap;font-size:12px;line-height:17px;font-weight:700;letter-spacing:.06em;text-indent:.06em;color:#ffeab4;text-shadow:0 0 6px rgba(255,180,80,.95),0 1px 2px rgba(0,0,0,.9);border-top:1px solid rgba(255,226,150,.85);border-bottom:1px solid rgba(255,226,150,.85);background:linear-gradient(90deg,rgba(44,26,8,0),rgba(44,26,8,.7) 24%,rgba(44,26,8,.7) 76%,rgba(44,26,8,0))}',
+  '.vsCue.on b{transform:translate(-50%,-100%);animation:vsCueBob 1.1s ease-in-out infinite alternate}',
+  '.vsCue b::after{content:"";position:absolute;left:50%;bottom:-8px;width:5px;height:5px;margin-left:-3px;transform:rotate(45deg);background:#ffeab4;box-shadow:0 0 6px rgba(255,200,110,.95)}',
+  '.vsCue.notext b{font-size:0;line-height:0;padding:0;border:0;background:none}',
+  '@keyframes vsCueBob{from{margin-top:0}to{margin-top:-3px}}',
+  '.vsCue s{position:absolute;left:calc(var(--u)*-.56);top:calc(var(--u)*-.5);width:4px;height:4px;transform:rotate(45deg);background:#fff6d8;box-shadow:0 0 6px 1px rgba(255,210,130,.95);opacity:0}.vsCue s+s{left:calc(var(--u)*.5);top:calc(var(--u)*-.2)}',
+  '.vsCue.on s{animation:vsCueTwinkle 1.4s ease-in-out infinite}.vsCue.on s+s{animation-delay:.55s}',
+  '@keyframes vsCueTwinkle{0%,100%{opacity:0;transform:rotate(45deg) scale(.3)}50%{opacity:1;transform:rotate(45deg) scale(1)}}',
+  /* 特殊珠那一對：一圈金框把兩格框在一起，兩顆小光點在中間對穿（.v＝上下一對） */
+  '#vsPair{position:absolute;box-sizing:border-box;pointer-events:none;opacity:0;transition:opacity .15s;border-radius:calc(var(--u)*.46);border:1.5px solid rgba(255,236,180,.95)}',
+  '#vsPair.on{opacity:1;animation:vsPairGlow .8s ease-in-out infinite alternate}',
+  '@keyframes vsPairGlow{from{box-shadow:0 0 5px rgba(255,200,110,.55),inset 0 0 4px rgba(255,200,110,.3)}to{box-shadow:0 0 14px 1px rgba(255,214,130,1),inset 0 0 10px rgba(255,214,130,.65)}}',
+  '#vsPair i{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-3px 0 0 -3px;transform:rotate(45deg);background:#fff6d8;box-shadow:0 0 7px 2px rgba(255,214,130,.95);--d:calc(var(--u)*.42)}',
+  '#vsPair.on i{animation:vsPairH 1s ease-in-out infinite alternate}#vsPair.on i+i{animation-direction:alternate-reverse}#vsPair.on.v i{animation-name:vsPairV}',
+  '@keyframes vsPairH{from{translate:calc(var(--d)*-1) 0}to{translate:var(--d) 0}}@keyframes vsPairV{from{translate:0 calc(var(--d)*-1)}to{translate:0 var(--d)}}'
 ].join('\n');
 function mkEl(tag,id,cls,parent){var el=document.createElement(tag);if(id)el.id=id;if(cls)el.className=cls;parent.appendChild(el);return el;}
 // ---- 名帖：外面來的長相先檢查（之後開放給所有人，這裡是入口）----
@@ -8982,6 +9027,8 @@ function enable(qs){var f=/[?&]foe=(\d+)/.exec(qs),v=/[?&]lv=([123])/.exec(qs),g
   document.documentElement.classList.add('versus');if(linked)document.documentElement.classList.add('vslink');if(mirror)document.documentElement.classList.add('vsmirror');mkEl('style','vsCss','',document.head).textContent=CSS;
   warnEl=mkEl('div','vsWarn','',teamBarEl);warnFxEl=mkEl('div','vsWarnFx','',teamBarEl);
   foeEl=mkEl('div','vsFoe','hud bhud',frameEl);flashEl=mkEl('div','vsFlash','',frameEl);countEl=mkEl('div','vsCount','',frameEl);
+  for(var q=0;q<CUE_KEYS.length;q++){var ce=mkEl('div','','vsCue',frameEl);ce.innerHTML='<i></i><i></i><b>'+CUE_WORD[CUE_KEYS[q]]+'</b><s></s><s></s>';cueEls.push(ce);cueOn.push(false);cueKey.push('');}
+  pairEl=mkEl('div','vsPair','',frameEl);pairEl.innerHTML='<i></i><i></i>';
   var chips=document.getElementById('chips');myGemsEl=document.createElement('span');myGemsEl.className='vsGems';chips.parentNode.insertBefore(myGemsEl,chips);
   document.getElementById('againBtn').textContent='再來一局';
   if(mute){var keep=null;try{keep=localStorage.getItem('fox3-muted');}catch(_){}AudioFX.setMuted(true);   // 這一份不出聲；存檔裡的靜音設定放回原樣（兩個 iframe 共用同一份）
@@ -9147,6 +9194,21 @@ function result(){var o=side.over,p=side.opp,w=o.winner==='draw'?-1:o.winner===m
   document.getElementById('rCombo').textContent=battle.maxCombo;
   document.getElementById('rTime').textContent=Math.ceil(side.left())+' 秒';
   showPanel('result');}
+// ---- 提示（第七輪）：大招的時機、兩顆特殊珠相鄰。只在真的在玩的那一份（不是鏡像、不是 auto），打的時候才有 ----
+function cueLive(){var c=VS_DEF.cue;return !!c&&!mirror&&!auto&&side.active()&&G.mode==='playing';}
+// 大招的時機：能量滿（而且按得下去）＋現在按划算 → 亮；不然收掉。剛亮那一下在牠身上多一圈光
+function drawCue(){var c=VS_DEF.cue,live=cueLive()&&c.on;
+  for(var i=0;i<cueEls.length;i++){var el=cueEls[i],want=live&&battle.energy[i]>=CONFIG.ult.max&&!battle.isCharmed(i)&&vsCue(VS_DEF,CUE_KEYS[i],side,battle.combo);
+    if(want){var p=toScreen(BS.foxPoint(i,0.5)),key=Math.round(p.x)+','+Math.round(p.y)+','+L.cs+','+(c.text?1:0);
+      if(key!==cueKey[i]){cueKey[i]=key;el.style.left=Math.round(p.x)+'px';el.style.top=Math.round(p.y)+'px';el.style.setProperty('--u',L.cs+'px');el.classList.toggle('notext',!c.text);}
+      if(!cueOn[i]){ringFx(p.x,p.y,L.cs*0.2,L.cs*1.25,CUE_COL,0.45);for(var k=0;k<6;k++){var a=k/6*Math.PI*2+0.5;emit(p.x,p.y,Math.cos(a)*L.cs*1.3,Math.sin(a)*L.cs*1.3-L.cs*0.6,0.5,L.cs*0.07,k%2?CUE_COL:WHITE$1,L.cs*2.5);}}}
+    if(want!==cueOn[i]){cueOn[i]=want;el.classList.toggle('on',want);}}}
+// 兩顆特殊珠相鄰：盤面停著就馬上框起來（很多對只框一對）
+function drawPair(){var c=VS_DEF.cue,p=cueLive()&&c.pair&&!S.locked?vsPair(board):null,key=p?p.join(',')+'|'+[L.bx,L.by,L.cs].join(','):'';
+  if(key===pairKey)return;pairKey=key;if(!p){pairEl.className='';return;}
+  var a=cellXY(p[0][0],p[0][1]),b=cellXY(p[1][0],p[1][1]),h=L.cs*0.47;
+  pairEl.style.left=(a.x-h)+'px';pairEl.style.top=(a.y-h)+'px';pairEl.style.width=(b.x-a.x+h*2)+'px';pairEl.style.height=(b.y-a.y+h*2)+'px';pairEl.style.setProperty('--u',L.cs+'px');
+  pairEl.className='on'+(p[0][1]===p[1][1]?' v':'');}
 // 預告列：一個干擾一個小鎖，上面的數字＝還有幾秒落下（到期了在等盤面停＝！）
 function drawWarn(){var key='',h='',n=0;
   side.queue.forEach(function(e){var t=Math.max(0,Math.ceil(e.t));for(var k=0;k<e.n;k++){if(++n>WARN_MAX)continue;key+=t+',';h+='<i class="vl'+(t<=1?' hot':'')+'"><b>'+(t>0?t:'!')+'</b></i>';}});
@@ -9175,10 +9237,11 @@ function update(rdt){if(!on||!side)return;var gems=bossBarEl.querySelectorAll('.
     G.mode=w===myId?'won':'lost';S.sel=null;S.hint=null;comboEl.classList.remove('show');
     if(!linked)after(1.3,function(){if(SES===ses)result();});}   /* 雙畫面：結果殼蓋在各自的畫面上，遊戲裡不畫 */
   bossBarEl.classList.toggle('vsInv',side.opp.inv&&foeShow==null&&!side.over);teamBarEl.classList.toggle('vsInv',side.invuln>0&&!side.over);
-  drawWarn();drawFoe();drawCount();if(linked&&helloSent)sendGeo();}
+  drawWarn();drawFoe();drawCount();drawCue();drawPair();if(linked&&helloSent)sendGeo();}
 // 放大招：告訴對方（先給顯示用）。水狐「潮汐封印」的對戰版：沖掉自己預告列上一半的干擾（VS_DEF.ult.clearK；無條件進位、至少 1 個；原版的「BOSS 攻擊倒數延後」在對戰沒有東西可以延後）
 function ult(key,i){if(mirror){if(key!=='water')return false;var mx=L.W/2,my=teamY()-L.tbH,mc=typeColor(1);for(var q=0;q<3;q++)(function(q){after(q*0.1,function(){ringFx(mx,my,L.cs*0.3,L.cs*(1.6+q*0.7),mc,0.45);});})(q);return true;}   // 鏡像：水狐只演一圈一圈的光（預告列少了幾個照本尊的 st）
-  side.send('ult',{fox:i});if(key!=='water')return false;var p=side.pend(),n=p?side.wipe(Math.max(1,Math.ceil(p*VS_DEF.ult.clearK))):0,x=L.W/2,y=teamY()-L.tbH,col=typeColor(1);
+  if(key!=='water'){side.send('ult',{fox:i});return false;}
+  var p=side.pend(),n=p?side.wipe(Math.max(1,Math.ceil(p*VS_DEF.ult.clearK))):0,x=L.W/2,y=teamY()-L.tbH,col=typeColor(1);side.send('ult',{fox:i,cleared:n});   /* cleared：這次沖掉預告列上幾個（沒沖到＝0），殼演「干擾條被沖掉」用（第七輪） */
   for(var w=0;w<3;w++)(function(w){after(w*0.1,function(){ringFx(x,y,L.cs*0.3,L.cs*(1.6+w*0.7),col,0.45);});})(w);
   popNum(x,y-6,n?'沖掉 '+n+' 個干擾':'沒有干擾可以沖','water',CONFIG.ult.water.name);return true;}
 function ultDesc(key){var u=CONFIG.ult,c=VS_DEF.comboCap;
@@ -9201,7 +9264,7 @@ var VS={
   ult:ult,
   ultDesc:ultDesc,
   // 測試用（window.__game.VS.dev()）：我這一邊（side）、單頁模式的本地線和電腦（local、bot）、數字（def）
-  dev:function(){return {side:side,local:local,bot:bot,def:VS_DEF,id:myId,linked:linked,auto:auto,mirror:mirror,mir:mir,mvN:mvN,mvLog:mvLog,mirLog:mirLog,snap:function(){return vsSnap(board);},waiting:waiting,held:held,card:foeCard,cardLook:cardLook,cardName:cardName};}
+  dev:function(){return {side:side,local:local,bot:bot,def:VS_DEF,id:myId,linked:linked,auto:auto,mirror:mirror,mir:mir,mvN:mvN,mvLog:mvLog,mirLog:mirLog,snap:function(){return vsSnap(board);},waiting:waiting,held:held,cue:{on:cueOn.slice(),pair:pairKey,words:CUE_WORD,keys:CUE_KEYS},card:foeCard,cardLook:cardLook,cardName:cardName};}
 };
 
 // 入口：接在所有 module 的最後，組好除錯入口 window.__game、開始遊戲。
