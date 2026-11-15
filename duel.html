@@ -53,23 +53,45 @@ html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-
 .panel .res.win{color:#fff3d0;text-shadow:0 0 calc(var(--pw)*0.09) #ffb84a,0 0 calc(var(--pw)*0.03) #fff,0 calc(var(--pw)*0.014) 0 #7a3b10}
 .panel .res.lose{color:#9aa0b8;text-shadow:0 calc(var(--pw)*0.012) 0 #1a1c2a;font-size:calc(var(--pw)*0.24)}
 .panel.won{box-shadow:0 0 0 3px #fff3d0,0 0 60px rgba(255,200,100,.85),0 10px 40px rgba(0,0,0,.6)!important}
-.panel .danger{position:absolute;bottom:3%;width:7px;height:40%;border-radius:4px;background:rgba(20,22,40,.85);box-shadow:0 0 0 1px #3a416a;overflow:hidden;z-index:3;pointer-events:none}
-#pa .danger{right:-12px}#pb .danger{left:-12px}
-.panel .danger i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#ffd24a,#ff5a2a);box-shadow:0 0 10px #ff6a2a;transition:height .15s}
-.panel .danger.hot i{animation:dangerBlink .35s infinite alternate}@keyframes dangerBlink{from{filter:brightness(1)}to{filter:brightness(1.7)}}
+/* 干擾條（2026-11-15 CK：手機版看不到、累積要更有動態、被水狐沖掉要看得出來）：貼在盤面旁邊、跟盤面一樣高（位置照遊戲送來的 geo），
+   八格＝預告列最多八個，來一個亮一格（彈一下）；多到五格以上整條發紅光；落到盤面上＝白一下熄掉；被水狐沖掉＝變成水藍色往下流走 */
+.panel .danger{position:absolute;right:-13px;bottom:3%;width:9px;height:40%;border-radius:5px;background:rgba(12,14,30,.8);box-shadow:0 0 0 1px rgba(138,147,196,.6);z-index:3;pointer-events:none;display:flex;flex-direction:column-reverse;gap:2px;padding:2px;box-sizing:border-box}
+#pb .danger{right:auto;left:-13px}
+.panel .danger::before{content:"";position:absolute;left:50%;top:-15px;width:10px;height:12px;transform:translateX(-50%);opacity:.75;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M2.6 5.4V3.6a2.4 2.4 0 0 1 4.8 0v1.8' fill='none' stroke='%23c9cfee' stroke-width='1.3'/%3E%3Crect x='1' y='5.2' width='8' height='6' rx='1.4' fill='%23c9cfee'/%3E%3C/svg%3E")}   /* 上面一個小鎖：這一條是「要落下來的鎖」 */
+.panel .danger i{flex:1;min-height:0;border-radius:3px;background:rgba(138,147,196,.17)}
+.panel .danger i.on{background:linear-gradient(#ffdc6a,#ff6a2a);box-shadow:0 0 7px #ff7a2a}
+.panel .danger i.pop{animation:pipPop .34s cubic-bezier(.2,1.8,.4,1)}
+@keyframes pipPop{0%{transform:scale(2.6,1.7);filter:brightness(2.6)}100%{transform:none;filter:none}}
+.panel .danger i.land{animation:pipLand .32s ease-in}
+@keyframes pipLand{0%{background:#fff;box-shadow:0 0 10px #fff;transform:none}100%{background:rgba(138,147,196,.17);box-shadow:none;transform:translateY(60%) scaleY(.5)}}
+.panel .danger i.wash{animation:pipWash .55s ease-out}
+@keyframes pipWash{0%{background:#d6f1ff;box-shadow:0 0 12px #7fd0ff;transform:scale(1.8,1.2)}35%{background:#7cc8ff;box-shadow:0 0 12px #58b8ff;transform:none}100%{background:rgba(88,184,255,0);box-shadow:none;transform:translateY(220%) scaleY(.3)}}
+.panel .danger.hot{animation:dangerHot .35s infinite alternate}
+@keyframes dangerHot{from{box-shadow:0 0 0 1px #ff9a6a,0 0 6px rgba(255,90,40,.5)}to{box-shadow:0 0 0 1.5px #ffd0a0,0 0 16px rgba(255,90,40,.95)}}
+.panel .danger.washed{animation:dangerWashed .6s ease-out}
+@keyframes dangerWashed{0%{box-shadow:0 0 0 2px #d6f1ff,0 0 22px #7fd0ff}100%{box-shadow:0 0 0 1px rgba(138,147,196,.6)}}
 #fx{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:5}   /* 一定要寫 width／height：畫布沒寫的話會照自己的像素數當大小，高解析度的手機上整張變兩倍大、光的位置全部跑掉（2026-11-13 CK 手機回報的原因） */
 /* 手機直拿（畫面窄）：只留我的畫面，對手的整個畫面縮成左上角一個小視窗（像視訊通話的子母畫面），點一下放大、再點縮回（2026-11-13 CK） */
 #duel.narrow #pa{box-shadow:none;border-radius:0}#duel.narrow #pa iframe{border-radius:0}
 #duel.narrow #pb{position:absolute;z-index:4;border-radius:9px;overflow:hidden;box-shadow:0 0 0 1.5px #c9cfee,0 4px 16px rgba(0,0,0,.7);transition:width .18s,height .18s}
 #duel.narrow #pb iframe{transform-origin:0 0;border-radius:0}
 #duel.narrow .who2,#duel.narrow #pb .danger,#duel.narrow #mid,#duel.narrow~#note{display:none}
-#duel.narrow #pa .danger{right:3px}
 #vsIntro{position:fixed;left:0;top:0;width:100%;height:100%;border:0;z-index:20;background:#05060c;transition:opacity .35s}
 #vsIntro.out{opacity:0;pointer-events:none}
 #again{display:none;position:absolute;left:50%;top:calc(50% + 96px);transform:translateX(-50%);z-index:6;padding:8px 20px;border-radius:999px;border:1.5px solid #f3d9a0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 15px "Noto Serif TC",serif;letter-spacing:.2em;cursor:pointer}
-#cardBtn{position:absolute;left:10px;bottom:8px;z-index:6;padding:5px 12px;border-radius:999px;border:1px solid #8a93c4;background:rgba(20,24,48,.85);color:#e9e6f2;font:12px sans-serif;text-decoration:none}
+/* 名帖、房號兩顆按鈕：旁邊有空位（電腦寬螢幕）就直的排在左下角；沒有空位就收成一顆「⋯」、點了才展開——
+   手機版在右上角遊戲的喇叭按鈕左邊（2026-11-15 CK：放下面會擋到最下排的珠子），電腦窄視窗在中間那一欄的最下面 */
+#menu{position:absolute;left:10px;bottom:8px;z-index:6}
+#menuBox{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+#menuBtn{display:none}
+#cardBtn,#netBtn{padding:5px 12px;border-radius:999px;border:1px solid #8a93c4;background:rgba(20,24,48,.85);color:#e9e6f2;font:12px sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer}
 #cardBtn.new{border-color:#f3d9a0;color:#ffe9b8;box-shadow:0 0 12px rgba(255,190,90,.5)}
-#netBtn{position:absolute;left:128px;bottom:8px;z-index:6;padding:5px 12px;border-radius:999px;border:1px solid #8a93c4;background:rgba(20,24,48,.85);color:#e9e6f2;font:12px sans-serif;cursor:pointer}
+#menu.fold #menuBtn{display:block;width:var(--mb,30px);height:var(--mb,30px);padding:0;border-radius:50%;border:1px solid rgba(243,217,160,.6);background:rgba(20,24,48,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#ffe9b8;font:900 calc(var(--mb,30px)*.5)/1 sans-serif;letter-spacing:.05em;cursor:pointer}
+#menu.fold.dot #menuBtn{box-shadow:0 0 10px rgba(255,190,90,.7)}
+#menu.fold #menuBox{display:none;position:absolute;right:0;top:calc(100% + 7px);align-items:flex-end}
+#menu.fold.up #menuBox{top:auto;bottom:calc(100% + 7px);right:50%;transform:translateX(50%);align-items:center}
+#menu.fold.open #menuBox{display:flex}
+#menu.fold #cardBtn,#menu.fold #netBtn{padding:8px 14px;font-size:13px;border-color:rgba(243,217,160,.6);background:rgba(20,24,48,.78);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#ffe9b8;box-shadow:0 4px 14px rgba(0,0,0,.5)}
 #lobby{display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;background:rgba(5,6,14,.82);text-align:center;font:900 22px/1.9 "Noto Serif TC",serif;letter-spacing:.12em}
 #lobby b{font-size:44px;color:#ffd978;letter-spacing:.3em;text-shadow:0 0 18px #f08a2c}#lobby small{display:block;margin-top:10px;font:13px/1.7 sans-serif;letter-spacing:.04em;opacity:.7}#lobby a{color:#ffd978}
 #note{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:11px sans-serif;opacity:.4}
@@ -77,19 +99,18 @@ html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-
 </head>
 <body>
 <div id="duel">
-  <div class="panel" id="pa"><iframe id="fa" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>你的盤面</span></div><div class="res"></div><div class="who2">你</div><div class="danger"><i></i></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
+  <div class="panel" id="pa"><iframe id="fa" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>你的盤面</span></div><div class="res"></div><div class="who2">你</div><div class="danger"></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
   <div id="mid">
     <div class="who" id="nameB">對手</div><div class="kos" id="koB"></div>
     <div id="clock">3:00</div><div id="vsMark">VS</div>
     <div class="kos" id="koA"></div><div class="who" id="nameA">我</div>
   </div>
-  <div class="panel" id="pb"><iframe id="fb" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>對手</span></div><div class="res"></div><div class="who2">對手</div><div class="danger"><i></i></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
+  <div class="panel" id="pb"><iframe id="fb" allow="autoplay"></iframe><div class="dim"></div><div class="cnt"><b></b><span>對手</span></div><div class="res"></div><div class="who2">對手</div><div class="danger"></div><div class="koT">K.O.</div><div class="plus">+1</div></div>
 </div>
 <button id="again" type="button">再來一局</button>
 <canvas id="fx"></canvas>
 <div id="msg"></div>
-<a id="cardBtn" href="card.html">✎ 我的名帖</a>
-<button id="netBtn" type="button">🤝 跟朋友打（測試版）</button>
+<div id="menu"><button id="menuBtn" type="button" aria-label="選單">⋯</button><div id="menuBox"><a id="cardBtn" href="card.html">✎ 我的名帖</a><button id="netBtn" type="button">🤝 跟朋友打（測試版）</button></div></div>
 <div id="lobby"><div id="lobbyTxt"></div></div>
 <div id="note">狐仙對戰・雙畫面試看</div>
 <script>
@@ -111,13 +132,22 @@ fb.src=GAME+'?versus&link=parent&side=b&foe='+A+(ROOM?'&mirror=1':'&auto='+LV)+'
 var PIP_W=270,pipBig=false;   // 小視窗裡那一份遊戲自己的寬度（再整個縮小）；pipBig：點過放大了
 function layout(){var W=innerWidth,H=innerHeight,narrow=W<H*0.95,midW=narrow?0:Math.max(96,Math.min(170,W*0.11)),
     h=Math.min(H-16,narrow?H:(W-midW-24)/2*16/9),w=Math.round(h*9/16);h=Math.round(h);$('duel').classList.toggle('narrow',narrow);mid.style.width=midW+'px';
-  if(!narrow){pa.querySelector('.danger').style.cssText='';[pa,pb].forEach(function(p){p.style.cssText='';p.style.width=w+'px';p.style.height=h+'px';p.style.setProperty('--pw',w+'px');});fb.style.cssText='';return;}
+  if(!narrow){[pa,pb].forEach(function(p){p.style.cssText='';p.style.width=w+'px';p.style.height=h+'px';p.style.setProperty('--pw',w+'px');});fb.style.cssText='';var mw=$('menu'),side0=(W-2*w-midW)/2,fold=side0<175;mw.style.cssText='';mw.classList.toggle('fold',fold);mw.classList.toggle('up',fold);if(!fold)mw.classList.remove('open');
+    if(fold){mw.style.setProperty('--mb','30px');mw.style.left=Math.round(W/2-15)+'px';mw.style.bottom='8px';}   /* 兩邊沒空位：收成一顆，放在中間那一欄最下面、往上展開 */
+    placeDanger('a');placeDanger('b');return;}
   pa.style.width='100%';pa.style.height='100%';var dr=$('duel').getBoundingClientRect();if(dr.width&&dr.height){W=dr.width;H=dr.height;}pa.style.setProperty('--pw',W+'px');   /* 手機上用量到的大小（innerHeight 不一定等於實際畫面高） */
   var gh=Math.min(H,W*16/9),top=(H-gh)/2,pw=Math.round(W*(pipBig?0.5:0.2)),ph=Math.round(pw*16/9);   /* 遊戲在 iframe 裡是置中的 9:16（比較長的手機上下黑條）：小視窗放在遊戲區的左上、BOSS 名字那一列下面 */
   pb.style.width=pw+'px';pb.style.height=ph+'px';pb.style.left=Math.round(W*0.03)+'px';pb.style.top=Math.round(top+gh*0.115)+'px';pb.style.setProperty('--pw',pw+'px');
   fb.style.width=PIP_W+'px';fb.style.height=Math.round(PIP_W*16/9)+'px';fb.style.transform='scale('+(pw/PIP_W)+')';
-  var dg=pa.querySelector('.danger');dg.style.bottom=Math.round(top+gh*0.03)+'px';dg.style.height=Math.round(gh*0.4)+'px';}   /* 危險條照遊戲區（不含上下黑條）放 */
+  var mb=Math.round(Math.min(W,gh*9/16)*0.08),mn=$('menu');mn.classList.add('fold');mn.classList.remove('up');mn.style.bottom='auto';mn.style.setProperty('--mb',mb+'px');mn.style.left=Math.round(W*0.818-mb/2)+'px';mn.style.top=Math.round(top+gh*0.0346-mb/2)+'px';   /* 選單的「⋯」：遊戲右上角喇叭按鈕的左邊、同一個高度 */
+  placeDanger('a');}
+// 干擾條貼在盤面旁邊（我的在盤面右邊、對手的在盤面左邊＝兩條都靠中間），跟盤面一樣高。位置照遊戲送來的 geo.board（iframe 裡的 px）；還沒收到就先用大概的位置
+function placeDanger(k){var p=k==='a'?pa:pb,d=p.querySelector('.danger'),g=side&&side[k]&&side[k].geo,pw=p.clientWidth,ph=p.clientHeight;if(!pw||!ph)return;
+  var b=g&&g.board&&g.board.w>10?g.board:{x:pw*0.103,y:ph*0.565,w:pw*0.794,h:pw*0.794*6/7},cs=b.w/7,fr=cs*0.3,room=k==='a'?pw-(b.x+b.w+fr):b.x-fr,wd=Math.max(6,Math.min(11,room*0.42)),cx=k==='a'?b.x+b.w+fr+room/2:(b.x-fr)-room/2;
+  if(room<8){wd=7;cx=k==='a'?pw-5:5;}   /* 旁邊沒位子：貼著畫面邊 */
+  d.style.left=Math.round(cx-wd/2)+'px';d.style.right='auto';d.style.width=Math.round(wd)+'px';d.style.top=Math.round(b.y)+'px';d.style.bottom='auto';d.style.height=Math.round(b.h)+'px';}
 pb.addEventListener('click',function(){if($('duel').classList.contains('narrow')){pipBig=!pipBig;layout();}});
+$('menuBtn').addEventListener('click',function(){$('menu').classList.toggle('open');$('menu').classList.remove('dot');});addEventListener('blur',function(){$('menu').classList.remove('open');});   /* 點到遊戲（iframe）＝這一頁失焦 → 收起來 */
 addEventListener('resize',layout);if(window.ResizeObserver)new ResizeObserver(function(){layout();}).observe(document.documentElement);layout();
 /* ---------- 轉訊息＋當裁判 ---------- */
 var COUNT=3,held=0,hidAt=0;   // held：整頁被切到背景的時間（裁判的時鐘那段時間不走）
@@ -162,9 +192,10 @@ addEventListener('message',function(ev){var m=ev.data;if(!m||m.vs!==1)return;var
   if(m.type==='hello'){side[k].hello=true;if(m.card&&m.card.name){$(k==='a'?'nameA':'nameB').textContent=k==='a'?(CARD?CARD.name:m.card.name):CPU_CARD.name;if(k==='b')pb.querySelector('.who2').textContent='對手・'+CPU_CARD.name+'（'+m.card.name+'）';else if(CARD)pa.querySelector('.who2').textContent='你・'+CARD.name;}if(m.def)Object.assign(DEF,m.def);draw();
     maybeStart();return;}
   if(m.type==='st'){side[k].st=m;draw();danger(k,m.pend||0);}
-  if(m.type==='geo'){side[k].geo=m;return;}
+  if(m.type==='geo'){side[k].geo=m;placeDanger(k);return;}
   if(m.type==='fx'){if(m.kind==='orbs'&&m.pts)fly(k,m.pts);return;}
   if(m.type==='ko'){side[k].st.ko=m.n;draw();koShow(k);if(m.n>=DEF.koWin)setTimeout(function(){over(o,'ko');},LAG+50);}
+  if(m.type==='ult')washMark(k,m);
   if(ROOM){   // 連線：我這份（a）的話送給對方那一台；右邊的鏡像（b）只會送 geo／fx，上面已經處理掉了
     if(k==='a'){NET.send({t:'g',m:m});if(m.type!=='mv')send('b',m);}   /* 我這份送的都給對方那一台；除了 mv（畫面用的，只給對方的鏡像），也給本機右邊的鏡像（它拿來演我打過去的、畫我的血條）——照 09b「連線與鏡像」 */
     return;}
@@ -199,6 +230,7 @@ function onNet(d){if(!d||d.id===ME)return;
   if(d.t==='again')doAgain(true);
   if(d.t==='g'){var m=d.m,ty=m.type;m.vs=1;m.from='b';send('a',m);send('b',Object.assign({},m));   // 對方那一台傳來的：from 改成 b，同一則給本機左邊和右邊的鏡像（各自會略過不認得的）
     if(ty==='st'){side.b.st=m;draw();danger('b',m.pend||0);}
+    if(ty==='ult')washMark('b',m);
     if(ty==='ko'){side.b.st.ko=m.n;draw();koShow('b');if(m.n>=DEF.koWin)setTimeout(function(){over('a','ko');},50);}}}
 function lobby(on,txt){var e=$('lobby');e.style.display=on?'flex':'none';if(txt)$('lobbyTxt').innerHTML=txt;}
 // 傳輸：有郵局的網址（WS_URL，或網址 ?ws=）就走 WebSocket（wss://…/room/房號；server/foxvs-relay），沒有就用 BroadcastChannel（同一台電腦同一個瀏覽器）
@@ -218,7 +250,7 @@ function netWS(){var ws=null,q=[],opened=0,tries=0,full=false;function open(){fu
     ws.onerror=function(){try{ws.close();}catch(_){}};}
   open();return {send:function(o){o.id=ME;var x=JSON.stringify(o);if(ws&&ws.readyState===1)ws.send(x);else if(q.length<200)q.push(x);}};}
 if(ROOM){if(WS_URL)NET=netWS();else try{var bc=new BroadcastChannel('foxvs-'+ROOM);NET={send:function(o){o.id=ME;bc.postMessage(o);}};bc.onmessage=function(e){onNet(e.data);};}catch(_){NET={send:function(){}};}
-  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>'+(WS_URL?'':'（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）')+'</small><small id="netSt">'+(WS_URL?'連線中…':'')+'</small>');
+  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>'+(WS_URL?'':'（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）')+'<br><a href="#" id="chgRoom">換一個房號</a>　<a href="duel.html">回去跟電腦打</a></small><small id="netSt">'+(WS_URL?'連線中…':'')+'</small>');
   NET.send({t:'hi',card:CARD});setInterval(function(){var nb=Date.now();if(PEER&&nb-beat>20000)needReload=true;beat=nb;checkReload();   /* 自己的心跳停過 20 秒以上＝這一頁被凍住過，對方早就當我離線了 */
     if(!PEER)NET.send({t:'hi',card:CARD});else{NET.send({t:'ping'});if(netRdy&&state==='wait')NET.send({t:'ready'});
     var quiet=performance.now()-PEER.last;   /* 對方多久沒消息：6 秒先提醒（回來了就收掉），30 秒才當作離線 */
@@ -229,7 +261,16 @@ function doAgain(fromNet){if(ROOM&&!fromNet)NET.send({t:'again'});$('again').sty
 $('again').addEventListener('click',function(){doAgain(false);});
 var tick=0;document.addEventListener('visibilitychange',function(){if(document.hidden)hidAt=performance.now();else if(hidAt){held+=performance.now()-hidAt;hidAt=0;}});
 /* ---------- 危險條：盤面旁邊一條直的，對方送來、還沒落下的干擾越多越滿（Tetris Battle 盤面旁那條紅的） ---------- */
-var PEND_MAX=8;function danger(k,n){var d=(k==='a'?pa:pb).querySelector('.danger');d.firstChild.style.height=Math.min(100,n/PEND_MAX*100)+'%';d.classList.toggle('hot',n>=PEND_MAX*0.6);}
+var PEND_MAX=8,pendNow={a:0,b:0},washT={a:0,b:0};
+[pa,pb].forEach(function(p){var d=p.querySelector('.danger');for(var i=0;i<PEND_MAX;i++)d.appendChild(document.createElement('i'));});
+function washMark(k,m){if(m&&(m.cleared>0||(m.cleared==null&&m.fox===1)))washT[k]=performance.now()+1600;}   /* 水狐放大招了：接下來這一小段時間裡預告列變少＝被沖掉的（遊戲有給 cleared 就照它，沒有就看是不是水狐） */
+function pipAnim(e,c){e.classList.remove('pop','land','wash');void e.offsetWidth;e.classList.add(c);setTimeout(function(){e.classList.remove(c);},600);}
+function danger(k,n){n=Math.max(0,Math.min(PEND_MAX,n|0));var d=(k==='a'?pa:pb).querySelector('.danger'),ps=d.children,was=pendNow[k],i;if(n===was)return;pendNow[k]=n;
+  if(n>was){for(i=was;i<n;i++){ps[i].classList.add('on');pipAnim(ps[i],'pop');}if(k==='a'&&state==='play')tone(150+n*26,110+n*20,0.09,0.1,'triangle');}   /* 我這邊多一個：一聲很輕的「咚」，越多音越高 */
+  else{var washed=performance.now()<washT[k];for(i=n;i<was;i++){ps[i].classList.remove('on');pipAnim(ps[i],washed?'wash':'land');}
+    if(washed){d.classList.remove('washed');void d.offsetWidth;d.classList.add('washed');if(state==='play')washSound(was-n,k==='a');}}
+  d.classList.toggle('hot',n>=5);}
+function washSound(n,mine){var v=mine?0.16:0.07;for(var i=0;i<Math.min(5,n+2);i++)tone(1250-i*140,520-i*50,0.2,v,'sine',i*0.055);tone(300,120,0.4,v*0.8,'triangle');}   /* 一串往下滑的水滴聲 */
 /* ---------- 飛過去的光：這一邊消掉的珠子變成同顏色的光點，一串弧線飛到「另一邊畫面台上、自己的狐狸」身上 ---------- */
 // 樣子照遊戲裡「珠子消掉、光點飛向狐狸」那種秀氣的光點（一顆柔光、沒有尾巴、到了輕輕亮一下），只放大一點點（2026-11-13 CK）
 var FXC=$('fx'),fxg=FXC.getContext('2d'),parts=[],fxOn=false,TRAVEL=0.65;   /* 光從珠子消掉那一刻起飛，約 0.65 秒後對方那份才收到 atk、台上的狐狸開始蓄力（再 0.45 秒打下去）：光到＝開始蓄力 */
@@ -261,11 +302,12 @@ setInterval(function(){var c=$('clock');if(state!=='play'){if(state==='wait'&&!l
   c.classList.toggle('rage',t>=DEF.rage[0]);
   if(t>=DEF.time){var a=side.a.st,b=side.b.st,ka=a.ko||0,kb=b.ko||0,ra=(a.hp||0)/(a.max||1),rb=(b.hp||0)/(b.max||1);
     over(ka<kb?'a':kb<ka?'b':Math.abs(ra-rb)<1e-6?'draw':ra>rb?'a':'b','time');}},200);
-$('netBtn').addEventListener('click',function(){var r=prompt('輸入房號（兩個人輸入一樣的就會對上）。留空＝開一間新的',ROOM||'');if(r===null)return;r=r.replace(/[^0-9A-Za-z]/g,'').slice(0,8)||String(1000+Math.floor(Math.random()*9000));location.search='?room='+r;});
+function askRoom(){var r=prompt('輸入房號（兩個人輸入一樣的就會對上）。留空＝開一間新的',ROOM||'');if(r===null)return;r=r.replace(/[^0-9A-Za-z]/g,'').slice(0,8)||String(1000+Math.floor(Math.random()*9000));location.search='?room='+r;}
+$('netBtn').addEventListener('click',askRoom);$('lobby').addEventListener('click',function(e){if(e.target&&e.target.id==='chgRoom'){e.preventDefault();askRoom();}});
 if(ROOM)$('netBtn').textContent='🤝 房號 '+ROOM;
-if(!CARD){$('cardBtn').textContent='✎ 捏一隻自己的狐狸';$('cardBtn').classList.add('new');}
+if(!CARD){$('cardBtn').textContent='✎ 捏一隻自己的狐狸';$('cardBtn').classList.add('new');$('menu').classList.add('dot');}
 draw();
-window.__duel={net:function(){return {me:ME,peer:PEER,host:isHost(),rdy:netRdy};},fly:fly,danger:danger,ko:koShow,side:side,state:function(){return state;}};   // 測試用
+window.__duel={wash:washMark,net:function(){return {me:ME,peer:PEER,host:isHost(),rdy:netRdy};},fly:fly,danger:danger,ko:koShow,side:side,state:function(){return state;}};   // 測試用
 if(Q.has('kotest')){var kb=document.createElement('button');kb.textContent='試 KO';kb.style.cssText='margin-top:8px;font:12px sans-serif;padding:4px 10px;border-radius:999px;border:1px solid #8a93c4;background:#1b2040;color:#fff;cursor:pointer';var kn=0;kb.onclick=function(){koShow(kn++%2?'a':'b');};mid.appendChild(kb);}   /* ?kotest：中間多一顆按鈕，先看 KO 大字、聽音效（輪流：我 KO 她＝金、我被 KO＝紅） */
 })();
 </script>
