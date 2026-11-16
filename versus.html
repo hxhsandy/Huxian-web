@@ -6688,7 +6688,7 @@ function updatePetals(dt,t){var dm=petalDummy;
    消除音效會隨連擊數沿五聲音階往上升
    ===================================================================== */
 var AudioFX=(function(){
-  var ctx=null,master=null,muted=false,noiseBuf=null,lastHit=0,lastBloom=0,lastBreak=0,muteFns=[];   // muteFns：靜音切換時要通知的（背景音樂 bgm.js）
+  var ctx=null,master=null,muted=false,noiseBuf=null,lastHit=0,lastBloom=0,lastBreak=0,lastVsBreak=0,muteFns=[];   // muteFns：靜音切換時要通知的（背景音樂 bgm.js）
   try{muted=localStorage.getItem('fox3-muted')==='1';}catch(_){}
   function init(){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
     if(!ctx){ctx=new AC();master=ctx.createGain();master.gain.value=0.6;var comp=ctx.createDynamicsCompressor();master.connect(comp);comp.connect(ctx.destination);
@@ -6787,7 +6787,18 @@ var AudioFX=(function(){
     portalOpen:function(){tone(98,1.6,'sine',0.14,0,196,0.3);[0,5,7,12,17,19,24].forEach(function(sm,k){tone(note(sm),0.7,'sine',0.045,0.3+k*0.1);});noise(1.4,0.06,400,6000,0,0.6);},
     start:function(){[0,7,12].forEach(function(sm,k){tone(note(sm),0.4,'sine',0.08,k*0.08);});},
     win:function(){[0,4,7,12,16,19,24].forEach(function(sm,k){tone(note(sm),0.55,'sine',0.1,k*0.09);});},
-    lose:function(){[12,8,5,0].forEach(function(sm,k){tone(note(sm-12),0.6,'triangle',0.08,k*0.18);});}};
+    lose:function(){[12,8,5,0].forEach(function(sm,k){tone(note(sm-12),0.6,'triangle',0.08,k*0.18);});},
+    // 對戰（?versus）第九輪的三個音，只有 versus/view.js 叫（CK 2026-11-16：護盾要清脆的聲音、回血要音效、鎖頭被沖碎）：
+    //   vsClang  護盾被砸：清脆的「鏘」——最前面一下很短的高頻雜音（敲到的那一下）＋一下低的悶響（砸的重量）＋四個不成整數倍的高音疊在一起（金屬／玻璃罩的餘音，越高的越快沒）
+    vsClang:function(){var f=note(24);noise(0.035,0.2,7000,null,0,1.2,'highpass');tone(230,0.09,'triangle',0.07,0,140,0.002);
+      [[1,0.42,0.075],[1.48,0.3,0.05],[2.01,0.22,0.034],[2.74,0.14,0.022]].forEach(function(q){tone(f*q[0],q[1],'sine',q[2],0,null,0.002);});tone(f*1.004,0.36,'triangle',0.02,0,null,0.002);},
+    //   vsHeal(d)  回血：跟著血條上升的 d 秒，音一路往上——底下一條往上滑的長音（C5→G6）＋八個往上爬的五聲音階（C5 起，每個隔 d／8 秒、高八度輕輕疊一層），補滿那一刻一個亮的和弦（C7 E7 G7）
+    vsHeal:function(d){d=d||0.6;swell(523.25,1568,d,'sine',0.035,0,0.05,0.12);
+      for(var k=0;k<8;k++){tone(note(SCALE[k]),0.2,'sine',0.05,d*k/8,null,0.004);tone(note(SCALE[k]+12),0.14,'sine',0.016,d*k/8,null,0.004);}
+      [24,28,31].forEach(function(sm,k){tone(note(sm),0.5,'sine',0.04,d+k*0.02,null,0.003);});noise(0.3,0.03,5000,9000,d,0.8,'highpass');},
+    //   vsLockBreak  預告列上的鎖被水沖碎：一下水花（往下掃的雜音）＋鎖裂開的三個短音＋一下低的「喀」。連著好幾個時最快 50 毫秒一次
+    vsLockBreak:function(){var n=performance.now();if(n-lastVsBreak<50)return;lastVsBreak=n;noise(0.24,0.15,2800,600,0,0.9);
+      [1900,2500,1500].forEach(function(f,k){tone(f,0.09,'triangle',0.045,k*0.02,null,0.003);});tone(210,0.1,'square',0.035,0,110);}};
 })();
 
 // 背景音樂（bgm.js，2026-10-09）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
@@ -8870,7 +8881,7 @@ var ULTS={
 
 // 對戰的流程和畫面（versus/view.js，2026-11-13 對戰支線）。第一行 import 前一個 module＝照拆檔前的順序執行（見 main.js 開頭）。
 // 規則在 versus/core.js（不碰畫面）；這裡把「我這一邊」（一個 VsSide）接到現成的戰鬥畫面上。兩邊互傳的訊息在 docs/09b_versus_link.md。
-//   入口：網址 ?versus（main.js 叫 VS.enable）。沒有 ?versus 時這個檔什麼都不做（不建 DOM、不加 CSS）。不經庭院、不存檔、不記通關。
+//   入口：網址 ?versus（main.js 叫 VS.enable）。沒有 ?versus 時這個檔什麼都不做（不建 DOM、不加 CSS）。不經庭院、不存檔、不記通關。隊伍的六隻狐狸一律是開局預設的穿戴（只有頭上的小記號；不看存檔的穿戴，第九輪）。
 //     &foe=0～8      台上的對手借哪一關 BOSS 的長相（沒給就隨機）
 //     &def=<JSON>    網址編碼的 JSON，深層合併進 VS_DEF（調數字不用重組；雙畫面兩份要給一樣的），例：&def=%7B%22garbage%22%3A%7B%22locks%22%3A2%7D%7D
 //     &gb=combo｜move 干擾怎麼產生（VS_DEF.garbage.mode）；&hp=數字 雙方的血——這兩個蓋在 &def 上面
@@ -8905,6 +8916,10 @@ var ULTS={
 //     水狐：水從水狐沖過預告列，被沖掉的鎖一個一個被捲走；沒東西可沖只有一小圈暗暗的水花＋「沒有干擾可以沖」｜木狐：被選中的珠子先一圈光往內收、變好那一下沿著劍氣的方向亮一道｜
 //     心狐：隊伍血條補上去的那一段先整段亮起來、血條變粗、數字一路往上跳｜光狐（對戰版＝護盾）：金色的罩子張開，罩子在的期間一直看得到；
 //     護盾被打：罩子上一圈光、火花、「叮」一聲然後碎開——被打的那邊是隊伍前面的罩子（drawDome），打人的那邊是台上對手身上的罩子（drawFoeDome，照她的 st.sh）
+//     第九輪（CK 2026-11-16 玩過第八輪：火、暗、木、特殊珠的提示過關；水、護盾、回血再加強）：
+//       水狐：被沖到的那一瞬間鎖頭放大（鎖是主角）、整個變亮，然後碎成幾片飛開＋水花＋一聲；
+//       護盾被砸：罩子整面一閃＋一道高光掃過去、砸到的地方跳一面小盾牌、很短的頓一下（hitStop，0.07 秒）＋震一下、清脆的「鏘」（AudioFX.vsClang）——被打的、打人的兩邊都有；
+//       心狐：補上去的那一段用七彩流光從左長到右（頭上一顆亮點、一路冒七彩的光點），底下先淡淡標出會補到哪裡，血條更粗，跟著上升的回血音（AudioFX.vsHeal）
 //     粒子抓保守（手機上兩個 WebGL 一起跑）；鏡像那一份用輕一點的版本（LITE）。自己的亂數 fxR，不動 Math.random
 //   VS.ult(key,i)    放大招時（flow 的 applyUlt）：告訴對方；這一招有對戰版就在這裡做、回傳 true（水狐：沖掉自己預告列上的干擾；光狐：護盾；心狐：只回血），沒有就回傳 false 照原版
 //   VS.ultDesc(key)  暫停面板的大招說明：對戰版不一樣的那幾招的字（沒有就 null）
@@ -8937,10 +8952,12 @@ var cueEls=[],cueOn=[],cueKey=[],pairEl=null,pairKey='',CUE_KEYS=['fire','water'
 // 特效加強（第八輪）：LITE＝輕一點的版本（鏡像）；shotKind／shotEnd＝我盯著的光彈（1 火球、2 影襲）和它的落點；clawN＝放影襲那一刻幾連擊；healTok＝血條上升的動畫第幾次（被 KO 就作廢）；
 //   domeEl／foeDomeEl＝隊伍前面、台上對手身上的護盾罩子；domeHit／foeDomeHit＝罩子上一次被打是遊戲時間第幾秒（剛被打掉的演碎開、不然只是淡掉）；healEl＝血條上補上去的那一段
 var LITE=false,fxS=24601,shotKind=[],shotEnd=[],clawN=0,healTok=0,fxWrapped=false,domeEl=null,foeDomeEl=null,healEl=null,domeOn=false,foeDomeOn=false,domeKey='',foeDomeKey='',domeHit=-9,foeDomeHit=-9;
+// 第九輪：hitStop＝護盾被砸的頓感還剩幾秒（真實時間；這段時間整個畫面幾乎停住）；healGhostEl＝血條上淡淡標出「會補到哪裡」；RAINBOW＝回血冒的七彩光點
+var hitStop=0,HIT_STOP=0.07,healGhostEl=null,RAINBOW=[0xff8fb0,0xffc27a,0xfff08a,0x8ff0b0,0x8fd0ff,0xc4a0ff].map(function(c){return new THREE.Color(c);});
 var FIRE=[new THREE.Color(0xff6a1e),new THREE.Color(0xffae3a),new THREE.Color(0xff3c14)],FIRE_HOT=new THREE.Color(0xffd27a),CLAW=new THREE.Color(0xa970ff),CLAW_HOT=new THREE.Color(0xf0e2ff),CLAW_DIM=new THREE.Color(0x5a2ea8),
   LEAF=new THREE.Color(0x6fe6a4),LEAF_HOT=new THREE.Color(0xe6ffe0),WATER=new THREE.Color(0x58b4ff),WATER_HOT=new THREE.Color(0xd4eeff),WATER_DIM=new THREE.Color(0x3a5878),SHIELD=new THREE.Color(0xffd27a),HEAL=new THREE.Color(0xff9ec2);
 function fxR(a,b){fxS=(fxS*16807)%2147483647;return a+(fxS/2147483647)*(b-a);}   // 特效自己的亂數
-var fxN={fire:0,claw:0,wash:0,dry:0,wood:0,heal:0,dome:0,hitMine:0,hitFoe:0};   // 每種特效演了幾次（測試用：確定真的有演，不是「沒出錯」的假通過）
+var fxN={fire:0,claw:0,wash:0,dry:0,wood:0,heal:0,dome:0,hitMine:0,hitFoe:0,crack:0,stop:0};   // 每種特效演了幾次（測試用：確定真的有演，不是「沒出錯」的假通過）
 var FOE_COL=new THREE.Color(0xc9a0ff),GEM_COL=new THREE.Color(0xe9d8ff),MY_GEM_COL=new THREE.Color(0xffb0c8),WARN_MAX=10;   // WARN_MAX：預告列最多畫幾個圖示（再多寫 +n）
 var CSS=[
   'html.versus #bossCd,html.versus #homeBtn,html.versus #homeBtn2,html.vslink #pauseBtn{display:none!important}',
@@ -8992,13 +9009,24 @@ var CSS=[
   '#vsDome{border-bottom:0;border-radius:50% 50% 0 0/100% 100% 0 0;transform-origin:50% 100%;background:radial-gradient(ellipse 50% 100% at 50% 100%,rgba(255,220,140,0) 70%,rgba(255,220,140,.14) 90%,rgba(255,238,196,.4) 100%);box-shadow:0 -2px 14px rgba(255,200,110,.6),inset 0 5px 14px rgba(255,214,136,.4)}',
   '#vsFoeDome{border-radius:50%;border-width:1px;background:radial-gradient(circle,rgba(255,220,140,0) 62%,rgba(255,220,140,.1) 90%,rgba(255,238,196,.26) 100%);box-shadow:0 0 10px rgba(255,200,110,.45),inset 0 0 12px rgba(255,214,136,.3)}',
   '#vsDome.on,#vsFoeDome.on{opacity:1;animation:vsDomeIdle 1.6s ease-in-out infinite alternate}#vsDome.away,#vsFoeDome.away{visibility:hidden}',
-  '#vsDome.pop,#vsFoeDome.pop{animation:vsDomePop .38s ease-out forwards}',
-  '@keyframes vsDomeIdle{from{opacity:.6}to{opacity:1}}@keyframes vsDomePop{0%{opacity:1;filter:brightness(2.2);transform:scale(1)}100%{opacity:0;filter:brightness(1);transform:scale(1.07)}}',
+  /* 被砸到（.pop，第九輪）：整面先亮一下（裡面填滿金白色）再往外撐開淡掉；::after＝一道斜的高光從左掃到右；.vsBlock＝砸到的地方跳出來的一面小盾牌 */
+  '#vsDome,#vsFoeDome{overflow:hidden}#vsDome::after,#vsFoeDome::after{content:"";position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;background:linear-gradient(105deg,rgba(255,255,255,0) 38%,rgba(255,255,255,.95) 50%,rgba(255,255,255,0) 62%);transform:translateX(-80%)}',
+  '#vsDome.pop,#vsFoeDome.pop{animation:vsDomePop .42s ease-out forwards}#vsDome.pop::after,#vsFoeDome.pop::after{animation:vsDomeGlint .26s ease-out forwards}',
+  '@keyframes vsDomeIdle{from{opacity:.6}to{opacity:1}}',
+  '@keyframes vsDomePop{0%{opacity:1;background-color:rgba(255,232,170,.36);filter:brightness(1.7);transform:scale(.97)}22%{opacity:1;background-color:rgba(255,232,170,.2);filter:brightness(1.4);transform:scale(1.02)}100%{opacity:0;background-color:rgba(255,236,180,0);filter:brightness(1);transform:scale(1.08)}}',
+  '@keyframes vsDomeGlint{0%{opacity:1;transform:translateX(-80%)}100%{opacity:.2;transform:translateX(80%)}}',
+  '.vsBlock{position:absolute;width:calc(var(--u)*1.1);height:calc(var(--u)*1.3);margin:calc(var(--u)*-.65) 0 0 calc(var(--u)*-.55);pointer-events:none;clip-path:polygon(50% 0,100% 14%,96% 58%,50% 100%,4% 58%,0 14%);background:linear-gradient(150deg,#fffdf2 0%,#ffe9a8 34%,#f0bf5a 62%,#fff3c8 100%)}',
   /* 心狐：血條上補上去的那一段（#vsHeal，在 .bar 裡）先整段亮起來；補的時候血條變粗一點 */
-  '#vsHeal{position:absolute;top:0;bottom:0;opacity:0;pointer-events:none;background:linear-gradient(90deg,#fff6de,#ffd9a0);box-shadow:0 0 8px 1px rgba(255,236,190,.95)}',
-  '#teambar .bar{transition:transform .14s ease-out}#teambar.vsHealing .bar{transform:scaleY(1.9)}',
+  '#vsHeal,#vsHealTo{position:absolute;top:0;bottom:0;opacity:0;pointer-events:none}#vsHealTo{background:rgba(255,255,255,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}',
+  /* 七彩流光（第九輪）：顏色一直往右流；右邊一條白色的亮邊＝現在補到哪 */
+  '#vsHeal{background:linear-gradient(90deg,#ff8fb0,#ffc27a,#fff08a,#8ff0b0,#8fd0ff,#c4a0ff,#ff8fb0,#ffc27a,#fff08a,#8ff0b0,#8fd0ff,#c4a0ff,#ff8fb0);background-size:90px 100%;border-right:2px solid #fff;box-shadow:0 0 8px 1px rgba(255,255,255,.95)}#teambar.vsHealing #vsHeal{animation:vsRainbow .45s linear infinite}',   /* 只有在補血的那一小段才流動：平常掛著一直跑的動畫會讓瀏覽器每一格都重畫 */
+  '@keyframes vsRainbow{from{background-position:0 0}to{background-position:90px 0}}',
+  '#teambar .bar{transition:transform .14s ease-out}#teambar.vsHealing .bar{transform:scaleY(2.5);border-color:#fff;box-shadow:0 0 12px rgba(255,255,255,.8)}',
+  '.dmg.vsBig{font-size:27px}',
   /* 水狐：被沖掉的鎖（.vsWash，照原本的位置疊一個、被水捲走） */
-  '.vl.vsWash{position:absolute;margin:0;pointer-events:none}.vl.vsWash.wet{background:linear-gradient(#9ad8ff,#3a8ee0);border-color:#e4f5ff;box-shadow:0 0 10px rgba(110,190,255,.95)}'
+  '.vl.vsWash{position:absolute;margin:0;pointer-events:none}.vl.vsWash.wet{background:linear-gradient(#eaf7ff,#6ab8ff);border-color:#fff;box-shadow:0 0 14px 3px rgba(130,205,255,1)}.vl.vsWash.wet::before{border-color:#fff}.vl.vsWash.wet b{color:#2a5fae}',
+  /* 鎖被沖碎的碎片（.vsShard，第九輪）：一小片一小片、紫的藍的 */
+  '.vsShard{position:absolute;left:0;top:0;width:9px;height:8px;margin:-4px 0 0 -4px;pointer-events:none;background:linear-gradient(#b99cff,#5a36b0);border:1px solid #e6d6ff;clip-path:polygon(0 0,100% 20%,70% 100%,10% 80%)}.vsShard.w{background:linear-gradient(#e6f6ff,#6ab8ff);border-color:#fff}'
 ].join('\n');
 function mkEl(tag,id,cls,parent){var el=document.createElement(tag);if(id)el.id=id;if(cls)el.className=cls;parent.appendChild(el);return el;}
 // ---- 名帖：外面來的長相先檢查（之後開放給所有人，這裡是入口）----
@@ -9058,7 +9086,7 @@ function enable(qs){var f=/[?&]foe=(\d+)/.exec(qs),v=/[?&]lv=([123])/.exec(qs),g
   foeEl=mkEl('div','vsFoe','hud bhud',frameEl);flashEl=mkEl('div','vsFlash','',frameEl);countEl=mkEl('div','vsCount','',frameEl);
   for(var q=0;q<CUE_KEYS.length;q++){var ce=mkEl('div','','vsCue',frameEl);ce.innerHTML='<i></i><i></i><b>'+CUE_WORD[CUE_KEYS[q]]+'</b><s></s><s></s>';cueEls.push(ce);cueOn.push(false);cueKey.push('');}
   pairEl=mkEl('div','vsPair','',frameEl);pairEl.innerHTML='<i></i><i></i>';
-  LITE=mirror;domeEl=mkEl('div','vsDome','',frameEl);foeDomeEl=mkEl('div','vsFoeDome','',frameEl);healEl=mkEl('u','vsHeal','',teamBarEl.querySelector('.bar'));
+  LITE=mirror;domeEl=mkEl('div','vsDome','',frameEl);foeDomeEl=mkEl('div','vsFoeDome','',frameEl);healGhostEl=mkEl('u','vsHealTo','',teamBarEl.querySelector('.bar'));healEl=mkEl('u','vsHeal','',teamBarEl.querySelector('.bar'));
   var chips=document.getElementById('chips');myGemsEl=document.createElement('span');myGemsEl.className='vsGems';chips.parentNode.insertBefore(myGemsEl,chips);
   document.getElementById('againBtn').textContent='再來一局';
   if(mute){var keep=null;try{keep=localStorage.getItem('fox3-muted');}catch(_){}AudioFX.setMuted(true);   // 這一份不出聲；存檔裡的靜音設定放回原樣（兩個 iframe 共用同一份）
@@ -9146,11 +9174,12 @@ function begin(){var st=CONFIG.stages[APP.stage],seed=seedNext!=null?seedNext:(M
   if(linked&&!wrapped){wrapped=true;if(mirror)wrapMirror();else wrapReal();}   // 連線：真的那一份把盤面怎麼動送出去、鏡像照紀錄回答
   if(!fxWrapped){fxWrapped=true;var ars=board.addRandomSpecials;   // 木狐生劍氣珠：哪幾顆被選中（特效用；包在連線那一層外面，鏡像照紀錄回答的也會經過這裡）
     board.addRandomSpecials=function(k,kind){var items=ars.call(this,k,kind);if(kind==='sword'&&items.length)woodFx(items);return items;};}
-  mvN=0;mvAt=0;lastU=null;mvLog={};mirLog={};mirReset();shotKind=[];shotEnd=[];clawN=0;healTok++;healEl.style.opacity=0;teamBarEl.classList.remove('vsHealing');domeOn=foeDomeOn=false;domeEl.className=foeDomeEl.className='';domeHit=foeDomeHit=-9;
+  mvN=0;mvAt=0;lastU=null;mvLog={};mirLog={};mirReset();shotKind=[];shotEnd=[];clawN=0;hitStop=0;healTok++;healEl.style.opacity=healGhostEl.style.opacity=0;teamBarEl.classList.remove('vsHealing');domeOn=foeDomeOn=false;domeEl.className=foeDomeEl.className='';domeHit=foeDomeHit=-9;
   if(linked){held=true;if(waiting)side.reset();else side.start(seed);}   // 雙畫面：等 start 的時候先擺著（不算開打）
   else {held=false;local=new VsLocal(VS_DEF);local.join(side);bot=new VsBot(local.join(new VsSide(VS_DEF,myId==='a'?'b':'a')),lv);bot.start(seed);side.start(seed);}
   board.rnd=vsRng(seed);autoRnd=vsRng(seed*31+17+(myId==='a'?0:7919));autoWait=null;   // 我的盤面：這一場的種子（接下來 dropInBoard 的開局、之後的補珠都從這條亂數流拿）
   SES.ULT_SEL=[0,0,0,0,0,0];   // 六隻狐狸都放原版大招（不看存檔帶的變奏）
+  BS.foxes.forEach(function(fx,k){fx.wear('head','sym-'+CUE_KEYS[k]);fx.wear('neck',null);fx.wear('tail',null);});   // 隊伍一律是開局預設的穿戴（頭上各自的小記號 sym-火／水／木／光／暗／心，跟新存檔一樣；flow.js 的 Save），不看存檔現在穿什麼、後來拿到的飾品（金鈴那些）不上場。CK 2026-11-16：對戰頁跟本體共用存檔，各人穿戴的不一樣，本尊和朋友那一台的鏡像會長得不一樣；之後要讓飾品上場再做進名帖。只動模型，存檔不動
   endShown=shieldOn=false;foeShow=myShow=hurt=null;glow=0;lastCombo=0;warnKey=foeKey='';warnEl.innerHTML=warnFxEl.innerHTML='';foeEl.className='hud bhud';flashEl.classList.remove('on');
   // battle 的這幾個方法換成走對戰規則的（只換這一個物件；Battle 本身、別的 Battle 都不動）
   battle.hitBoss=function(d){if(mirror){var sh=side.opp.inv?0:Math.min(Math.max(1,Math.round(d*side.mul())),battle.bossHp);if(sh>0&&side.opp.sh){side.opp.sh=false;shieldHitFoe(0);}return {killed:false,enraged:false,dealt:sh};}   // 鏡像：只演打中（數字照自己算的；她有護盾就演打在護盾上，下一則 st 會再對一次），血照訊息
@@ -9193,7 +9222,7 @@ function shatterGem(g,col){if(!g)return;var q=elXY(g);g.classList.add('gone');Au
 function refill(max,set){var ses=SES;set(0);sync();updateBars();AudioFX.refill(VS_DEF.ko.fill);
   tween(VS_DEF.ko.fill,function(v){if(SES!==ses)return;set(Math.round(max*v));sync();updateBars();}).then(function(){if(SES!==ses)return;set(null);sync();updateBars();});}
 // 我被 KO（主要的表演在這一份）：隊伍血條旁碎一顆寶石、紅閃、狐狸挨打、血條補滿
-function myDown(e){var p={x:L.W/2,y:teamY()},last=e.n>=VS_DEF.koWin;shatterGem(lastGem(myGemsEl),MY_GEM_COL);healTok++;healEl.style.opacity=0;teamBarEl.classList.remove('vsHealing');   /* 血條上升的動畫作廢（下面 refill 自己演） */
+function myDown(e){var p={x:L.W/2,y:teamY()},last=e.n>=VS_DEF.koWin;shatterGem(lastGem(myGemsEl),MY_GEM_COL);healTok++;healEl.style.opacity=healGhostEl.style.opacity=0;teamBarEl.classList.remove('vsHealing');   /* 血條上升的動畫作廢（下面 refill 自己演） */
   flashEl.classList.remove('on');void flashEl.offsetWidth;flashEl.classList.add('on');AudioFX.bossAttack();addShake(14);BS.foxes.forEach(function(f){f.hit();});
   ringFx(p.x,p.y,L.cs*0.5,L.cs*4,new THREE.Color(0xff6a8a),0.6);if(!linked)showBanner('被 KO 了！　'+e.n+'／'+VS_DEF.koWin);
   if(!last){refill(side.max,function(v){myShow=v;});if(mirror)side.hooks.addEnergy(VS_DEF.ko.energy);}}   /* 鏡像：能量照規則補上（顯示用；清鎖由本尊的 mv 來） */
@@ -9211,7 +9240,7 @@ function onEv(e){var bp=bossScreen(),g=VS_DEF.garbage,wy=teamY()-L.tbH;
   else if(e.type==='rage'){showBanner('決勝時刻！傷害 ×'+e.mul);AudioFX.enrage();}
   else if(e.type==='oppUlt'){var u=CONFIG.ult[['fire','water','wood','light','dark','heart'][e.fox]];if(u)popNum(bp.x,bp.y-L.cs*1.2,u.name,'ult','對手的大招');}
   else if(e.type==='mv')mirOn(e.m);
-  else if(e.type==='selfUlt'){if(e.fox===1&&side.live)waterFx(Math.max(0,e.cleared|0),[].map.call(warnEl.querySelectorAll('.vl'),function(el){return elXY(el);}));}   // 鏡像：本尊的水狐沖掉幾個照它說的演（這時候預告列還是沖之前的樣子）
+  else if(e.type==='selfUlt'){if(e.fox===1&&side.live)waterFx(Math.max(0,e.cleared|0),warnSpots());}   // 鏡像：本尊的水狐沖掉幾個照它說的演（這時候預告列還是沖之前的樣子）
   else if(e.type==='unshield'){if(S.time-domeHit>0.6&&side.live)shieldHitMine({x:L.W/2+fxR(-0.2,0.2)*L.W});}   // 鏡像：本尊的護盾被打掉了、這邊剛剛沒演到（0.6 秒內演過就不重複）
   else if(e.type==='down')myDown(e);
   else if(e.type==='ko')foeDown(e);
@@ -9273,7 +9302,7 @@ function update(rdt){if(!on||!side)return;var gems=bossBarEl.querySelectorAll('.
   bossBarEl.classList.toggle('vsInv',side.opp.inv&&foeShow==null&&!side.over);teamBarEl.classList.toggle('vsInv',side.invuln>0&&!side.over);
   drawWarn();drawFoe();drawCount();drawCue();drawPair();fxShots();drawDome();drawFoeDome();if(linked&&helloSent)sendGeo();}
 // 放大招：告訴對方（先給顯示用）。水狐「潮汐封印」的對戰版：沖掉自己預告列上一半的干擾（VS_DEF.ult.clearK；無條件進位、至少 1 個；原版的「BOSS 攻擊倒數延後」在對戰沒有東西可以延後）
-function ult(key,i){var cs=L.cs,rs=mirror?null:[].map.call(warnEl.querySelectorAll('.vl'),function(el){return elXY(el);}),p=side.pend(),n;
+function ult(key,i){var cs=L.cs,rs=mirror?null:warnSpots(),p=side.pend(),n;
   if(key==='dark')clawN=battle.combo;   // 影襲打中那一下的抓痕照放的時候的連擊數
   if(mirror){   // 鏡像：只演（輕一點的版本）；血、護盾、預告列照本尊的 st
     if(key==='water')return true;   /* 水沖預告列等本尊的 ult 訊息（帶 cleared＝真的沖掉幾個）到了才演，見 onEv 的 selfUlt——自己照預告列猜會猜錯（本尊的 st 可能先到、也可能還沒到） */
@@ -9322,29 +9351,45 @@ function waterFx(n,rs){var cs=L.cs,from=foxScreen(1),y=rs.length?rs[0].y:teamY()
   beam(from.x,from.y,xL,y,cs*0.5,WATER,0.3);AudioFX.bloom();
   after(0.05,function(){beam(xL,y,xR,y,cs*1.05,WATER,0.44);if(!LITE)beam(xL,y,xR,y,cs*0.3,WATER_HOT,0.36);ringFx((xL+xR)/2,y,cs*0.3,cs*1.4,WATER,0.4);});
   after(0.05,function(){return tween(T,function(q){if(SES!==ses)return;var x=xL+(xR-xL)*q;for(var j=0;j<per;j++)emit(x,y+fxR(-0.25,0.25)*cs,cs*fxR(0.8,2.4),-cs*fxR(1.4,3.6),fxR(0.3,0.5),cs*fxR(0.2,0.34),j?WATER_HOT:WATER,cs*9);});});   // 水頭一路往右、濺起水花
-  rs.slice(0,Math.min(n,WARN_MAX)).forEach(function(r){var el=mkEl('i','','vl vsWash',frameEl),d=0.05+T*(r.x-xL)/Math.max(1,xR-xL);el.style.left=(r.x-11)+'px';el.style.top=(r.y-9.5)+'px';
-    after(d,function(){if(SES!==ses)return null;fxN.wash++;el.classList.add('wet');for(var j=0;j<(LITE?2:4);j++)emit(r.x,r.y,cs*fxR(-1.4,1.8),-cs*fxR(1.5,3.6),fxR(0.3,0.5),cs*fxR(0.16,0.28),j%2?WATER_HOT:WATER,cs*9);
-      return tween(0.3,function(q){el.style.transform='translate('+(q*22).toFixed(1)+'px,'+(-18*Math.sin(q*Math.PI*0.7)).toFixed(1)+'px) rotate('+Math.round(q*80)+'deg) scale('+(1-0.65*q).toFixed(2)+')';el.style.opacity=(1-q*q).toFixed(2);});})
-    .then(function(){if(el.parentNode)el.parentNode.removeChild(el);});});
+  // 被沖掉的鎖（第九輪：鎖是主角）：水頭到的那一瞬間放大、整個變亮（0.1 秒彈出來、頓一下），然後碎開——鎖不見、幾片碎片往四周飛、一圈水光、水花、一聲
+  rs.slice(0,Math.min(n,WARN_MAX)).forEach(function(r){var el=mkEl('i','','vl vsWash',frameEl),d=0.05+T*(r.x-xL)/Math.max(1,xR-xL),big=LITE?1.9:2.6;el.innerHTML='<b>'+(r.t||'')+'</b>';el.style.left=(r.x-11)+'px';el.style.top=(r.y-9.5)+'px';
+    after(d,function(){if(SES!==ses)return null;fxN.wash++;el.classList.add('wet');el.style.zIndex=3;
+      return tween(0.16,function(q){var e=q<0.62?easeOutBack(q/0.62):1,w=q>0.62?Math.sin((q-0.62)/0.38*Math.PI*3)*5:0;el.style.transform='translateY('+(-10*e).toFixed(1)+'px) scale('+(1+(big-1)*e).toFixed(2)+') rotate('+w.toFixed(1)+'deg)';});})
+    .then(function(){if(el.parentNode)el.parentNode.removeChild(el);if(SES!==ses)return;lockCrack(r.x,r.y-10,big);});});
   popNum(L.W/2,y-6,'沖掉 '+n+' 個干擾','water',CONFIG.ult.water.name);}
+// 預告列現在每個鎖在哪、上面寫什麼（沖之前先記下來）
+function warnSpots(){return [].map.call(warnEl.querySelectorAll('.vl'),function(el){var p=elXY(el);p.t=el.textContent;return p;});}
+// 鎖碎開：一團水光、一圈、水花往上濺、幾片碎片（DOM 的小片，紫的藍的）轉著往四周飛再掉下去
+function lockCrack(x,y,big){var cs=L.cs,m=LITE?3:7,ses=SES,k;fxN.crack++;AudioFX.vsLockBreak();
+  emit(x,y,0,0,0.18,cs*1.9,WATER_HOT,0);ringFx(x,y,cs*0.3,cs*1.5,WATER_HOT,0.32);if(!LITE)ringFx(x,y,cs*0.2,cs*0.95,WATER,0.24);
+  for(k=0;k<(LITE?4:9);k++){var a=-Math.PI/2+fxR(-1.5,1.5),sp=cs*fxR(1.8,4.6);emit(x,y,Math.cos(a)*sp,Math.sin(a)*sp,fxR(0.32,0.55),cs*fxR(0.18,0.32),k%2?WATER_HOT:WATER,cs*9);}
+  for(k=0;k<m;k++)(function(k){var el=mkEl('i','','vsShard'+(k%2?' w':''),frameEl),a=k/m*Math.PI*2+fxR(-0.3,0.3),sp=fxR(34,62)*big/2.6,vr=fxR(-540,540),sc=fxR(0.9,1.5)*big/2.2;
+    tween(0.42,function(q){if(SES!==ses)return;el.style.transform='translate('+(x+Math.cos(a)*sp*q).toFixed(1)+'px,'+(y+Math.sin(a)*sp*q-18*q+46*q*q).toFixed(1)+'px) rotate('+Math.round(vr*q)+'deg) scale('+(sc*(1-0.5*q)).toFixed(2)+')';el.style.opacity=(q<0.6?1:1-(q-0.6)/0.4).toFixed(2);})
+    .then(function(){if(el.parentNode)el.parentNode.removeChild(el);});})(k);}
 // 木狐：被選中的那幾顆先一圈光往內收（＝選中了）、葉子的光點捲進去；變好那一下亮一下，沿著劍氣的方向（橫的一整排／直的一整行）亮一道＝之後它會清掉這一條
 function woodFx(items){var cs=L.cs,ses=SES;items.forEach(function(it,i){var v=views.get(it.id);if(!v)return;var q=cellXY(v.row,v.col),d=i*0.02;
   after(d,function(){if(SES!==ses)return;ringFx(q.x,q.y,cs*1.7,cs*0.55,LEAF,0.3);
     for(var k=0;k<(LITE?3:6);k++){var a=k/6*Math.PI*2+i;emit(q.x+Math.cos(a)*cs*1.15,q.y+Math.sin(a)*cs*1.15,-Math.cos(a)*cs*3.6,-Math.sin(a)*cs*3.6,0.3,cs*0.24,k%2?LEAF:LEAF_HOT,0);}});
   after(d+CONFIG.anim.convert*0.85,function(){if(SES!==ses)return;fxN.wood++;emit(q.x,q.y,0,0,0.2,cs*1.6,LEAF_HOT,0);ringFx(q.x,q.y,cs*0.4,cs*1.35,LEAF_HOT,0.32);
     var h=it.dir==='h',x1=h?L.bx:q.x,y1=h?q.y:L.by,x2=h?L.bx+cs*COLS:q.x,y2=h?q.y:L.by+cs*ROWS;beam(x1,y1,x2,y2,cs*0.42,LEAF,0.55);if(!LITE)beam(x1,y1,x2,y2,cs*0.12,LEAF_HOT,0.4);});});}
-// 心狐：血條從 from 補到 to。補上去的那一段先整段亮起來（之後淡掉）、血條變粗、血和數字一路往上跳、沿著那一段冒光點，數字「+多少」跳在那一段上面。
-//   鏡像只演亮起來和光點（血照本尊的 st）
+// 心狐：血條從 from 補到 to（第九輪：誇張一點）。底下先淡淡標出會補到哪裡；補上去的那一段用七彩流光從左長到右（0.6 秒，右邊一條白色的亮邊＝現在補到哪），
+//   血和數字跟著一路往上跳、亮邊一路冒七彩的光點、血條變得更粗；補滿之後七彩的那一段再亮 0.3 秒才淡掉。跟著上升的回血音（AudioFX.vsHeal，音一路往上、補滿一個和弦）。
+//   鏡像只演七彩那一段和光點（血照本尊的 st、不出聲）
 function healFx(from,to){var bar=teamBarEl.querySelector('.bar'),r=bar.getBoundingClientRect(),f=frameEl.getBoundingClientRect(),max=side.max,cs=L.cs,got=Math.max(0,to-from),
-    x0=r.left-f.left+r.width*from/max,x1=r.left-f.left+r.width*to/max,y=r.top-f.top+r.height/2,n=LITE?4:9,ses=SES,tok=++healTok,rise=!mirror&&got>0;
-  fxN.heal++;healEl.style.left=(from/max*100)+'%';healEl.style.width=(got/max*100)+'%';teamBarEl.classList.add('vsHealing');
+    x0=r.left-f.left+r.width*from/max,x1=r.left-f.left+r.width*to/max,y=r.top-f.top+r.height/2,n=LITE?4:9,ses=SES,tok=++healTok,rise=!mirror&&got>0,RISE=0.6,HOLD=0.3,acc=0;
+  fxN.heal++;healEl.style.left=healGhostEl.style.left=(from/max*100)+'%';healGhostEl.style.width=(got/max*100)+'%';healEl.style.width='0%';healEl.style.opacity=1;healGhostEl.style.opacity=1;teamBarEl.classList.add('vsHealing');
+  if(!mirror)AudioFX.vsHeal(RISE);
   BS.foxes.forEach(function(fx,j){var q=foxScreen(j);ringFx(q.x,q.y,cs*0.3,cs*1.3,HEAL,0.55);});
-  for(var k=0;k<n;k++)emit(x0+(x1-x0)*(k+0.5)/n,y,cs*fxR(-0.3,0.3),-cs*fxR(1.2,2.6),fxR(0.5,0.8),cs*fxR(0.18,0.3),k%2?HEAL:SHIELD,-cs*0.6);
-  popNum(Math.max(cs,Math.min(L.W-cs,(x0+x1)/2)),y-cs*0.55,'+'+got,'heal',CONFIG.ult.heart.name);
+  for(var k=0;k<n;k++)emit(x0+(x1-x0)*(k+0.5)/n,y,cs*fxR(-0.3,0.3),-cs*fxR(1.2,2.6),fxR(0.5,0.8),cs*fxR(0.18,0.3),RAINBOW[k%6],-cs*0.6);
+  popNum(Math.max(cs,Math.min(L.W-cs,(x0+x1)/2)),y-cs*0.7,'+'+got,'heal vsBig',CONFIG.ult.heart.name);
   if(rise){myShow=from;sync();updateBars();}
-  tween(0.6,function(q){if(SES!==ses||tok!==healTok)return;healEl.style.opacity=(q<0.7?0.92:0.92*(1-(q-0.7)/0.3)).toFixed(2);
-    if(rise){myShow=Math.min(side.hp,Math.round(from+got*(1-(1-q)*(1-q))));sync();updateBars();}})
-  .then(function(){if(SES!==ses||tok!==healTok)return;healEl.style.opacity=0;teamBarEl.classList.remove('vsHealing');if(rise){myShow=null;sync();updateBars();}});}
+  tween(RISE+HOLD,function(q){if(SES!==ses||tok!==healTok)return;var u=Math.min(1,q*(RISE+HOLD)/RISE),e=1-(1-u)*(1-u),hx=x0+(x1-x0)*e;
+    healEl.style.width=(got/max*100*e).toFixed(2)+'%';
+    if(u<1){acc+=LITE?0.5:1;while(acc>=1){acc--;emit(hx,y+fxR(-0.1,0.1)*cs,cs*fxR(-0.6,0.6),-cs*fxR(1.4,3.2),fxR(0.4,0.7),cs*fxR(0.2,0.34),RAINBOW[(fxS>>3)%6],-cs*0.4);}}   /* 亮邊一路冒七彩的光點 */
+    else {var h=(q*(RISE+HOLD)-RISE)/HOLD;healEl.style.opacity=healGhostEl.style.opacity=(1-h).toFixed(2);}
+    if(rise){myShow=u<1?Math.min(side.hp,Math.round(from+got*e)):null;sync();updateBars();}})
+  .then(function(){if(SES!==ses||tok!==healTok)return;healEl.style.opacity=healGhostEl.style.opacity=0;teamBarEl.classList.remove('vsHealing');if(rise){myShow=null;sync();updateBars();}
+    if(got>0){ringFx(x1,y,cs*0.15,cs*1.1,WHITE$1,0.35);}});}
 // 護盾的罩子：我有護盾（side.shield；鏡像照本尊的 st）的期間，隊伍前面一個金色的罩子。剛有那一下張開（從中間往外、往上撐開，一圈金光、沿著罩子一排光點）；
 //   被打掉（shieldHitMine 記了時間）碎開、不然只是淡掉。大招特寫時鏡頭在動，先藏起來
 function domeXY(){var a=toScreen(BS.foxPoint(0,0.5)),b=toScreen(BS.foxPoint(5,0.5)),cs=L.cs;return {l:a.x-cs*0.8,w:b.x-a.x+cs*1.6,t:a.y-cs*1.75,h:cs*2.35};}
@@ -9361,10 +9406,14 @@ function drawFoeDome(){var on=side.live&&!side.over&&side.opp.sh&&foeShow==null,
   if(on&&!away){var p=bossScreen(),r=L.cs*1.85,key=Math.round(p.x)+','+Math.round(p.y)+','+Math.round(r);if(key!==foeDomeKey){foeDomeKey=key;var st=foeDomeEl.style;st.left=(p.x-r)+'px';st.top=(p.y-r)+'px';st.width=st.height=r*2+'px';}}
   if(on!==foeDomeOn){foeDomeOn=on;foeDomeEl.className=on?'on':S.time-foeDomeHit<0.5?'pop':'';if(on&&!away){var q=bossScreen();ringFx(q.x,q.y,L.cs*0.5,L.cs*2.4,SHIELD,0.45);}}
   if(on)foeDomeEl.classList.toggle('away',away);}
-// 護盾被打到（淡淡的光＋「叮」一聲；CK 特別要聽得到）：at＝打在罩子的哪裡
-function shieldSpark(x,y,up){var cs=L.cs;ringFx(x,y,cs*0.2,cs*1.45,SHIELD,0.34);ringFx(x,y,cs*0.12,cs*0.8,WHITE$1,0.22);
-  for(var k=0;k<(LITE?3:7);k++){var a=(up?-Math.PI/2:fxR(0,Math.PI*2))+fxR(-1.2,1.2),sp=cs*fxR(1.5,3.4);emit(x,y,Math.cos(a)*sp,Math.sin(a)*sp,fxR(0.3,0.5),cs*fxR(0.16,0.26),k%2?SHIELD:WHITE$1,cs*4);}
-  AudioFX.bellTap();AudioFX.shardTap();}
+// 護盾被砸到（第九輪：要有真的砸在盾上的反饋）：砸到的地方兩圈光、火花、跳出一面小盾牌（一閃就沒）；罩子整面一閃＋高光掃過去是 CSS 的 .pop（drawDome／drawFoeDome 收掉罩子的時候加）；
+//   很短的頓一下（hitStop：真實時間 HIT_STOP 秒整個畫面幾乎停住，鏡像不頓）＋震一下；清脆的「鏘」（AudioFX.vsClang）
+function shieldSpark(x,y,up){var cs=L.cs,ses=SES,el=mkEl('i','','vsBlock',frameEl);
+  ringFx(x,y,cs*0.25,cs*1.9,SHIELD,0.36);ringFx(x,y,cs*0.15,cs*1.05,WHITE$1,0.24);emit(x,y,0,0,0.14,cs*2.0,SHIELD,0);
+  for(var k=0;k<(LITE?4:10);k++){var a=(up?-Math.PI/2:fxR(0,Math.PI*2))+fxR(-1.3,1.3),sp=cs*fxR(1.8,4.2);emit(x,y,Math.cos(a)*sp,Math.sin(a)*sp,fxR(0.3,0.5),cs*fxR(0.16,0.28),k%2?SHIELD:WHITE$1,cs*4);}
+  el.style.left=x+'px';el.style.top=y+'px';el.style.setProperty('--u',cs+'px');
+  tween(0.3,function(q){if(SES!==ses)return;el.style.transform='scale('+(q<0.25?0.5+2.4*q:1.1+0.25*(q-0.25)).toFixed(2)+')';el.style.opacity=(q<0.3?1:1-(q-0.3)/0.7).toFixed(2);}).then(function(){if(el.parentNode)el.parentNode.removeChild(el);});
+  if(!mirror){hitStop=HIT_STOP;fxN.stop++;}addShake(7);AudioFX.vsClang();}
 function shieldHitMine(to){var d=domeXY(),cx=d.l+d.w/2,u=Math.max(-0.92,Math.min(0.92,(to.x-cx)/(d.w/2)));fxN.hitMine++;domeHit=S.time;shieldSpark(to.x,d.t+d.h-d.h*Math.sqrt(1-u*u),true);}   // 打在罩子上（to 的正上方）
 function shieldHitFoe(cut){var p=bossScreen(),cs=L.cs;fxN.hitFoe++;foeDomeHit=S.time;shieldSpark(p.x+fxR(-0.5,0.5)*cs,p.y+cs*0.9,false);if(cut>0)popNum(p.x,p.y+cs*1.5,'擋下 '+cut,'down','護盾');}
 function ultDesc(key){var u=CONFIG.ult,c=VS_DEF.comboCap;
@@ -9381,7 +9430,8 @@ var VS={
   foe:function(){return foe;},
   stage:function(){return vsStage(CONFIG.stages[APP.stage]);},
   begin:begin,
-  warp:function(rdt){if(!side||!side.live)return rdt;rdt=side.warp(rdt);return mirror&&mir.q.length?rdt*Math.min(4,1+mir.q.length*MIR_FAST):rdt;},   // 鏡像落後了：整個畫面快轉追上去
+  warp:function(rdt){if(!side||!side.live)return rdt;if(hitStop>0){var hs=Math.min(rdt,hitStop);hitStop-=hs;rdt=rdt-hs+hs*0.04;}   /* 護盾被砸的頓感（第九輪）：這一小段真實時間遊戲幾乎不走 */
+    rdt=side.warp(rdt);return mirror&&mir.q.length?rdt*Math.min(4,1+mir.q.length*MIR_FAST):rdt;},   // 鏡像落後了：整個畫面快轉追上去
   update:update,
   moved:function(steps){if(side)side.moveDone(vsCount(steps));},
   cleared:cleared,
