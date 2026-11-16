@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#131838">
+<title>狐仙對戰 選擇對戰</title>
+<!-- 狐仙對戰的「選擇對戰」頁（2026-11-16 遊星；CK：捏完臉進到選 電腦對戰 還是 玩家對戰，兩個大按鈕，簡易的就好）
+     流程：card.html（捏臉）→「上場！」→ 這一頁 → duel.html（電腦：?lv=1｜2｜3&b=台上哪一隻；玩家：?room=房號）。
+     單一檔案、不用組建；放在網站上 duel.html 的旁邊。讀 localStorage：foxvs-card（名帖）、foxvs-card-thumb（上場時拍的小圖）、foxvs-lv（上次選的難度）。
+     排法學 CK 給的參考圖（上面標題、兩張大卡片、左下角返回），長相用我們自己的夜色＋金色襯線。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&display=swap&text=SV%E4%B8%80%E4%B8%BB%E4%BA%86%E4%BB%99%E5%82%99%E5%8E%BB%E5%8F%8B%E5%90%8D%E5%96%AE%E5%9B%9E%E5%9B%B0%E5%A0%B4%E5%A5%BD%E5%AE%B6%E5%B0%8D%E6%88%B0%E6%88%BF%E6%89%93%E6%8D%8F%E6%93%87%E6%96%B0%E6%99%AE%E6%9C%8B%E6%BA%96%E7%84%A1%E7%8B%90%E7%8E%A9%E7%9A%84%E7%B0%A1%E7%B7%9A%E8%85%A6%E8%87%89%E8%99%9F%E8%B7%9F%E9%80%9A%E9%80%A3%E9%80%B2%E9%81%B8%E9%96%8B%E9%96%93%E9%97%9C%E9%9A%BB%E9%9B%A3%E9%9B%BB" rel="stylesheet">
+<style>
+:root{--gold:#ffd978;--gold2:#f3d9a0;--ink:#fff8ec}
+html,body{margin:0;height:100%;width:100%;overflow:hidden;color:var(--ink);font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(circle at 78% 13%,#fff4d6 0 3.2%,rgba(255,232,170,.5) 3.6%,rgba(255,220,150,.16) 8%,transparent 20%),linear-gradient(#0f1330,#272c62 58%,#5d4f8f)}
+#sky{position:fixed;inset:0;pointer-events:none}
+#sky i{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff3d0;animation:tw 3s ease-in-out infinite}
+@keyframes tw{0%,100%{opacity:.15}50%{opacity:.9}}
+#wrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(12px,3.2vh,30px);padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 54px);box-sizing:border-box}
+/* 標題：金色襯線字，兩邊各一條細線＋小菱形 */
+#title{display:flex;align-items:center;gap:14px;font-weight:900;font-size:clamp(24px,5.2vmin,40px);letter-spacing:.32em;text-indent:.32em;color:#fff3d0;text-shadow:0 0 16px rgba(255,184,74,.8),0 2px 0 #7a3b10}
+#title::before,#title::after{content:"";width:clamp(26px,9vw,90px);height:1.5px;background:linear-gradient(90deg,transparent,var(--gold))}
+#title::after{transform:scaleX(-1)}
+#me{display:flex;align-items:center;gap:10px;font-size:14px;letter-spacing:.14em;opacity:.92}
+#me img{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--gold2);background:rgba(20,24,48,.5);object-fit:cover;box-shadow:0 0 12px rgba(255,190,90,.4)}
+#me b{color:var(--gold);font-weight:900}
+#cards{display:flex;gap:clamp(12px,3vw,34px);width:100%;max-width:980px;justify-content:center;align-items:stretch}
+.card{position:relative;flex:1 1 0;max-width:440px;min-height:clamp(150px,34vh,330px);border-radius:22px;border:1.5px solid rgba(243,217,160,.55);background:linear-gradient(160deg,rgba(40,46,96,.62),rgba(20,24,52,.66));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.14);cursor:pointer;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,1.6vh,14px);padding:16px 14px;box-sizing:border-box;
+  transition:transform .16s cubic-bezier(.2,1.6,.4,1),box-shadow .2s,border-color .2s;animation:rise .5s cubic-bezier(.2,1.2,.4,1) both;user-select:none}
+.card:nth-child(2){animation-delay:.08s}
+@keyframes rise{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:none}}
+.card::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 36%,var(--tint),transparent 62%);opacity:.5;pointer-events:none;transition:opacity .2s}
+.card:hover,.card:focus-visible{transform:translateY(-4px) scale(1.02);border-color:#fff3d0;box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 34px var(--glow),inset 0 1px 0 rgba(255,255,255,.2);outline:none}
+.card:hover::before{opacity:.85}.card:active{transform:scale(.98)}
+#cpu{--tint:rgba(120,150,255,.5);--glow:rgba(130,160,255,.55)}#pvp{--tint:rgba(255,150,190,.45);--glow:rgba(255,170,120,.55)}
+.art{position:relative;display:flex;align-items:center;justify-content:center;gap:clamp(6px,2vw,18px);height:clamp(64px,15vh,130px)}
+.art svg,.art img{height:100%;width:auto;aspect-ratio:1;filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))}
+.art img{border-radius:50%;border:1.5px solid var(--gold2);background:rgba(20,24,48,.45);object-fit:cover;box-sizing:border-box}
+.art .vs{font:italic 900 clamp(18px,4.4vmin,34px) "Noto Serif TC",serif;color:var(--gold);text-shadow:0 0 12px #f08a2c,0 2px 0 #7a3b10}
+.card h2{margin:0;font-weight:900;font-size:clamp(24px,5.6vmin,44px);letter-spacing:.2em;text-indent:.2em;color:#fff3d0;text-shadow:0 0 18px rgba(255,184,74,.75),0 3px 0 #7a3b10;position:relative}
+.card p{margin:0;font:13px/1.5 sans-serif;letter-spacing:.08em;opacity:.78;position:relative}
+/* 難度：三顆小的，選到的那顆是金色 */
+.lv{display:flex;gap:8px;position:relative}
+.lv button,.rm button{font:900 13px "Noto Serif TC",serif;letter-spacing:.14em;padding:6px 14px;border-radius:999px;border:1px solid rgba(201,207,238,.5);background:rgba(20,24,48,.5);color:#dfe3fb;cursor:pointer}
+.lv button.on{background:linear-gradient(#f6c463,#d98a2b);border-color:#fff3d0;color:#3a1c05;box-shadow:0 0 12px rgba(255,190,90,.6)}
+/* 玩家對戰點開之後：房號 */
+.rm{display:none;flex-direction:column;align-items:center;gap:10px;position:relative}
+#pvp.open .rm{display:flex}#pvp.open p{display:none}#pvp.open .art{height:clamp(40px,8vh,70px)}
+.rm .row{display:flex;gap:8px;align-items:center}
+.rm input{width:7.2em;font:900 22px "Noto Serif TC",serif;letter-spacing:.3em;text-align:center;padding:7px 8px;border-radius:12px;border:1.5px solid rgba(243,217,160,.6);background:rgba(10,12,30,.55);color:var(--gold);outline:none}
+.rm input::placeholder{color:rgba(255,217,120,.35);letter-spacing:.2em;font-size:16px}
+.rm .go{background:linear-gradient(#f6c463,#d98a2b);border-color:#fff3d0;color:#3a1c05;padding:9px 18px;font-size:15px}
+#back{position:fixed;left:calc(env(safe-area-inset-left,0px) + 14px);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:900 14px "Noto Serif TC",serif;letter-spacing:.14em;padding:8px 16px 8px 12px;border-radius:999px;border:1px solid rgba(243,217,160,.55);background:rgba(20,24,48,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#ffe9b8;text-decoration:none}
+#back::before{content:"‹";margin-right:8px;font-size:18px;line-height:0}
+@media (max-aspect-ratio:1/1){#cards{flex-direction:column;align-items:center}.card{width:100%;flex:none;min-height:clamp(150px,30vh,300px)}}
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<div id="wrap">
+  <div id="title">選擇對戰</div>
+  <div id="me"></div>
+  <div id="cards">
+    <div class="card" id="cpu" tabindex="0" role="button">
+      <div class="art"><span class="mine"></span><span class="vs">VS</span>
+        <svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="fl" cx="50%" cy="70%" r="65%"><stop offset="0" stop-color="#e9f3ff"/><stop offset=".45" stop-color="#8fb4ff"/><stop offset="1" stop-color="#5b56d6"/></radialGradient></defs>
+          <path d="M50 6 C58 24 80 34 78 60 C77 80 64 93 50 93 C36 93 23 80 22 60 C21 44 32 40 36 26 C42 34 44 40 46 44 C50 34 52 20 50 6Z" fill="url(#fl)" stroke="#e9f3ff" stroke-width="2" stroke-linejoin="round"/>
+          <ellipse cx="41" cy="64" rx="4.2" ry="6.2" fill="#1a1c44"/><ellipse cx="59" cy="64" rx="4.2" ry="6.2" fill="#1a1c44"/></svg></div>
+      <h2>電腦對戰</h2><p>跟關主打一場</p>
+      <div class="lv" id="lv"><button type="button" data-lv="1">簡單</button><button type="button" data-lv="2">普通</button><button type="button" data-lv="3">困難</button></div>
+    </div>
+    <div class="card" id="pvp" tabindex="0" role="button">
+      <div class="art"><span class="mine"></span><span class="vs">VS</span>
+        <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M17 10 L40 33 Q50 29 60 33 L83 10 L85 50 Q85 80 50 91 Q15 80 15 50 Z" fill="#f6a5c0" stroke="#fff0f5" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M22 20 L36 35 L24 40Z M78 20 L64 35 L76 40Z" fill="#ffe3ee"/><ellipse cx="37" cy="55" rx="4.6" ry="6.4" fill="#3a1c3a"/><ellipse cx="63" cy="55" rx="4.6" ry="6.4" fill="#3a1c3a"/><path d="M46 69 Q50 73 54 69" fill="none" stroke="#3a1c3a" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <h2>玩家對戰</h2><p>開房間，跟朋友連線</p>
+      <div class="rm"><div class="row"><input id="room" inputmode="numeric" maxlength="8" placeholder="房號" autocomplete="off"><button type="button" class="go" id="join">進房間</button></div><button type="button" id="mk">開一間新的</button></div>
+    </div>
+  </div>
+</div>
+<a id="back" href="card.html">回去捏臉</a>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id);},LS=function(k){try{return localStorage.getItem(k);}catch(_){return null;}};
+var card=null;try{var c=JSON.parse(LS('foxvs-card')||'null');if(c&&c.v===1&&c.look)card=c;}catch(_){}
+var thumb=LS('foxvs-card-thumb');if(thumb&&thumb.indexOf('data:image/')!==0)thumb=null;
+// 星星
+var sky=$('sky'),s='';for(var i=0;i<46;i++)s+='<i style="left:'+(Math.random()*100).toFixed(1)+'%;top:'+(Math.random()*72).toFixed(1)+'%;animation-delay:-'+(Math.random()*3).toFixed(2)+'s;transform:scale('+(0.6+Math.random()*1.1).toFixed(2)+')"></i>';sky.innerHTML=s;
+// 我的狐狸：有上場時拍的小圖就用它，沒有就用一個金色的狐狸頭
+var FOX='<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M17 10 L40 33 Q50 29 60 33 L83 10 L85 50 Q85 80 50 91 Q15 80 15 50 Z" fill="#ffcf6a" stroke="#fff3d0" stroke-width="2.5" stroke-linejoin="round"/><path d="M22 20 L36 35 L24 40Z M78 20 L64 35 L76 40Z" fill="#fff0cf"/><ellipse cx="37" cy="55" rx="4.6" ry="6.4" fill="#4a2a10"/><ellipse cx="63" cy="55" rx="4.6" ry="6.4" fill="#4a2a10"/><path d="M46 69 Q50 73 54 69" fill="none" stroke="#4a2a10" stroke-width="2.5" stroke-linecap="round"/></svg>';
+[].forEach.call(document.querySelectorAll('.mine'),function(e){e.outerHTML=thumb?'<img alt="" src="'+thumb+'">':FOX;});
+var me=$('me');if(card){var nm=document.createElement('b');nm.textContent=card.name||'無名狐狸';me.appendChild(nm);me.appendChild(document.createTextNode('　準備好了'));}
+else{me.innerHTML='還沒捏狐狸——<a href="card.html" style="color:#ffd978">先去捏一隻</a>（不捏也可以直接打）';$('back').textContent='去捏一隻狐狸';}
+// 電腦對戰：難度記得上次選的；點卡片（不是點難度）就開打，台上是哪一隻隨機
+var lv=+(LS('foxvs-lv')||2);if(!(lv>=1&&lv<=3))lv=2;
+function drawLv(){[].forEach.call($('lv').children,function(b){b.classList.toggle('on',+b.dataset.lv===lv);});}
+$('lv').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;e.stopPropagation();lv=+b.dataset.lv;try{localStorage.setItem('foxvs-lv',lv);}catch(_){}drawLv();});drawLv();
+function goCpu(){location.href='duel.html?lv='+lv+'&b='+Math.floor(Math.random()*9);}
+$('cpu').addEventListener('click',goCpu);$('cpu').addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')goCpu();});
+// 玩家對戰：點開 → 輸入房號進房間，或開一間新的（四位數）
+var pvp=$('pvp'),room=$('room');
+function clean(v){return (v||'').replace(/[^0-9A-Za-z]/g,'').slice(0,8);}
+function goRoom(r){r=clean(r);if(!r){room.focus();return;}location.href='duel.html?room='+r;}
+pvp.addEventListener('click',function(e){if(e.target.closest('.rm'))return;if(!pvp.classList.contains('open')){pvp.classList.add('open');setTimeout(function(){room.focus();},60);}});
+room.addEventListener('input',function(){var v=clean(room.value);if(v!==room.value)room.value=v;});
+room.addEventListener('keydown',function(e){if(e.key==='Enter')goRoom(room.value);});
+$('join').addEventListener('click',function(){goRoom(room.value);});
+$('mk').addEventListener('click',function(){goRoom(String(1000+Math.floor(Math.random()*9000)));});
+var q=/[?&]room=([0-9A-Za-z]{1,8})/.exec(location.search);if(q)goRoom(q[1]);   /* 帶著房號來的（朋友的邀請連結繞過來）：直接進 */
+})();
+</script>
+</body>
+</html>

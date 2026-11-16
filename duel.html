@@ -84,16 +84,16 @@ html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-
 #menu{position:absolute;left:10px;bottom:8px;z-index:6}
 #menuBox{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
 #menuBtn{display:none}
-#cardBtn,#netBtn{padding:5px 12px;border-radius:999px;border:1px solid #8a93c4;background:rgba(20,24,48,.85);color:#e9e6f2;font:12px sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer}
+#cardBtn,#netBtn,#homeBtn{padding:5px 12px;border-radius:999px;border:1px solid #8a93c4;background:rgba(20,24,48,.85);color:#e9e6f2;font:12px sans-serif;text-decoration:none;white-space:nowrap;cursor:pointer}
 #cardBtn.new{border-color:#f3d9a0;color:#ffe9b8;box-shadow:0 0 12px rgba(255,190,90,.5)}
 #menu.fold #menuBtn{display:block;width:var(--mb,30px);height:var(--mb,30px);padding:0;border-radius:50%;border:1px solid rgba(243,217,160,.6);background:rgba(20,24,48,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#ffe9b8;font:900 calc(var(--mb,30px)*.5)/1 sans-serif;letter-spacing:.05em;cursor:pointer}
 #menu.fold.dot #menuBtn{box-shadow:0 0 10px rgba(255,190,90,.7)}
 #menu.fold #menuBox{display:none;position:absolute;right:0;top:calc(100% + 7px);align-items:flex-end}
 #menu.fold.up #menuBox{top:auto;bottom:calc(100% + 7px);right:50%;transform:translateX(50%);align-items:center}
 #menu.fold.open #menuBox{display:flex}
-#menu.fold #cardBtn,#menu.fold #netBtn{padding:8px 14px;font-size:13px;border-color:rgba(243,217,160,.6);background:rgba(20,24,48,.78);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#ffe9b8;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+#menu.fold #cardBtn,#menu.fold #netBtn,#menu.fold #homeBtn{padding:8px 14px;font-size:13px;border-color:rgba(243,217,160,.6);background:rgba(20,24,48,.78);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#ffe9b8;box-shadow:0 4px 14px rgba(0,0,0,.5)}
 #lobby{display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;background:rgba(5,6,14,.82);text-align:center;font:900 22px/1.9 "Noto Serif TC",serif;letter-spacing:.12em}
-#lobby b{font-size:44px;color:#ffd978;letter-spacing:.3em;text-shadow:0 0 18px #f08a2c}#lobby small{display:block;margin-top:10px;font:13px/1.7 sans-serif;letter-spacing:.04em;opacity:.7}#lobby a{color:#ffd978}
+#lobby b{font-size:44px;color:#ffd978;letter-spacing:.3em;text-shadow:0 0 18px #f08a2c}#lobby small{display:block;margin-top:10px;font:13px/1.7 sans-serif;letter-spacing:.04em;opacity:.7}#lobby a{color:#ffd978}#invite{display:block;margin:16px auto 4px;padding:9px 22px;border-radius:999px;border:1.5px solid #fff3d0;background:linear-gradient(#f6c463,#d98a2b);color:#3a1c05;font:900 15px "Noto Serif TC",serif;letter-spacing:.16em;cursor:pointer}
 #note{position:absolute;left:0;right:0;bottom:4px;text-align:center;font:11px sans-serif;opacity:.4}
 </style>
 </head>
@@ -110,7 +110,7 @@ html,body{margin:0;height:100%;width:100%;background:#05060c;color:#fff8ec;font-
 <button id="again" type="button">再來一局</button>
 <canvas id="fx"></canvas>
 <div id="msg"></div>
-<div id="menu"><button id="menuBtn" type="button" aria-label="選單">⋯</button><div id="menuBox"><a id="cardBtn" href="card.html">✎ 我的名帖</a><button id="netBtn" type="button">🤝 跟朋友打（測試版）</button></div></div>
+<div id="menu"><button id="menuBtn" type="button" aria-label="選單">⋯</button><div id="menuBox"><a id="homeBtn" href="mode.html">⌂ 回選擇對戰</a><a id="cardBtn" href="card.html">✎ 我的名帖</a><button id="netBtn" type="button">🤝 換房號</button></div></div>
 <div id="lobby"><div id="lobbyTxt"></div></div>
 <div id="note">狐仙對戰・雙畫面試看</div>
 <script>
@@ -250,11 +250,11 @@ function netWS(){var ws=null,q=[],opened=0,tries=0,full=false;function open(){fu
     ws.onerror=function(){try{ws.close();}catch(_){}};}
   open();return {send:function(o){o.id=ME;var x=JSON.stringify(o);if(ws&&ws.readyState===1)ws.send(x);else if(q.length<200)q.push(x);}};}
 if(ROOM){if(WS_URL)NET=netWS();else try{var bc=new BroadcastChannel('foxvs-'+ROOM);NET={send:function(o){o.id=ME;bc.postMessage(o);}};bc.onmessage=function(e){onNet(e.data);};}catch(_){NET={send:function(){}};}
-  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>'+(WS_URL?'':'（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）')+'<br><a href="#" id="chgRoom">換一個房號</a>　<a href="duel.html">回去跟電腦打</a></small><small id="netSt">'+(WS_URL?'連線中…':'')+'</small>');
+  lobby(true,'房號 <b>'+ROOM+'</b><br>等對手進來…<small>把這個房號給朋友，請她也開這一頁、輸入同一個房號<br>'+(WS_URL?'':'（測試版：現在要在同一台電腦、同一個瀏覽器再開一個視窗）')+'</small><button type="button" id="invite">複製邀請連結</button><small><a href="#" id="chgRoom">換一個房號</a>　<a href="mode.html">回選擇對戰</a></small><small id="netSt">'+(WS_URL?'連線中…':'')+'</small>');
   NET.send({t:'hi',card:CARD});setInterval(function(){var nb=Date.now();if(PEER&&nb-beat>20000)needReload=true;beat=nb;checkReload();   /* 自己的心跳停過 20 秒以上＝這一頁被凍住過，對方早就當我離線了 */
     if(!PEER)NET.send({t:'hi',card:CARD});else{NET.send({t:'ping'});if(netRdy&&state==='wait')NET.send({t:'ready'});
     var quiet=performance.now()-PEER.last;   /* 對方多久沒消息：6 秒先提醒（回來了就收掉），30 秒才當作離線 */
-    if(state!=='over'){if(quiet>30000){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<small>留在這一頁：她回來、或換一個人進這個房號，都會自動重新開始<br><a href="duel.html">回去跟電腦打</a></small><small id="netSt"></small>');netSt(netState);}else if(quiet>6000){lobby(true,'對手沒有回應…<small>等她回來（她的視窗被蓋住或切到背景時會停住）</small>');stalled=true;}else if(stalled){stalled=false;lobby(false);}}}},1500);}
+    if(state!=='over'){if(quiet>30000){state='over';both({type:'over',winner:'a',by:'ko'});lobby(true,'對手離線了<small>留在這一頁：她回來、或換一個人進這個房號，都會自動重新開始<br><a href="mode.html">回選擇對戰</a></small><small id="netSt"></small>');netSt(netState);}else if(quiet>6000){lobby(true,'對手沒有回應…<small>等她回來（她的視窗被蓋住或切到背景時會停住）</small>');stalled=true;}else if(stalled){stalled=false;lobby(false);}}}},1500);}
 
 function doAgain(fromNet){if(ROOM&&!fromNet)NET.send({t:'again'});$('again').style.display='none';clearResult();side.a.st={ko:0};side.b.st={ko:0};draw();both({type:'again'});state='wait';
   if(ROOM){netRdy=false;PEER.ready=false;setTimeout(netReady,500);}else setTimeout(start,400);}
@@ -303,8 +303,11 @@ setInterval(function(){var c=$('clock');if(state!=='play'){if(state==='wait'&&!l
   if(t>=DEF.time){var a=side.a.st,b=side.b.st,ka=a.ko||0,kb=b.ko||0,ra=(a.hp||0)/(a.max||1),rb=(b.hp||0)/(b.max||1);
     over(ka<kb?'a':kb<ka?'b':Math.abs(ra-rb)<1e-6?'draw':ra>rb?'a':'b','time');}},200);
 function askRoom(){var r=prompt('輸入房號（兩個人輸入一樣的就會對上）。留空＝開一間新的',ROOM||'');if(r===null)return;r=r.replace(/[^0-9A-Za-z]/g,'').slice(0,8)||String(1000+Math.floor(Math.random()*9000));location.search='?room='+r;}
-$('netBtn').addEventListener('click',askRoom);$('lobby').addEventListener('click',function(e){if(e.target&&e.target.id==='chgRoom'){e.preventDefault();askRoom();}});
-if(ROOM)$('netBtn').textContent='🤝 房號 '+ROOM;
+$('netBtn').addEventListener('click',askRoom);$('lobby').addEventListener('click',function(e){var t=e.target;if(!t)return;if(t.id==='chgRoom'){e.preventDefault();askRoom();}
+  if(t.id==='invite'){var u=new URL('card.html?room='+ROOM,location.href).href;   /* 邀請連結先到捏臉頁（朋友捏一隻或直接上場），上場後自動進這一間 */
+    var ok=function(){t.textContent='已複製 ✓ 貼給朋友';setTimeout(function(){t.textContent='複製邀請連結';},2200);},no=function(){prompt('把這個網址貼給朋友',u);};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(ok,no);else no();}});
+if(ROOM)$('netBtn').textContent='🤝 房號 '+ROOM+'（換）';else $('netBtn').textContent='🤝 跟朋友打';
 if(!CARD){$('cardBtn').textContent='✎ 捏一隻自己的狐狸';$('cardBtn').classList.add('new');$('menu').classList.add('dot');}
 draw();
 window.__duel={wash:washMark,net:function(){return {me:ME,peer:PEER,host:isHost(),rdy:netRdy};},fly:fly,danger:danger,ko:koShow,side:side,state:function(){return state;}};   // 測試用

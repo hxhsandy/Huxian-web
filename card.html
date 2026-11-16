@@ -8769,6 +8769,9 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
     dev.DEF.forEach(function(_,k){var lk=baseLook(k),f=makeFox(lk);sc.add(f.group);f.look(0.35,0);f.update(0,1);var ty=0.56*(lk.size||1);cam.position.set(0,ty+0.4,3.3);cam.lookAt(0,ty,0);R.render(sc,cam);thumbs[k]=cv.toDataURL('image/png');sc.remove(f.group);dev.disposeFox(f);});
     floor.visible=true;L=keepL;place();}
 
+  // 現在這一隻的小圖（上場時拍，給選擇對戰那一頁用）：臉的特寫、透明底
+  function snapMe(){R.setSize(200,200,false);cam.aspect=1;cam.clearViewOffset();cam.updateProjectionMatrix();floor.visible=false;if(dirty)buildFox();
+    fox.look(0.3,0);fox.update(0,tNow);var ty=0.62*(L.size||1);cam.position.set(0,ty+0.25,2.7);cam.lookAt(0,ty,0);R.render(sc,cam);var u=cv.toDataURL('image/png');floor.visible=true;place();return u;}
   /* ---------- 介面（半透明、浮在狐狸上面） ---------- */
   function el(tag,cls,html){var d=document.createElement(tag);if(cls)d.className=cls;if(html!=null)d.innerHTML=html;return d;}
   function hex(n){return '#'+('000000'+((n>>>0)&0xffffff).toString(16)).slice(-6);}
@@ -8777,7 +8780,7 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
   var ACC=['#ff5a7a','#ff9a4a','#ffd24a','#9dff3a','#4ad6a4','#5cb4ff','#8b6fe2','#f075a6','#ffffff','#1d1420'];
   var CATS=[['preset','預設'],['eye','眼睛'],['face','臉'],['fur','毛色'],['tail','尾巴'],['fire','狐火'],['body','體型']];
   var ui=el('div');ui.id='cdUI';document.body.appendChild(ui);
-  ui.innerHTML='<div class="cdTop"><a class="cdIcon" id="cdBack" href="duel.html" title="回對戰">‹</a><input id="cdName" type="text" maxlength="8" placeholder="取個名字"><button class="cdIcon" id="cdScene" type="button"></button></div>'+
+  ui.innerHTML='<div class="cdTop"><a class="cdIcon" id="cdBack" href="mode.html" title="回選擇對戰">‹</a><input id="cdName" type="text" maxlength="8" placeholder="取個名字"><button class="cdIcon" id="cdScene" type="button"></button></div>'+
     '<div class="cdTabs" id="cdTabs"></div><div class="cdSheet"><div class="cdNow" id="cdNow"></div><div class="cdBody" id="cdBody"></div></div>'+
     '<div class="cdBar"><button id="cdRand" type="button" class="cdBtn">🎲 全隨機</button><button id="cdGo" type="button" class="cdGo">上場！</button></div>';
   var body=document.getElementById('cdBody'),nameEl=document.getElementById('cdName'),sceneEl=document.getElementById('cdScene');
@@ -8835,7 +8838,9 @@ if(endK){APP.endTest=endK;if(APP.screen!=='battle'){APP.stage=2;startTrial();}
     if(et==='slit')L.face.pupil=0x0d1a10;changed();build();}
   document.getElementById('cdRand').addEventListener('click',randomize);
   function go(){var nm=(name||'').trim()||'無名狐狸';try{localStorage.setItem(CARD_KEY,JSON.stringify({v:1,name:Array.from(nm).slice(0,8).join(''),scene:scene,look:L}));}catch(e){alert('存不起來（瀏覽器不讓這一頁存東西）');return;}
-    save();var nx=/[?&]next=([^&]+)/.exec(location.search);location.href=nx?decodeURIComponent(nx[1]):'duel.html';}
+    save();try{localStorage.setItem('foxvs-card-thumb',snapMe());}catch(e){}   /* 選擇對戰那一頁要秀「我的狐狸」：拍一張小圖帶過去（存不下就算了，那一頁會用預設的圖） */
+    var nx=/[?&]next=([^&]+)/.exec(location.search),rm=/[?&]room=([0-9A-Za-z]{1,8})/.exec(location.search);
+    location.href=nx?decodeURIComponent(nx[1]):rm?'duel.html?room='+rm[1]:'mode.html';}   /* 流程：捏臉 → 選擇對戰（mode.html）→ 對戰；網址帶 ?room=（朋友的邀請連結）就捏完直接進那一間 */
   document.getElementById('cdGo').addEventListener('click',go);
 
   var st=document.createElement('style');st.textContent=[
